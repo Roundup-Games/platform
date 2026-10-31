@@ -49,7 +49,10 @@ class AddSessionToCampaign extends Component
         if (request()->boolean('prefill')) {
             $suggested = app(RecurrenceService::class)->nextSuggestedDateTime($this->campaign);
             if ($suggested !== null) {
-                $this->date_time = $suggested->format('Y-m-d\TH:i'); // datetime-local input format
+                // Render the suggestion in the ENTERING user's wall clock so
+                // the datetime-local round-trip is stable: the input edge
+                // parses what the form shows in that same zone (R089).
+                $this->date_time = $suggested->setTimezone(viewer_timezone())->format('Y-m-d\TH:i'); // datetime-local input format
             }
         }
     }
@@ -72,6 +75,11 @@ class AddSessionToCampaign extends Component
         $this->authorize('create', Game::class);
 
         $validated = $this->validate();
+
+        // Input edge (R089): the datetime-local value is the host's wall
+        // clock — persist a true UTC instant.
+        $validated['date_time'] = wall_time_to_utc($validated['date_time'])?->format('Y-m-d H:i:s') ?? $validated['date_time'];
+
         $campaign = $this->campaign;
         $ownerId = Auth::id();
 

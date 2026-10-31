@@ -112,10 +112,15 @@
 
         <div>
             <label for="profile-timezone" class="block text-sm font-medium text-on-surface mb-1">{{ __('profile.field_timezone') }}</label>
-            <select id="profile-timezone" wire:model="timezone"
+            <select id="profile-timezone" wire:model.live="timezone"
                     class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 shadow-xs focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 text-on-surface">
                 <option value="">{{ __('common.content_select') }}</option>
-                @php($tzGroups = collect(\DateTimeZone::listIdentifiers())->groupBy(fn ($tz) => str_contains($tz, '/') ? explode('/', $tz)[0] : 'Other'))
+                @php
+                    // Alias-safe identifier list (R089): a stored device-captured
+                    // tzdata alias (Asia/Calcutta) stays visibly preselected.
+                    $tzGroups = collect(timezone_identifier_options($timezone))
+                        ->groupBy(fn ($tz) => str_contains($tz, '/') ? explode('/', $tz)[0] : 'Other');
+                @endphp
                 @foreach($tzGroups as $region => $identifiers)
                     <optgroup label="{{ $region }}">
                         @foreach($identifiers as $tzIdentifier)
@@ -124,6 +129,9 @@
                     </optgroup>
                 @endforeach
             </select>
+            @if($timezone)
+                <p class="mt-1 text-xs text-primary">{{ __('profile.content_timezone_current_time', ['time' => $this->timezoneCurrentTime]) }}</p>
+            @endif
             <p class="mt-1 text-xs text-on-surface-variant">{{ __('profile.hint_timezone') }}</p>
             @error('timezone') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
         </div>

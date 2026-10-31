@@ -36,12 +36,19 @@
         @csrf
 
         {{-- Device timezone for per-user notification times (R089). Stays empty
-             without JS; the server silently ignores absent/invalid values. --}}
+             without JS; the server silently ignores absent/invalid values. The
+             same value is carried onto the OAuth buttons as ?timezone= so the
+             OAuth callback can capture it too (stashed by OAuthController::redirect). --}}
         <input type="hidden" name="timezone" id="login-timezone" value="">
         <script>
             try {
-                document.getElementById('login-timezone').value =
-                    Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+                var tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+                document.getElementById('login-timezone').value = tz;
+                if (tz) {
+                    document.querySelectorAll('a.btn-discord, a.btn-google').forEach(function (link) {
+                        link.href += (link.href.indexOf('?') === -1 ? '?' : '&') + 'timezone=' + encodeURIComponent(tz);
+                    });
+                }
             } catch (e) { /* no Intl support — leave empty */ }
         </script>
 

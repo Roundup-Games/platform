@@ -124,7 +124,7 @@ class PublishDiscordDigestTest extends TestCase
         // job delegated to the real publisher for THIS guild.
         $this->assertSame(self::MESSAGE_ID, $guild->digest_thread_message_id);
         $this->assertSame(self::CALENDAR_CHANNEL, $guild->digest_thread_channel_id);
-        $this->assertSame(now()->toDateString(), $guild->digest_thread_date);
+        $this->assertSame(community_now()->toDateString(), $guild->digest_thread_date);
     }
 
     // ════════════════════════════════════════════════════
@@ -276,7 +276,7 @@ class PublishDiscordDigestTest extends TestCase
         // the thread. Prove the contract by running twice against a tracked
         // today-thread (M059/S03).
         $guild = $this->postableGuild([
-            'digest_thread_date' => now()->toDateString(),
+            'digest_thread_date' => community_now()->toDateString(),
             'digest_thread_channel_id' => self::CALENDAR_CHANNEL,
             'digest_thread_message_id' => self::MESSAGE_ID,
         ]);

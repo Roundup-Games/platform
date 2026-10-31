@@ -55,6 +55,12 @@
         {{-- PWA update toast translations (read by app.js). @js() produces safely-escaped JSON — addslashes() does not escape </script> or U+2028/29. --}}
         <script>window.__pwaUpdateToast=@js(['message' => __('common.content_update_available'), 'action' => __('common.field_update')]);window.__pwaOfflineToast=@js(['queued' => __('common.offline_action_queued'), 'offline' => __('common.offline_action_offline')]);</script>
 
+        {{-- Timezone beacon config (R089): the beacon only arms for
+             authenticated sessions; guests never fire the endpoint. --}}
+        @if (auth()->check())
+            <script>window.__timezoneBeacon=@js(['enabled' => true, 'url' => route('timezone.beacon')]);</script>
+        @endif
+
         {{-- Scripts --}}
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @include('partials.posthog-script')

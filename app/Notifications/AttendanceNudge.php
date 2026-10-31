@@ -6,18 +6,29 @@ use App\Dto\PushPayload;
 use App\Models\Game;
 use App\Models\User;
 use App\Services\Discord\DiscordWebhookPayload;
+use Carbon\Carbon;
 use Illuminate\Notifications\Messages\MailMessage;
 
 class AttendanceNudge extends BaseNotification
 {
     /**
      * @param  Game  $game  The game the nudge is about
-     * @param  string  $deadline  Human-readable deadline time (e.g. "tomorrow at 6:00 PM")
+     * @param  Carbon  $deadline  The reporting-window close as a UTC instant —
+     *                            rendered in each recipient's wall clock (R089).
      */
     public function __construct(
         public Game $game,
-        public string $deadline,
+        public Carbon $deadline,
     ) {}
+
+    /**
+     * Recipient-facing deadline label (R089): the instant converts to the
+     * recipient's wall clock — every channel renders the same label.
+     */
+    private function deadlineLabel(User $notifiable): string
+    {
+        return format_date($this->deadline, 'datetime', $notifiable->timezone ?? community_timezone());
+    }
 
     /**
      * Get the mail representation of the notification.
@@ -25,7 +36,9 @@ class AttendanceNudge extends BaseNotification
     public function toMail(User $notifiable): MailMessage
     {
         $locale = $this->resolveLocale($notifiable);
-        $date = $this->game->date_time?->format('M j, Y') ?? '';
+        // Recipient-zone date (R089): format_date converts the UTC instant to
+        // the notifiable's wall clock — the calendar day differs across zones.
+        $date = format_date($this->game->date_time, 'date', $notifiable->timezone ?? community_timezone());
 
         return (new MailMessage)
             ->subject(__('notifications.subject_attendance_nudge', [
@@ -35,7 +48,7 @@ class AttendanceNudge extends BaseNotification
             ->line(__('notifications.body_attendance_nudge', [
                 'game' => $this->game->name,
                 'date' => $date,
-                'deadline' => $this->deadline,
+                'deadline' => $this->deadlineLabel($notifiable),
             ]))
             ->action(__('notifications.action_view_game'), route('games.show', [
                 'locale' => $locale,
@@ -58,7 +71,7 @@ class AttendanceNudge extends BaseNotification
             'entity_type' => 'game',
             'entity_id' => $this->game->id,
             'entity_name' => $this->game->name,
-            'deadline' => $this->deadline,
+            'deadline' => $this->deadlineLabel($notifiable),
             'date_time' => $this->game->date_time?->toIso8601String(),
             'action_url' => route('games.show', [
                 'locale' => $locale,
@@ -85,7 +98,7 @@ class AttendanceNudge extends BaseNotification
             __('notifications.category_attendance_nudge'),
             __('notifications.push_body_attendance_nudge', [
                 'game' => $this->game->name,
-                'deadline' => $this->deadline,
+                'deadline' => $this->deadlineLabel($notifiable),
             ]),
             route('games.show', [
                 'locale' => $this->resolveLocale($notifiable),
@@ -108,7 +121,7 @@ class AttendanceNudge extends BaseNotification
             ]),
             __('notifications.push_body_attendance_nudge', [
                 'game' => $this->game->name,
-                'deadline' => $this->deadline,
+                'deadline' => $this->deadlineLabel($notifiable),
             ]),
         );
     }

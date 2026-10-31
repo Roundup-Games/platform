@@ -325,8 +325,12 @@ class DashboardEstablishedService
      */
     public function computeWeekData(User $user): array
     {
-        $startOfWeek = now()->startOfWeek();
-        $endOfWeek = now()->endOfWeek();
+        // Mon–Sun grid on the community wall calendar (R089); the SQL
+        // boundaries convert back to UTC instants for the date_time column
+        // (Eloquent binds a Carbon in its OWN zone).
+        $startOfWeek = community_now()->startOfWeek();
+        $queryStartOfWeek = $startOfWeek->copy()->utc();
+        $queryEndOfWeek = community_now()->endOfWeek()->utc();
 
         // Collect game IDs where user is owner or approved participant
         $ownedGameIds = Game::whereBelongsTo($user, 'owner')
@@ -345,7 +349,7 @@ class DashboardEstablishedService
                 GameStatus::Completed->value,
                 GameStatus::Canceled->value,
             ])
-            ->whereBetween('date_time', [$startOfWeek, $endOfWeek])
+            ->whereBetween('date_time', [$queryStartOfWeek, $queryEndOfWeek])
             ->with(['gameSystems', 'participants' => fn ($q) => $q->where('status', ParticipantStatus::Approved->value), 'campaign'])
             ->withExists('recapEntry as has_recap_entry')
             ->orderBy('date_time')
@@ -401,7 +405,9 @@ class DashboardEstablishedService
                 'needs_attendance' => $isPast && ! $isHosting && $userParticipant !== null && $userParticipant->attendance_status === null,
             ];
 
-            $dateKey = $game->date_time->format('Y-m-d');
+            // Bucket into the Berlin day grid (R089): the grid keys are
+            // community wall dates, so the instant converts before keying.
+            $dateKey = $game->date_time->copy()->setTimezone(community_timezone())->format('Y-m-d');
             if (isset($days[$dateKey])) {
                 $days[$dateKey]['games'][] = $gameData;
             }

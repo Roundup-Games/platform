@@ -9,6 +9,7 @@ use App\Rules\ValidUserName;
 use App\Services\NotificationPreferenceSync;
 use App\Services\PendingInvitationMatcher;
 use App\Services\PostHogAnalytics;
+use App\Services\TimezoneCaptureService;
 use App\Support\DiscordJoinIntent;
 use App\Support\FirstTouch;
 use Illuminate\Database\QueryException;
@@ -52,6 +53,16 @@ class OAuthController
         if ($request->user() !== null) {
             $request->session()->put('oauth_linking', true);
         }
+
+        // Device timezone capture (R089): the login page's inline JS decorates
+        // the provider buttons with ?timezone=… so the round-trip can carry the
+        // device zone back through the provider redirect. Canonicalized and
+        // stashed here (invalid values drop to null); consumed once at login in
+        // redirectAfterLogin() — same capture rules as the form-login path.
+        $request->session()->put(
+            'oauth_timezone',
+            canonical_timezone($request->query('timezone')),
+        );
 
         // First-touch acquisition context (landing page + referer) is captured
         // for guests by the CaptureFirstTouch middleware on public-content GETs.
@@ -584,6 +595,15 @@ class OAuthController
      */
     private function redirectAfterLogin(User $user): RedirectResponse
     {
+        // Device timezone captured for this OAuth round-trip (stashed by
+        // redirect() from the login page's ?timezone= decoration). Consumed
+        // exactly once — TimezoneCaptureService silently skips invalid,
+        // unchanged, and manually-pinned values.
+        $oauthTimezone = session()->pull('oauth_timezone');
+        if (is_string($oauthTimezone) && $oauthTimezone !== '') {
+            app(TimezoneCaptureService::class)->capture($user, $oauthTimezone);
+        }
+
         $locale = session('locale', config('app.fallback_locale'));
         $locale = is_string($locale) ? $locale : 'en';
 

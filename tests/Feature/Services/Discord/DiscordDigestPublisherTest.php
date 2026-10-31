@@ -160,7 +160,7 @@ class DiscordDigestPublisherTest extends TestCase
         $guild->refresh();
         $this->assertSame(self::MESSAGE_ID, $guild->digest_thread_message_id);
         $this->assertSame(self::CALENDAR_CHANNEL, $guild->digest_thread_channel_id);
-        $this->assertSame(now()->toDateString(), $guild->digest_thread_date);
+        $this->assertSame(community_now()->toDateString(), $guild->digest_thread_date);
 
         // Exactly one starter POST + one thread create POST.
         Http::assertSent(fn (Request $r) => $r->method() === 'POST'
@@ -210,7 +210,7 @@ class DiscordDigestPublisherTest extends TestCase
 
         $guild->refresh();
         $this->assertSame(self::MESSAGE_ID, $guild->digest_thread_message_id);
-        $this->assertSame(now()->toDateString(), $guild->digest_thread_date);
+        $this->assertSame(community_now()->toDateString(), $guild->digest_thread_date);
 
         // PATCH the starter, and NO thread-create POST.
         Http::assertSent(fn (Request $r) => $r->method() === 'PATCH'
@@ -292,7 +292,7 @@ class DiscordDigestPublisherTest extends TestCase
 
         $guild->refresh();
         // New thread tracked for today.
-        $this->assertSame(now()->toDateString(), $guild->digest_thread_date);
+        $this->assertSame(community_now()->toDateString(), $guild->digest_thread_date);
         $this->assertSame(self::MESSAGE_ID, $guild->digest_thread_message_id);
 
         // Yesterday's starter is NOT deleted (archived, left read-only).
@@ -327,7 +327,7 @@ class DiscordDigestPublisherTest extends TestCase
         // a retry / same-day re-run PATCHes this starter rather than POSTing a
         // duplicate.
         $this->assertSame(self::MESSAGE_ID, $guild->digest_thread_message_id);
-        $this->assertSame(now()->toDateString(), $guild->digest_thread_date);
+        $this->assertSame(community_now()->toDateString(), $guild->digest_thread_date);
         $this->assertSame(self::CALENDAR_CHANNEL, $guild->digest_thread_channel_id);
 
         // Exactly one POST to the starter (no duplicate on this run).
@@ -414,7 +414,7 @@ class DiscordDigestPublisherTest extends TestCase
 
         $guild->refresh();
         $this->assertSame(self::MESSAGE_ID, $guild->digest_thread_message_id);
-        $this->assertSame(now()->toDateString(), $guild->digest_thread_date);
+        $this->assertSame(community_now()->toDateString(), $guild->digest_thread_date);
         Http::assertSent(fn (Request $r) => $r->method() === 'POST'
             && str_contains($r->url(), '/messages/'.self::MESSAGE_ID.'/threads'));
     }

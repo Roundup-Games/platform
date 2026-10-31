@@ -8,6 +8,7 @@ use App\Models\Location;
 use App\Services\Discord\DiscordDigestContext;
 use App\Services\Discord\DiscordDigestRenderer;
 use App\Services\Discord\DiscordWebhookPayload;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -455,13 +456,22 @@ class DiscordDigestRendererTest extends TestCase
         return $embeds[0]['fields'][0]['value'];
     }
 
+    /**
+     * Fixtures state the session's COMMUNITY wall time (the time the
+     * rendered digest must show, R089); storage gets the true UTC instant —
+     * August fixtures are CEST (+2), so '19:00' wall stores '17:00' UTC.
+     */
     private function makeGameOn(
-        string $dateTime,
+        string $wallTimeCommunity,
         ?Location $venue = null,
         ?Collection $systems = null,
         string $name = 'Test Game',
         array $overrides = [],
     ): Game {
+        $dateTime = Carbon::parse($wallTimeCommunity, community_timezone())
+            ->setTimezone('UTC')
+            ->format('Y-m-d H:i:s');
+
         $game = Game::factory()->make(array_merge([
             'id' => Str::uuid()->toString(),
             'name' => ['en' => $name],

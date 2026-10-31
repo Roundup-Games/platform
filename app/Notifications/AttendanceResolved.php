@@ -26,7 +26,10 @@ class AttendanceResolved extends BaseNotification
     public function toMail(User $notifiable): MailMessage
     {
         $locale = $this->resolveLocale($notifiable);
-        $date = $this->game->date_time?->format('M j, Y') ?? '';
+        // Recipient-zone date (R089): format_date converts the stored UTC
+        // instant to the notifiable's wall clock — the calendar day differs
+        // across zones.
+        $date = format_date($this->game->date_time, 'date', $notifiable->timezone ?? community_timezone());
         $status = $this->status->label();
 
         return (new MailMessage)

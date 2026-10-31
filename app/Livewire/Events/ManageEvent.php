@@ -163,9 +163,12 @@ class ManageEvent extends Component
         $this->max_participants = $e->max_participants;
         $this->individual_registration_fee = self::centsToEur($e->individual_registration_fee);
         $this->early_bird_discount = self::centsToEur($e->early_bird_discount);
-        $this->early_bird_deadline = $e->early_bird_deadline !== null ? $e->early_bird_deadline->format('Y-m-d\TH:i') : '';
-        $this->registration_opens_at = $e->registration_opens_at !== null ? $e->registration_opens_at->format('Y-m-d\TH:i') : '';
-        $this->registration_closes_at = $e->registration_closes_at !== null ? $e->registration_closes_at->format('Y-m-d\TH:i') : '';
+        // Display edge (R089): the stored UTC instants render as the editing
+        // organizer's wall clock so the datetime-local round-trip is stable —
+        // save() parses them back in the same zone.
+        $this->early_bird_deadline = $e->early_bird_deadline !== null ? $e->early_bird_deadline->setTimezone(viewer_timezone())->format('Y-m-d\TH:i') : '';
+        $this->registration_opens_at = $e->registration_opens_at !== null ? $e->registration_opens_at->setTimezone(viewer_timezone())->format('Y-m-d\TH:i') : '';
+        $this->registration_closes_at = $e->registration_closes_at !== null ? $e->registration_closes_at->setTimezone(viewer_timezone())->format('Y-m-d\TH:i') : '';
         /** @var array<int, string>|null $rules */
         $rules = $e->rules;
         $this->rules = is_array($rules) ? implode("\n", $rules) : '';
@@ -419,7 +422,18 @@ class ManageEvent extends Component
             ['name' => $this->name, 'description' => $this->description, 'short_description' => $this->short_description],
         );
 
-        $updateData = array_filter([
+        // Input edge (R089): registration/early-bird datetimes are the
+        // organizer's wall clock — persist true UTC instants ('' maps to
+        // null via wall_time_to_utc). Date-only fields pass through.
+        $earlyBirdDeadline = wall_time_to_utc($this->early_bird_deadline)?->format('Y-m-d H:i:s');
+        $registrationOpensAt = wall_time_to_utc($this->registration_opens_at)?->format('Y-m-d H:i:s');
+        $registrationClosesAt = wall_time_to_utc($this->registration_closes_at)?->format('Y-m-d H:i:s');
+
+        // Every key below writes intentionally: the `!== '' ? … : null`
+        // ternaries mean "cleared by the form", so the nulls MUST survive
+        // to the write — a null-dropping array_filter turned every clear
+        // (deadline, venue, contact, discount) into a silent no-op.
+        $updateData = [
             'name' => $translatable['name'],
             'short_description' => $translatable['short_description'],
             'description' => $translatable['description'],
@@ -436,16 +450,16 @@ class ManageEvent extends Component
             'max_participants' => $this->max_participants,
             'individual_registration_fee' => $this->eurToCents($this->individual_registration_fee) ?? 0,
             'early_bird_discount' => $this->eurToCents($this->early_bird_discount),
-            'early_bird_deadline' => $this->early_bird_deadline !== '' ? $this->early_bird_deadline : null,
-            'registration_opens_at' => $this->registration_opens_at !== '' ? $this->registration_opens_at : null,
-            'registration_closes_at' => $this->registration_closes_at !== '' ? $this->registration_closes_at : null,
+            'early_bird_deadline' => $earlyBirdDeadline,
+            'registration_opens_at' => $registrationOpensAt,
+            'registration_closes_at' => $registrationClosesAt,
             'rules' => $parsedRules,
             'schedule' => $parsedSchedule,
             'contact_email' => $this->contact_email !== '' ? $this->contact_email : null,
             'contact_phone' => $this->contact_phone !== '' ? $this->contact_phone : null,
             'is_public' => $this->is_public,
             'is_featured' => $isFeatured,
-        ], fn ($value) => $value !== null);
+        ];
 
         // A cancellation submitted through the status <select> routes through
         // the unified lifecycle service (like the Cancel action below): the
@@ -528,7 +542,7 @@ class ManageEvent extends Component
             'registration_opens_at' => $this->event->registration_opens_at ?? now(),
         ]);
         $this->status = 'registration_open';
-        $this->registration_opens_at = $this->event->registration_opens_at?->format('Y-m-d\TH:i') ?? '';
+        $this->registration_opens_at = $this->event->registration_opens_at?->setTimezone(viewer_timezone())->format('Y-m-d\TH:i') ?? '';
 
         Log::info('Event registration opened', [
             'event_id' => $this->event->id,

@@ -515,6 +515,13 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(30)->by($request->ip());
         });
 
+        // Timezone beacon rate limiter (R089) — the client only POSTs when the
+        // detected zone changed, but a corrupted localStorage/cookie pair must
+        // not turn page loads into a write storm. Generous per-user ceiling.
+        RateLimiter::for('timezone-beacon', function (Request $request) {
+            return Limit::perMinute(10)->by($request->user()->id ?? $request->ip());
+        });
+
         // Register custom notification channels
         Notification::extend('push', function ($app) {
             return $app->make(PushChannel::class);

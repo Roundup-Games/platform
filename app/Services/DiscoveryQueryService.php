@@ -329,8 +329,13 @@ class DiscoveryQueryService
 
         // Games-specific: date range
         $query->when($date === 'upcoming', fn ($q) => $q->where('date_time', '>=', now()));
-        $query->when($date === 'this_week', fn ($q) => $q->whereBetween('date_time', [now()->startOfWeek(), now()->endOfWeek()]));
-        $query->when($date === 'this_month', fn ($q) => $q->whereBetween('date_time', [now()->startOfMonth(), now()->endOfMonth()]));
+        // Wall-calendar buckets on the community clock (R089); boundaries
+        // convert back to UTC instants for the date_time column — one
+        // community-clock reading so a request straddling a boundary cannot
+        // mix two different "now"s.
+        $communityNow = community_now();
+        $query->when($date === 'this_week', fn ($q) => $q->whereBetween('date_time', [$communityNow->copy()->startOfWeek()->utc(), $communityNow->copy()->endOfWeek()->utc()]));
+        $query->when($date === 'this_month', fn ($q) => $q->whereBetween('date_time', [$communityNow->copy()->startOfMonth()->utc(), $communityNow->copy()->endOfMonth()->utc()]));
 
         // When radius > 0 with location, apply proximity sub-filter
         if ($radius > 0 && $hasLocation && $lat !== null && $lng !== null) {

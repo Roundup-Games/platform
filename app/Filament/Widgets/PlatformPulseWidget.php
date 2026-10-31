@@ -40,7 +40,7 @@ class PlatformPulseWidget extends StatsOverviewWidget
                 ->where('date_time', '>=', now())
                 ->count(),
             'campaigns' => Campaign::query()->where('status', 'active')->count(),
-            'events' => Event::query()->where('is_public', true)->where('start_date', '>=', now())->count(),
+            'events' => Event::query()->where('is_public', true)->where('start_date', '>=', community_now()->toDateString())->count(),
             'systems' => GameSystem::query()->count(),
             'venues' => Location::query()->where('is_verified', true)->count(),
             'open_tickets' => DB::table('escalated_tickets')->whereIn('status', ['open', 'in_progress'])->count(),

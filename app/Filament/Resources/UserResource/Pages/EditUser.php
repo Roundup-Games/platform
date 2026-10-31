@@ -22,6 +22,22 @@ class EditUser extends EditRecord
         /** @var User $record */
         $record = $this->getRecord();
 
+        // Admin timezone semantics (R089): a timezone CHANGED by an admin
+        // save is a manual choice — it pins the zone against every device
+        // capture path, and clearing it returns the user to device capture.
+        // Change-detection only: an unrelated save (role, name, …) never
+        // flips the pin, because the untouched select round-trips the
+        // stored value (alias-safe options, UserResource::form).
+        if (array_key_exists('timezone', $data)) {
+            $newTimezone = $data['timezone'];
+            $newTimezone = $newTimezone === '' ? null : $newTimezone;
+            $data['timezone'] = $newTimezone;
+
+            if ($record->timezone !== $newTimezone) {
+                $data['timezone_manually_set'] = $newTimezone !== null;
+            }
+        }
+
         // When is_disabled is toggled via the form, sync disabled_at
         $wasDisabled = $record->is_disabled;
         $nowDisabled = (bool) ($data['is_disabled'] ?? false);

@@ -111,6 +111,14 @@ class RecurrenceService
      *   monthly => base + 1 month (no overflow)
      *   weekly / bi-weekly => base + cadenceDays
      *   then the time-of-day ('HH:MM') component is applied to the result.
+     *
+     * Wall-clock semantics (R089): cadence math runs on the COMMUNITY wall
+     * clock (Europe/Berlin) — time_of_day is a Berlin wall intention, so the
+     * suggested "next Friday 19:00" lands on Berlin's Friday 19:00 regardless
+     * of the app's UTC storage timezone. The returned Carbon carries the same
+     * instant (timezone conversion never changes an instant) and stays in the
+     * Berlin zone; callers formatting it for a datetime-local input convert
+     * to the entering user's zone (AddSessionToCampaign).
      */
     public function computeNextDate(?string $recurrence, string $timeOfDay, ?Carbon $farthestUpcoming, ?Carbon $now = null): ?Carbon
     {
@@ -120,8 +128,11 @@ class RecurrenceService
 
         $now ??= now();
 
+        // Copy BEFORE converting — the injected values belong to the caller.
+        $now = $now->copy()->setTimezone(community_timezone());
+
         $base = ($farthestUpcoming !== null && $farthestUpcoming > $now)
-            ? $farthestUpcoming->copy()
+            ? $farthestUpcoming->copy()->setTimezone(community_timezone())
             : $now->copy();
 
         $next = match (true) {

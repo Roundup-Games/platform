@@ -32,7 +32,169 @@ if (! function_exists('resolvePreferredLocale')) {
 }
 
 /**
+ * The community wall-clock timezone identifier (R089): the single pinned
+ * zone behind community_now() and every "community display zone" render
+ * (Discord cards/digests, iCal all-day fallback, dashboard buckets).
+ *
+ * Storage stays UTC; this zone only names HUMAN wall-calendar concepts —
+ * "today", "this week", streak buckets, community display times. Swap it
+ * here alone if the community default ever moves; per-user zones live in
+ * users.timezone and are never resolved through this helper.
+ */
+if (! function_exists('community_timezone')) {
+    function community_timezone(): string
+    {
+        return 'Europe/Berlin';
+    }
+}
+
+/**
+ * Resolve the display timezone for the current viewer (R089).
+ *
+ * The viewer's captured IANA timezone when logged in, else the community
+ * default. Captured values are validated at every write edge (login,
+ * OAuth, beacon, profile) via canonical_timezone(), so the string is
+ * always a constructible identifier.
+ */
+if (! function_exists('viewer_timezone')) {
+    function viewer_timezone(): string
+    {
+        $timezone = auth()->user()?->timezone;
+
+        return is_string($timezone) && $timezone !== '' ? $timezone : community_timezone();
+    }
+}
+
+/**
+ * "Now" in the community wall clock (community_timezone()).
+ *
+ * Calendar bucketing that names a human wall-calendar concept — "today",
+ * "this week", "this month", quarter/month streak buckets — must resolve
+ * its boundaries against ONE platform-wide zone instead of the app's UTC
+ * storage timezone or an individual viewer's device zone (R089: cohorts
+ * and counters stay deterministic no matter who is looking).
+ *
+ * When a bucket boundary feeds a database comparison, convert it back with
+ * ->utc() first — Eloquent binds a Carbon using its OWN timezone's wall
+ * string, and the columns store UTC instants.
+ */
+if (! function_exists('community_now')) {
+    function community_now(): Carbon
+    {
+        return Carbon::now(community_timezone());
+    }
+}
+
+/**
+ * Validate and canonicalize a browser-reported timezone identifier (R089).
+ *
+ * Accepts tzdata aliases (CLDR primaries like Asia/Calcutta and
+ * America/Buenos_Aires) that DateTimeZone::listIdentifiers() — and with it
+ * Laravel's `timezone` validation rule, which is a list lookup — wrongly
+ * rejects; the DateTimeZone constructor is the authoritative parser.
+ * Etc/Unknown, offsets like "UTC+02:00", and garbage throw in the
+ * constructor and map to null.
+ *
+ * @return string|null The identifier exactly as DateTimeZone reports it, or null when invalid.
+ */
+if (! function_exists('canonical_timezone')) {
+    function canonical_timezone(mixed $timezone): ?string
+    {
+        if (! is_string($timezone) || $timezone === '' || strlen($timezone) > 64) {
+            return null;
+        }
+
+        try {
+            return (new DateTimeZone($timezone))->getName();
+        } catch (Exception) {
+            return null;
+        }
+    }
+}
+
+if (! function_exists('timezone_identifier_options')) {
+    /**
+     * Identifier list for timezone selects, with a stored device-captured
+     * tzdata alias surfaced when it is missing from the canonical list
+     * (R089).
+     *
+     * canonical_timezone() accepts aliases (Asia/Calcutta) that
+     * DateTimeZone::listIdentifiers() omits, so a user's stored zone can
+     * be a value no canonical-list select offers. Feeding such a select
+     * without surfacing the stored value renders it blank — and on save
+     * the select dehydrates empty, silently wiping the stored zone. This
+     * single source (profile partial + Filament UserResource) keeps every
+     * timezone select alias-safe: the stored identifier is prepended when
+     * the canonical list lacks it.
+     *
+     * @param  string|null  $ensureIncluded  A stored identifier to guarantee present (canonical values pass through unchanged, null/'' ignored).
+     * @return array<int, string>
+     */
+    function timezone_identifier_options(?string $ensureIncluded = null): array
+    {
+        $identifiers = DateTimeZone::listIdentifiers();
+
+        if ($ensureIncluded !== null && $ensureIncluded !== '' && ! in_array($ensureIncluded, $identifiers, true)) {
+            array_unshift($identifiers, $ensureIncluded);
+        }
+
+        return $identifiers;
+    }
+}
+
+/**
+ * Convert a user-entered wall-clock datetime into a true UTC instant (R089).
+ *
+ * The input edge: datetime-local inputs carry the ENTERING user's wall
+ * clock, so the string is parsed in their captured timezone (community
+ * fallback Europe/Berlin) and converted to UTC before persistence.
+ *
+ * The parse zone resolves from the ambient auth state by default — exactly
+ * right for in-request Livewire forms, where the entering user IS the
+ * authenticated user. Any context where the two can differ (queue job,
+ * token-auth API, acting-on-behalf) MUST pass the entering user's zone
+ * explicitly: parsing in the wrong zone silently shifts the stored instant
+ * by the offset delta.
+ *
+ * @param  string|null  $value  Raw input value ('Y-m-d\TH:i' from datetime-local pickers). Empty/null maps to null.
+ * @param  string|null  $timezone  Explicit parse zone (the entering user's IANA zone); null = the current viewer's.
+ */
+if (! function_exists('wall_time_to_utc')) {
+    function wall_time_to_utc(?string $value, ?string $timezone = null): ?Carbon
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return Carbon::parse($value, $timezone ?? viewer_timezone())->setTimezone('UTC');
+    }
+}
+
+/**
+ * Does the locale render clock times on a 24-hour dial? (R089)
+ *
+ * Shared clock convention between format_date() and notification time
+ * rendering — de gets "19:00 CET", en gets "7:00 PM CET".
+ */
+if (! function_exists('is_24_hour_locale')) {
+    function is_24_hour_locale(string $locale): bool
+    {
+        return in_array($locale, ['de', 'fr', 'es', 'it', 'nl', 'pt', 'pl', 'cs', 'ru', 'ja', 'zh', 'ko'], true);
+    }
+}
+
+/**
  * Format a Carbon date according to the current app locale.
+ *
+ * The instant is converted to the VIEWER's timezone at render time
+ * (captured IANA zone, community fallback) unless an explicit $timezone
+ * is passed — notifications/emails pass the RECIPIENT's zone. All types
+ * below show the converted wall time.
+ *
+ * Convention (R089): generic views render the viewer's wall time WITHOUT a
+ * zone marker — the same page legitimately differs per viewer. Recipient-
+ * addressed copy (notifications) appends the abbreviation ("19:00 CET")
+ * instead; do not add markers here without a product decision.
  *
  * Types:
  *  - 'date'            EN: "Apr 14, 2026"  / DE: "14. April 2026"
@@ -42,7 +204,7 @@ if (! function_exists('resolvePreferredLocale')) {
  *  - 'short_month_day' EN: "Apr 14, 2026"  / DE: same as 'date'
  */
 if (! function_exists('format_date')) {
-    function format_date(?Carbon $date, string $type = 'date'): string
+    function format_date(?Carbon $date, string $type = 'date', ?string $timezone = null): string
     {
         if ($date === null) {
             return '';
@@ -50,7 +212,11 @@ if (! function_exists('format_date')) {
 
         $locale = app()->getLocale();
 
-        $is24Hour = in_array($locale, ['de', 'fr', 'es', 'it', 'nl', 'pt', 'pl', 'cs', 'ru', 'ja', 'zh', 'ko'], true);
+        $is24Hour = is_24_hour_locale($locale);
+
+        // Copy first: Carbon is mutable and the caller's instance (often a
+        // freshly hydrated model attribute) must not shift timezone.
+        $date = $date->copy()->setTimezone($timezone ?? viewer_timezone());
 
         return match ($type) {
             'date' => $date->isoFormat($is24Hour ? 'D. MMMM YYYY' : 'MMM D, YYYY'),

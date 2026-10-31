@@ -1480,7 +1480,9 @@ class DemoSeedCommand extends Command
                     : ($expRoll < 0.85 ? ExperienceLevel::Intermediate : ExperienceLevel::Advanced));
 
                 $daysAgo = random_int(7, 180);
-                $dateTime = Carbon::now()->subDays($daysAgo)->setTime(random_int(14, 20), random_int(0, 3) * 15);
+                // Evening wall time on the community clock (R089), stored as
+                // a true UTC instant.
+                $dateTime = Carbon::now(community_timezone())->subDays($daysAgo)->setTime(random_int(14, 20), random_int(0, 3) * 15)->setTimezone('UTC');
 
                 $language = random_int(0, 2) > 0 ? 'de' : 'en'; // ~66% DE, ~33% EN
                 $gameId = (string) Str::uuid7();
@@ -2180,9 +2182,9 @@ class DemoSeedCommand extends Command
                 $attendedPids = [];
 
                 if (! $isGathering) {
-                    $baseDate = now()->subDays(random_int(7, 21));
+                    $baseDate = now(community_timezone())->subDays(random_int(7, 21));
                     $szId = (string) Str::uuid7();
-                    $szDate = $baseDate->copy()->addDays(random_int(0, 7))->setTime($timeHour, $timeMinute);
+                    $szDate = $baseDate->copy()->addDays(random_int(0, 7))->setTime($timeHour, $timeMinute)->setTimezone('UTC');
                     // Cancelled campaigns have cancelled session zeros; otherwise 75% completed
                     $szCompleted = $campaignStatus !== 'cancelled' && mt_rand() / mt_getrandmax() < 0.75;
                     $szStatus = $campaignStatus === 'cancelled'
@@ -2338,7 +2340,7 @@ class DemoSeedCommand extends Command
                 rsort($pastDaysAgoSequence);
                 for ($p = 1; $p <= $pastSessionCount; $p++) {
                     $pastDaysAgo = $pastDaysAgoSequence[$p - 1];
-                    $pastDate = now()->subDays($pastDaysAgo)->setTime($timeHour, $timeMinute);
+                    $pastDate = now(community_timezone())->subDays($pastDaysAgo)->setTime($timeHour, $timeMinute)->setTimezone('UTC');
                     $pId = (string) Str::uuid7();
                     $sessionCounter++;
                     $sessionNum = $sessionCounter;
@@ -2502,7 +2504,7 @@ class DemoSeedCommand extends Command
                 // ── Future sessions (active campaigns get 3-5, others 0-1) ──
                 $futureCount = $campaignStatus === 'active' ? random_int(3, 5) : random_int(0, 1);
                 for ($f = 1; $f <= $futureCount; $f++) {
-                    $futureDate = now()->addDays($f * $cadenceDays)->setTime($timeHour, $timeMinute);
+                    $futureDate = now(community_timezone())->addDays($f * $cadenceDays)->setTime($timeHour, $timeMinute)->setTimezone('UTC');
                     $sId = (string) Str::uuid7();
                     $sessionCounter++;
                     $sessionNum = $sessionCounter;
@@ -3109,7 +3111,7 @@ class DemoSeedCommand extends Command
                     : ($roll < 0.60 ? Visibility::Protected : Visibility::Private);
 
                 $daysAhead = random_int(1, 30);
-                $dateTime = Carbon::now()->addDays($daysAhead)->setTime(random_int(14, 20), random_int(0, 3) * 15);
+                $dateTime = Carbon::now(community_timezone())->addDays($daysAhead)->setTime(random_int(14, 20), random_int(0, 3) * 15)->setTimezone('UTC');
 
                 $language = random_int(0, 2) > 0 ? 'de' : 'en';
                 $gameId = (string) Str::uuid7();

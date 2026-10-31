@@ -260,6 +260,58 @@ it('captures a valid device timezone at login and refreshes it on every login', 
     expect($user->fresh()->timezone)->toBe('Europe/Berlin');
 })->group('smoke');
 
+it('accepts tzdata aliases the browser reports and canonicalizes them', function () {
+    $user = User::factory()->create([
+        'password' => Hash::make('Sup3rSecret!pass'),
+        'profile_complete' => true,
+    ]);
+
+    // CLDR primaries real browsers report (Intl on Firefox/Windows) that
+    // DateTimeZone::listIdentifiers() misses — the ctor-based capture
+    // accepts them (R089 validation fix).
+    $this->post('/en/login', [
+        'email' => $user->email,
+        'password' => 'Sup3rSecret!pass',
+        'timezone' => 'Asia/Calcutta',
+    ]);
+
+    $this->assertAuthenticatedAs($user);
+    expect($user->fresh()->timezone)->toBe('Asia/Calcutta');
+
+    auth()->logout();
+    $user2 = User::factory()->create([
+        'password' => Hash::make('Sup3rSecret!pass'),
+        'profile_complete' => true,
+    ]);
+
+    $this->post('/en/login', [
+        'email' => $user2->email,
+        'password' => 'Sup3rSecret!pass',
+        'timezone' => 'America/Buenos_Aires',
+    ]);
+
+    expect($user2->fresh()->timezone)->toBe('America/Buenos_Aires');
+})->group('smoke');
+
+it('never overwrites a manually-set timezone at login', function () {
+    $user = User::factory()->create([
+        'password' => Hash::make('Sup3rSecret!pass'),
+        'profile_complete' => true,
+        'timezone' => 'Europe/Berlin',
+        'timezone_manually_set' => true,
+    ]);
+
+    $this->post('/en/login', [
+        'email' => $user->email,
+        'password' => 'Sup3rSecret!pass',
+        'timezone' => 'America/New_York',
+    ]);
+
+    $this->assertAuthenticatedAs($user);
+    expect($user->fresh()->timezone)->toBe('Europe/Berlin')
+        ->and($user->fresh()->timezone_manually_set)->toBeTrue();
+})->group('smoke');
+
 it('silently ignores absent or invalid timezone values at login', function () {
     $user = User::factory()->create([
         'password' => Hash::make('Sup3rSecret!pass'),
@@ -294,6 +346,17 @@ it('silently ignores absent or invalid timezone values at login', function () {
         'email' => $user->email,
         'password' => 'Sup3rSecret!pass',
         'timezone' => 'UTC+02:00',
+    ]);
+
+    $this->assertAuthenticatedAs($user);
+    expect($user->fresh()->timezone)->toBe('Europe/Berlin');
+
+    // The browser's "no idea" sentinel still ignored (the ctor rejects it)
+    auth()->logout();
+    $this->post('/en/login', [
+        'email' => $user->email,
+        'password' => 'Sup3rSecret!pass',
+        'timezone' => 'Etc/Unknown',
     ]);
 
     $this->assertAuthenticatedAs($user);

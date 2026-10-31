@@ -610,7 +610,10 @@ class DiscordPublisher
         $name = trim($game->name);
 
         if ($game->date_time !== null) {
-            $name .= ' · '.$game->date_time->format('j M Y');
+            // Community display zone (R089): the stored instant renders on the
+            // Berlin wall date so a 00:30 Berlin session titles with the day
+            // the players experience, not the previous UTC day.
+            $name .= ' · '.$game->date_time->copy()->setTimezone(community_timezone())->format('j M Y');
         }
 
         return Str::limit($name, 100);
@@ -682,7 +685,10 @@ class DiscordPublisher
         $resolvedLocale = is_string($resolvedLocale) ? $resolvedLocale : 'en';
 
         $name = trim($game->name);
-        $when = $game->date_time?->format('j M Y · H:i');
+        // Community display zone (R089): the stored instant renders on the
+        // Berlin wall clock — the starter's date AND time must match the
+        // card and thread title beside it, not the UTC label.
+        $when = $game->date_time?->copy()->setTimezone(community_timezone())->format('j M Y · H:i');
 
         $lines = [];
         $lines[] = '💬 '.Lang::get('discord.content_thread_starter_welcome', ['name' => $name !== '' ? $name : Lang::get('discord.content_thread_starter_this_session', [], $resolvedLocale)], $resolvedLocale);

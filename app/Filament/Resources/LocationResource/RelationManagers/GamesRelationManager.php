@@ -27,6 +27,8 @@ class GamesRelationManager extends RelationManager
                     ->label('Game Master')
                     ->searchable(),
                 TextColumn::make('date_time')
+                    // Stored UTC instant → admin's wall clock (R089).
+                    ->timezone(fn (): string => viewer_timezone())
                     ->dateTime()
                     ->sortable(),
                 TextColumn::make('game_type')

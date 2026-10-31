@@ -8,12 +8,18 @@ beforeEach(function () {
     App::setLocale('en');
 });
 
+// R089: format_date renders the instant on the VIEWER's wall clock (guest
+// fallback Europe/Berlin). Fixtures therefore construct their Carbon IN
+// that zone so the literal expectations below pin the LOCALE FORMATTING,
+// not the timezone math (tz-explicit per K004).
+const VIEWER_TZ = 'Europe/Berlin';
+
 describe('format_date — locale-aware', function () {
     it('format_date returns locale-specific date format', function (string $locale, string $type, string $dateInput, string $expected) {
         if ($locale !== 'en') {
             App::setLocale($locale);
         }
-        $date = Carbon::createFromFormat('Y-m-d H:i:s', $dateInput);
+        $date = Carbon::createFromFormat('Y-m-d H:i:s', $dateInput, VIEWER_TZ);
         expect(format_date($date, $type))->toBe($expected);
     })->with([
         // English locale
@@ -34,7 +40,7 @@ describe('format_date — locale-aware', function () {
         if ($locale !== 'en') {
             App::setLocale($locale);
         }
-        $date = Carbon::create(2026, 4, 14, 0, 0, 0);
+        $date = Carbon::create(2026, 4, 14, 0, 0, 0, VIEWER_TZ);
         expect(format_date($date))->toBe($expected);
     })->with([
         ['en', 'Apr 14, 2026'],
@@ -48,12 +54,12 @@ describe('format_date — Edge cases', function () {
     });
 
     test('format_date handles single-digit day', function () {
-        $date = Carbon::create(2026, 1, 5, 0, 0, 0);
+        $date = Carbon::create(2026, 1, 5, 0, 0, 0, VIEWER_TZ);
         expect(format_date($date, 'date'))->toBe('Jan 5, 2026');
     });
 
     test('format_date handles midnight time in datetime', function () {
-        $date = Carbon::create(2026, 12, 25, 0, 0, 0);
+        $date = Carbon::create(2026, 12, 25, 0, 0, 0, VIEWER_TZ);
         expect(format_date($date, 'datetime'))->toBe('Dec 25, 2026 at 12:00 AM');
     });
 });

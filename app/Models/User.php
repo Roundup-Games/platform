@@ -67,6 +67,7 @@ use Spatie\Translatable\HasTranslations;
  * @property string|null $slug
  * @property ContentLanguage|null $preferred_language
  * @property string|null $timezone
+ * @property bool $timezone_manually_set
  * @property string|null $avatar_url
  * @property Collection<int, UserVibePreference>|null $vibePreferences
  * @property Carbon|null $privacy_policy_accepted_at
@@ -102,6 +103,7 @@ use Spatie\Translatable\HasTranslations;
     'max_links_per_entity',
     'preferred_language',
     'timezone',
+    'timezone_manually_set',
     'location',
     'location_id',
     'bio',
@@ -113,6 +115,10 @@ use Spatie\Translatable\HasTranslations;
     'first_touch_path',
     'signup_content_type',
     'signup_content_slug',
+    // Per-locale curated SEO overrides (D172) — the admin form's SeoFields
+    // section writes these translatable jsonb columns (Team mirrors this).
+    'seo_title',
+    'seo_description',
 ])]
 #[Hidden(['password', 'remember_token', 'paddle_id', 'gender', 'gender_consent', 'analytics_consent'])]
 class User extends Authenticatable implements FilamentUser, HasLocalePreference, HasMedia, MustVerifyEmail, Ticketable, TicketSubject
@@ -231,6 +237,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
             'is_disabled' => 'boolean',
             'disabled_at' => 'datetime',
             'can_create_public_entries' => 'boolean',
+            'timezone_manually_set' => 'boolean',
             'preferred_language' => ContentLanguage::class,
             'reliability_score' => 'array',
             'reliability_computed_at' => 'datetime',

@@ -69,7 +69,10 @@ class AttendanceNudgeJob implements ShouldQueue
             ->chunkById(100, function ($games) use ($notificationService, &$gameCount, &$totalNudged, &$totalSkipped, &$totalErrors) {
                 foreach ($games as $game) {
                     $gameCount++;
-                    $deadline = $game->attendance_window_closes_at?->format('M j, Y \a\t g:i A') ?? 'unknown deadline';
+                    // The instant flows into AttendanceNudge and renders in
+                    // each recipient's wall clock (R089) — no server-side
+                    // pre-formatting. The query bounds guarantee non-null.
+                    $deadline = $game->attendance_window_closes_at ?? now()->addHours(24);
 
                     // Get IDs of users who already filed a report for this game
                     $reporterIds = AttendanceReport::whereBelongsTo($game)

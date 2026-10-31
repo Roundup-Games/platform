@@ -127,7 +127,9 @@ enum DashboardSection: string
     {
         return match ($this->keyShape()) {
             KeyShape::Single => "dashboard:{$this->value}:{$userId}",
-            KeyShape::WeekDate => "dashboard:{$this->value}:{$userId}:".now()->startOfWeek()->format('Y-m-d'),
+            // Wall-calendar bucket key on the community clock (R089):
+            // the week flips at Berlin's Monday, not UTC's.
+            KeyShape::WeekDate => "dashboard:{$this->value}:{$userId}:".community_now()->startOfWeek()->format('Y-m-d'),
             KeyShape::GeohashTracked => "dashboard:{$this->value}:{$userId}:{$geohash4}",
         };
     }

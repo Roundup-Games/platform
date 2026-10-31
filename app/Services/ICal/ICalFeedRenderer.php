@@ -127,11 +127,13 @@ class ICalFeedRenderer
             $end = $this->carbonToDateTime($game->date_time->copy()->addHours($game->expected_duration));
             $event->setOccurrence(new TimeSpan($start, $end));
         } else {
-            // All-day fallback — construct the eluceo Date directly from the
-            // calendar date (no time component).
+            // All-day fallback — construct the eluceo Date from the COMMUNITY
+            // calendar date (R089): the stored instant converts to the Berlin
+            // wall date so a 00:30 session still lands on the evening it
+            // belongs to, not the previous UTC day.
             $event->setOccurrence(new SingleDay(
                 new Date(
-                    $game->date_time->toDateTimeImmutable(),
+                    $game->date_time->copy()->setTimezone(community_timezone())->toDateTimeImmutable(),
                 ),
             ));
         }
@@ -174,12 +176,14 @@ class ICalFeedRenderer
     }
 
     /**
-     * Convert a Laravel Carbon to an eluceo iCal DateTime (floating, UTC-stamped
-     * from the stored timestamp — we pass the app timezone so the rendered value
-     * reflects the configured local time).
+     * Convert a Laravel Carbon to an eluceo iCal DateTime.
+     *
+     * The stored value is a true UTC instant (R089) and the Carbon carries
+     * the UTC zone, so the apply-timezone flag renders DTSTART/DTEND as
+     * absolute UTC (...Z) — the correct instant in every calendar client.
      */
     private function carbonToDateTime(Carbon $carbon): DateTime
     {
-        return new DateTime($carbon->toDateTimeImmutable(), true);
+        return new DateTime($carbon->copy()->utc()->toDateTimeImmutable(), true);
     }
 }

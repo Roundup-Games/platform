@@ -8,14 +8,17 @@ use App\Enums\VibeFlag;
 use App\Jobs\UpdateUserDiscoveryCache;
 use App\Models\Location;
 use App\Models\User;
+use App\Rules\ValidTimezone;
 use App\Rules\ValidUserName;
 use App\Services\DashboardCacheService;
 use App\Services\GmSocialLinkService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Validate;
@@ -45,7 +48,13 @@ class Show extends Component
 
     public string $preferredLanguage = '';
 
-    /** IANA timezone identifier captured at login (R089), or null when none is stored. */
+    /**
+     * IANA timezone identifier for per-user time rendering (R089): device-
+     * captured (login/OAuth/beacon) or manually chosen here. Null = not
+     * captured yet; '' maps to null before validation (the select's
+     * "not set" option). Saving a value here sets timezone_manually_set,
+     * which makes every auto-capture path a no-op.
+     */
     public ?string $timezone = null;
 
     public string $bio = '';
@@ -209,6 +218,10 @@ class Show extends Component
     {
         $user = authenticatedUser();
 
+        // The select's "not set" option posts '' — normalize before
+        // validation so the nullable rule governs (R089).
+        $this->timezone = $this->timezone !== '' ? $this->timezone : null;
+
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:255', new ValidUserName],
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
@@ -217,9 +230,12 @@ class Show extends Component
             'pronouns' => ['nullable', 'string', 'max:50'],
             'phone' => ['nullable', 'string', 'max:30'],
             'preferredLanguage' => ['nullable', 'string', 'in:'.implode(',', ContentLanguage::values())],
-            // '' (the select's "not set" option) is allowed alongside valid IANA
-            // identifiers — Livewire submits '' where HTTP middleware would coerce null.
-            'timezone' => ['nullable', 'string', 'max:64', Rule::in(array_merge([''], \DateTimeZone::listIdentifiers()))],
+            // Alias-tolerant ctor validation (R089): the built-in `timezone`
+            // rule is a listIdentifiers() lookup and rejects tzdata aliases
+            // browsers report (Asia/Calcutta). '' is normalized to null below
+            // before validation — Livewire submits '' where HTTP middleware
+            // would coerce null.
+            'timezone' => ['nullable', 'string', 'max:64', new ValidTimezone],
             'bio' => ['nullable', 'string', 'max:500'],
         ]);
 
@@ -250,7 +266,11 @@ class Show extends Component
             'pronouns' => $validated['pronouns'],
             'phone' => $validated['phone'],
             'preferred_language' => $validated['preferredLanguage'] !== '' ? $validated['preferredLanguage'] : null,
-            'timezone' => $validated['timezone'] !== '' ? $validated['timezone'] : null,
+            // Canonicalized identifier (DateTimeZone->getName()); choosing a
+            // zone here is the manual override — capture paths stop writing.
+            // Clearing returns the user to device-derived capture.
+            'timezone' => canonical_timezone($validated['timezone']),
+            'timezone_manually_set' => $validated['timezone'] !== null && $validated['timezone'] !== '',
             'bio' => $validated['bio'] ? trim(strip_tags($validated['bio'])) : null,
             'location_id' => $this->locationId,
             'profile_version' => ($user->profile_version ?? 0) + 1,
@@ -501,6 +521,23 @@ class Show extends Component
 
             $this->addError('socialLinks', __('profile.gm_social_links_error'));
         }
+    }
+
+    /**
+     * Confirmation line under the timezone select: the zone's current local
+     * time, recomputed on every render so the .live-bound select refreshes
+     * it as the user browses options (R089). Null when no zone is selected.
+     */
+    #[Computed]
+    public function timezoneCurrentTime(): ?string
+    {
+        $timezone = canonical_timezone($this->timezone);
+
+        if ($timezone === null) {
+            return null;
+        }
+
+        return format_date(Carbon::now($timezone), 'datetime', $timezone);
     }
 
     public function render(): View

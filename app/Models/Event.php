@@ -428,7 +428,10 @@ class Event extends Model implements HasMedia
      */
     public function scopeUpcoming(Builder $query): Builder
     {
-        return $query->where('start_date', '>=', now())->orderBy('start_date');
+        // start_date is a DATE column: "upcoming" means today-or-later on the
+        // community wall calendar (R089), so a same-day event stays upcoming
+        // all day Berlin instead of dropping out after UTC midnight.
+        return $query->where('start_date', '>=', community_now()->toDateString())->orderBy('start_date');
     }
 
     // ── State Machine ──────────────────────────────────

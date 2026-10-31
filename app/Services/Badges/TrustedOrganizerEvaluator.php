@@ -167,7 +167,9 @@ class TrustedOrganizerEvaluator extends CohortSweepEvaluator
             // buckets it can never visit — pure wasted rows per
             // organizer per night, growing with how far ahead they
             // schedule.
-            ->where('start_date', '<=', now())
+            // "Through today" on the community wall calendar (R089) —
+            // start_date is a DATE column.
+            ->where('start_date', '<=', community_now()->toDateString())
             ->get();
 
         $grouped = [];
@@ -361,7 +363,8 @@ class TrustedOrganizerEvaluator extends CohortSweepEvaluator
 
     private function mostRecentClosedQuarterIndex(): int
     {
-        $now = now();
+        // Quarter streaks are community-calendar quarters (R089).
+        $now = community_now();
 
         return $this->quarterIndex((int) $now->format('Y'), (int) $now->format('n')) - 1;
     }

@@ -95,20 +95,23 @@ class SessionReminder extends BaseNotification
      * Window-scoped copy shared by toPush() and toDiscord(), composed once
      * (both channels used to duplicate this block verbatim).
      *
-     * Times are converted from UTC (app timezone) to the recipient's timezone
-     * (default Europe/Berlin, DACH target audience) and include the timezone
-     * abbreviation for clarity, e.g. "3:00 PM CEST".
+     * The stored instant is converted to the recipient's timezone (default
+     * Europe/Berlin, DACH target audience) and rendered on the locale's
+     * clock — 24-hour for de ("19:00 CET"), 12-hour + AM/PM for en
+     * ("7:00 PM CET") — matching format_date()'s convention (R089).
      *
      * @return array{title: string, body: string}
      */
     private function reminderCopy(User $notifiable): array
     {
-        // Per-user timezone captured at login (R089); null (not captured yet)
-        // falls back to the DACH default.
-        $timezone = $notifiable->timezone ?? 'Europe/Berlin';
+        // Per-user timezone captured from the user's devices (R089); null
+        // (not captured yet) falls back to the community default.
+        $timezone = $notifiable->timezone ?? community_timezone();
 
         $time = $this->game->date_time !== null
-            ? $this->game->date_time->setTimezone($timezone)->format('g:i A T')
+            // Copy first: the shared model attribute must not shift zones.
+            ? $this->game->date_time->copy()->setTimezone($timezone)
+                ->isoFormat(is_24_hour_locale($this->resolveLocale($notifiable)) ? 'HH:mm z' : 'h:mm A z')
             : '';
 
         $titleKey = $this->window === '24h'

@@ -50,7 +50,8 @@ return [
     'content_language_location' => 'Sprache & Standort',
     'content_preferred_language' => 'Bevorzugte Sprache',
     'field_timezone' => 'Zeitzone',
-    'hint_timezone' => 'Steuert, in welcher Ortszeit dir Uhrzeiten (z. B. Sitzungserinnerungen) angezeigt werden. Wird automatisch vom Gerät erfasst, mit dem du dich anmeldest.',
+    'hint_timezone' => 'Uhrzeiten (z. B. Sitzungserinnerungen) werden dir in deiner Ortszeit angezeigt. Die Zeitzone wird automatisch von deinen Geräten erfasst — wenn du hier eine Zone auswählst, bleibt sie fest und die automatische Erfassung überschreibt deine Wahl nicht mehr. Leere das Feld, um zur Geräte-Erfassung zurückzukehren.',
+    'content_timezone_current_time' => 'Aktuelle Uhrzeit in dieser Zeitzone: :time',
     'content_this_helps_us_find_games_and_events_near_you' => 'Das hilft uns, Spiele und Events in deiner Nähe zu finden.',
     'content_vibe_preferences' => 'Vibe-Präferenzen',
     // Privacy settings

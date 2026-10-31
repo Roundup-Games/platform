@@ -97,7 +97,9 @@ class DashboardScheduleService
      */
     private function buildUpcomingGroups(User $user): array
     {
-        $now = now();
+        // Today/this-week buckets resolve on the community wall calendar
+        // (R089); DB-bound boundaries convert back to UTC instants.
+        $now = community_now();
         $endOfToday = $now->copy()->endOfDay();
         $endOfWeek = $now->copy()->endOfWeek(); // Sunday end
         $fourteenDaysOut = $now->copy()->addDays(14);
@@ -106,8 +108,8 @@ class DashboardScheduleService
         // scheduled in the next 14 days. Same pattern as hasUpcomingGames().
         $games = Game::query()
             ->where('status', GameStatus::Scheduled->value)
-            ->where('date_time', '>', $now)
-            ->where('date_time', '<=', $fourteenDaysOut)
+            ->where('date_time', '>', $now->copy()->utc())
+            ->where('date_time', '<=', $fourteenDaysOut->copy()->utc())
             ->where(function ($q) use ($user) {
                 $q->whereBelongsTo($user, 'owner')
                     ->orWhereHas('participants', fn ($pq) => $pq

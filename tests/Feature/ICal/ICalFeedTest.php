@@ -8,6 +8,7 @@ use App\Models\GameParticipant;
 use App\Models\ShortLink;
 use App\Models\User;
 use App\Services\ICal\ICalFeedRenderer;
+use Carbon\Carbon;
 
 /**
  * M057/S05/T03 — per-user tokenized iCal feed (decision D123).
@@ -116,6 +117,53 @@ describe('iCal feed — successful rendering', function () {
         $startDate = $start->format('Ymd');
         expect($body)->toContain('DTSTART');
         expect($body)->toContain($startDate);
+    });
+
+    it('emits absolute UTC DTSTART/DTEND for the stored instants (R089)', function () {
+        $owner = User::factory()->create();
+        // A Berlin evening session stored as its true UTC instant:
+        // 2026-11-05 18:00 UTC (CET +1) is 19:00 Berlin wall.
+        Game::factory()->create([
+            'owner_id' => $owner->id,
+            'date_time' => Carbon::parse('2026-11-05 18:00:00', 'UTC'),
+            'expected_duration' => 2,
+            'name' => ['en' => 'Absolute Time Session'],
+        ]);
+        $link = ShortLink::factory()->create([
+            'linkable_type' => (new User)->getMorphClass(),
+            'linkable_id' => $owner->id,
+            'purpose' => 'ical',
+        ]);
+
+        $body = $this->get("/calendar/{$link->code}")->getContent();
+
+        // Absolute times (...Z): the exact stored instants — under the old
+        // wall-time-under-UTC-label convention this emitted 19:00Z for a
+        // session that actually starts at 18:00Z.
+        expect($body)->toContain('DTSTART:20261105T180000Z')
+            ->and($body)->toContain('DTEND:20261105T200000Z');
+    });
+
+    it('anchors the all-day fallback to the community calendar date (R089)', function () {
+        $owner = User::factory()->create();
+        // 2026-11-05 23:30 UTC is already 2026-11-06 00:30 in Berlin — the
+        // all-day fallback must carry the Berlin date, not the UTC date.
+        Game::factory()->create([
+            'owner_id' => $owner->id,
+            'date_time' => Carbon::parse('2026-11-05 23:30:00', 'UTC'),
+            'expected_duration' => 0,
+            'name' => ['en' => 'All Day Edge Session'],
+        ]);
+        $link = ShortLink::factory()->create([
+            'linkable_type' => (new User)->getMorphClass(),
+            'linkable_id' => $owner->id,
+            'purpose' => 'ical',
+        ]);
+
+        $body = $this->get("/calendar/{$link->code}")->getContent();
+
+        expect($body)->toContain('VALUE=DATE:20261106')
+            ->and($body)->not->toContain('VALUE=DATE:20261105');
     });
 
     it('emits STATUS:CANCELLED for a canceled game', function () {

@@ -74,8 +74,11 @@ class CreateEvent extends Component
     public function mount(): void
     {
         $this->authorize('create', Event::class);
-        $this->start_date = now()->addDays(14)->format('Y-m-d');
-        $this->end_date = now()->addDays(16)->format('Y-m-d');
+        // Community wall-calendar prefill (R089): the date pickers show
+        // Berlin calendar dates so "two weeks out" means the same day
+        // everywhere.
+        $this->start_date = community_now()->addDays(14)->format('Y-m-d');
+        $this->end_date = community_now()->addDays(16)->format('Y-m-d');
 
         // Initialize active locale to baseline
         if ($this->activeLocale === '') {
@@ -132,6 +135,14 @@ class CreateEvent extends Component
             ['name' => $this->name, 'description' => $this->description, 'short_description' => $this->short_description],
         );
 
+        // Input edge (R089): registration/early-bird datetimes are the
+        // organizer's wall clock — persist true UTC instants ('' maps to
+        // null via wall_time_to_utc). start_date and end_date are date-only
+        // picks (no wall-time instant) and pass through.
+        $earlyBirdDeadline = wall_time_to_utc($this->early_bird_deadline)?->format('Y-m-d H:i:s');
+        $registrationOpensAt = wall_time_to_utc($this->registration_opens_at)?->format('Y-m-d H:i:s');
+        $registrationClosesAt = wall_time_to_utc($this->registration_closes_at)?->format('Y-m-d H:i:s');
+
         $event = Event::create(array_filter([
             'name' => $translatable['name'],
             'short_description' => $translatable['short_description'],
@@ -149,9 +160,9 @@ class CreateEvent extends Component
             'max_participants' => $this->max_participants,
             'individual_registration_fee' => $this->eurToCents($this->individual_registration_fee) ?? 0,
             'early_bird_discount' => $this->eurToCents($this->early_bird_discount),
-            'early_bird_deadline' => $this->early_bird_deadline !== '' ? $this->early_bird_deadline : null,
-            'registration_opens_at' => $this->registration_opens_at !== '' ? $this->registration_opens_at : null,
-            'registration_closes_at' => $this->registration_closes_at !== '' ? $this->registration_closes_at : null,
+            'early_bird_deadline' => $earlyBirdDeadline,
+            'registration_opens_at' => $registrationOpensAt,
+            'registration_closes_at' => $registrationClosesAt,
             'rules' => $parsedRules,
             'schedule' => $parsedSchedule,
             'contact_email' => $this->contact_email !== '' ? $this->contact_email : null,
@@ -191,7 +202,9 @@ class CreateEvent extends Component
                     'short_description' => 'nullable|string|max:500',
                     'description' => 'nullable|string',
                     'type' => 'required|in:'.implode(',', EventType::values()),
-                    'start_date' => 'required|date|after:today',
+                    // Wall-calendar gate (R089): "after today" means after
+                    // the community calendar's today (Europe/Berlin).
+                    'start_date' => 'required|date|after:'.community_now()->toDateString(),
                     'end_date' => 'required|date|after_or_equal:start_date',
                     'language' => 'required|in:'.implode(',', ContentLanguage::values()),
                 ],

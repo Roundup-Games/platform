@@ -102,6 +102,12 @@ class EventListing extends Component
             alternates: $cityAlternates,
         ));
 
+        // One community-clock reading for every wall-calendar boundary
+        // below (R089): a request straddling midnight or a week/month
+        // boundary must not mix two different "now"s. copy() before each
+        // mutating start/end call — Carbon is mutable.
+        $communityNow = community_now();
+
         $query = Event::query()
             // M063/S06/T03: the grid renders the shared <x-event-card>, whose
             // derived-offering line reads Event::offeredSystems(). Eager-loading
@@ -128,10 +134,16 @@ class EventListing extends Component
             }))
             ->when($this->type, fn ($q) => $q->where('type', $this->type))
             ->when($this->status, fn ($q) => $q->where('status', $this->status))
-            ->when($this->date === 'upcoming', fn ($q) => $q->where('start_date', '>=', now()))
-            ->when($this->date === 'past', fn ($q) => $q->where('end_date', '<', now()))
-            ->when($this->date === 'this_week', fn ($q) => $q->whereBetween('start_date', [now()->startOfWeek(), now()->endOfWeek()]))
-            ->when($this->date === 'this_month', fn ($q) => $q->whereBetween('start_date', [now()->startOfMonth(), now()->endOfMonth()]))
+            // Wall-calendar filters on the community clock (R089), matching
+            // Event::scopeUpcoming: a same-day event stays upcoming all day
+            // Berlin instead of dropping out after UTC midnight, and an
+            // event ending today is not yet past.
+            ->when($this->date === 'upcoming', fn ($q) => $q->where('start_date', '>=', $communityNow->toDateString()))
+            ->when($this->date === 'past', fn ($q) => $q->where('end_date', '<', $communityNow->toDateString()))
+            // Wall-calendar buckets on the community clock (R089); start_date
+            // is a DATE column, so the boundaries compare as Berlin dates.
+            ->when($this->date === 'this_week', fn ($q) => $q->whereBetween('start_date', [$communityNow->copy()->startOfWeek()->toDateString(), $communityNow->copy()->endOfWeek()->toDateString()]))
+            ->when($this->date === 'this_month', fn ($q) => $q->whereBetween('start_date', [$communityNow->copy()->startOfMonth()->toDateString(), $communityNow->copy()->endOfMonth()->toDateString()]))
             // Nullsafe: the closure only runs when the summary resolved non-null
             // (when()'s condition), so the fallback never fires at runtime.
             ->when($citySummary, fn ($q) => $q->whereIn('location_id', $cityLocationIds))

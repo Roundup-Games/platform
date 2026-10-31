@@ -2,6 +2,7 @@
 
 use App\Models\Game;
 use App\Models\ShortLink;
+use App\Models\User;
 use Carbon\Carbon;
 
 /*
@@ -66,16 +67,25 @@ it('renders share-link created dates in the active locale', function () {
 });
 
 it('renders session-card weekday dates in the active locale', function () {
-    $game = Game::factory()->create(['date_time' => Carbon::parse('2026-04-14 14:30:00')]);
+    // The fixture is a UTC instant (R089); format_date renders it on the
+    // community wall clock (Europe/Berlin — no authenticated viewer here).
+    // Expected values derive from the same conversion (tz-explicit, K004)
+    // instead of literal strings.
+    $game = Game::factory()->create(['date_time' => Carbon::parse('2026-04-14 14:30:00', 'UTC')]);
 
     $english = t06_renderSessionCard($game);
-    expect($english)->toContain('Tue, Apr 14, 14:30');
+    expect($english)->toContain(
+        $game->date_time->setTimezone('Europe/Berlin')->locale('en')->isoFormat('ddd, MMM D, HH:mm'),
+    );
 
     app()->setLocale('de');
     $german = t06_renderSessionCard($game);
 
-    expect($german)->toContain('Di., 14. Apr, 14:30')
-        ->and($german)->not->toContain('Apr 14, 14:30');
+    expect($german)->toContain(
+        $game->date_time->setTimezone('Europe/Berlin')->locale('de')->isoFormat('ddd, D. MMM, HH:mm'),
+    )->and($german)->not->toContain(
+        $game->date_time->setTimezone('Europe/Berlin')->locale('en')->isoFormat('ddd, MMM D, HH:mm'),
+    );
 });
 
 it('keeps localized views free of hardcoded English date formats', function () {
@@ -106,4 +116,38 @@ it('keeps localized views free of hardcoded English date formats', function () {
     expect($hits->values()->toArray())->toBeEmpty(
         "Localized views must use format_date() instead of English PHP date formats. Offenders:\n".$hits->implode("\n")
     );
+});
+
+it('renders the session-card today branch on the viewer wall clock', function () {
+    // 2026-10-31 23:30 UTC is already 2026-11-01 00:30 in Berlin (CET +1):
+    // the "today" shortcut must resolve on the community clock and render
+    // the Berlin wall time, never the stored UTC instant (R089).
+    Carbon::setTestNow(Carbon::parse('2026-10-31 23:30:00', 'UTC'));
+
+    // Store an explicit UTC instant (Eloquent binds a Carbon's own wall
+    // string — a Berlin-zoned fixture would shift on write).
+    $game = Game::factory()->create([
+        'date_time' => Carbon::parse('2026-10-31 23:30:00', 'UTC'),
+    ]);
+
+    $english = t06_renderSessionCard($game);
+
+    // Berlin "today" with the Berlin wall clock — the old UTC branch
+    // rendered "Today, 23:30" (wrong day label plus wrong clock).
+    expect($english)->toContain(__('common.content_today').', 00:30')
+        ->and($english)->not->toContain('23:30');
+});
+
+it('renders the session-card today branch in the authenticated viewer\'s zone', function () {
+    // Same instant, New York viewer: 23:30 UTC Oct 31 is 19:30 EDT Oct 31 —
+    // still "today" for them, on their wall clock (R089 per-viewer render).
+    Carbon::setTestNow(Carbon::parse('2026-10-31 23:30:00', 'UTC'));
+
+    $game = Game::factory()->create([
+        'date_time' => Carbon::parse('2026-10-31 23:30:00', 'UTC'),
+    ]);
+
+    $this->actingAs(User::factory()->create(['timezone' => 'America/New_York']));
+
+    expect(t06_renderSessionCard($game))->toContain(__('common.content_today').', 19:30');
 });

@@ -354,7 +354,8 @@ class DiscordDigestRenderer
 
     private function gameTime(Game $game): string
     {
-        return $game->date_time?->format('H:i') ?? '--:--';
+        // Community display zone (R089): digest times are Berlin wall times.
+        return $game->date_time?->copy()->setTimezone(community_timezone())->format('H:i') ?? '--:--';
     }
 
     private function gameName(Game $game): string
@@ -447,7 +448,8 @@ class DiscordDigestRenderer
 
     private function dateKey(Game $game): string
     {
-        return $game->date_time?->format('Y-m-d') ?? '0000-00-00';
+        // Community wall-calendar grouping key (R089).
+        return $game->date_time?->copy()->setTimezone(community_timezone())->format('Y-m-d') ?? '0000-00-00';
     }
 
     /**
@@ -464,7 +466,8 @@ class DiscordDigestRenderer
             return $this->trans('discord.content_digest_undated', [], $this->resolveLocale($context->locale));
         }
 
-        $carbon = $date->copy();
+        // Community display zone (R089).
+        $carbon = $date->copy()->setTimezone(community_timezone());
         if ($context->locale !== null && $context->locale !== '') {
             $carbon->locale($context->locale);
         }
@@ -472,14 +475,16 @@ class DiscordDigestRenderer
         return $carbon->translatedFormat('l j M');
     }
 
+    // Both sort keys format on the community clock (R089) so intra-group
+    // ordering matches the rendered Berlin wall times.
     private function dateTimeSortKey(Game $game): string
     {
-        return $game->date_time?->format('Y-m-d\TH:i:s') ?? '9999-99-99T99:99:99';
+        return $game->date_time?->copy()->setTimezone(community_timezone())->format('Y-m-d\TH:i:s') ?? '9999-99-99T99:99:99';
     }
 
     private function timeSortKey(Game $game): string
     {
-        return $game->date_time?->format('H:i:s') ?? '99:99:99';
+        return $game->date_time?->copy()->setTimezone(community_timezone())->format('H:i:s') ?? '99:99:99';
     }
 
     // ── Field-value cap ──────────────────────────────────

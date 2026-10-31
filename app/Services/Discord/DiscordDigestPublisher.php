@@ -117,8 +117,10 @@ class DiscordDigestPublisher
         $context = $this->buildContext($games, $guild);
         $payload = $this->renderer->render($games, $context);
 
-        $appTimezone = config('app.timezone');
-        $today = Carbon::today(is_string($appTimezone) ? $appTimezone : null)->toDateString();
+        // Community wall date (R089): the daily thread rotates on the
+        // Berlin calendar — the same clock the renderer's date headings
+        // group by — instead of the app's UTC midnight.
+        $today = community_now()->toDateString();
         $eventCount = $games->count();
         $embedCount = is_array($payload->embeds) ? count($payload->embeds) : 0;
 
@@ -398,7 +400,7 @@ class DiscordDigestPublisher
      * The daily calendar thread title: a "🗓️ Upcoming" prefix plus the
      * guild-locale date, capped at Discord's 100-char thread-name limit.
      *
-     * @param  string  $today  App-tz 'Y-m-d' date string for the thread day.
+     * @param  string  $today  Community wall 'Y-m-d' date for the thread day (R089).
      */
     private function threadName(DiscordGuild $guild, string $today): string
     {

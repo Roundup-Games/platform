@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\User;
+use App\Services\TimezoneCaptureService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -38,27 +39,24 @@ class AuthenticatedSessionController extends Controller
      * Persist the login device's IANA timezone on the user (R089).
      *
      * The login form posts a hidden `timezone` input filled by inline JS
-     * (Intl.DateTimeFormat().resolvedOptions().timeZone). Silent degradation
-     * everywhere: absent input (no JS, OAuth callback, API), a non-string,
-     * or an identifier unknown to DateTimeZone stores nothing — the render
-     * side keeps its 'Europe/Berlin' fallback via null-coalescing. Runs on
-     * EVERY form login so a travelling user's zone refreshes automatically;
-     * it only writes when the value actually changed.
+     * (Intl.DateTimeFormat().resolvedOptions().timeZone). TimezoneCapture-
+     * Service owns the contract: alias-tolerant canonicalization, no write
+     * when unchanged, and NEVER a write over a manually-set profile zone.
+     * Silent degradation everywhere: absent input (no JS, API), a
+     * non-string, or an identifier the DateTimeZone constructor rejects
+     * stores nothing — the render side keeps its 'Europe/Berlin' fallback
+     * via null-coalescing. Runs on EVERY form login so a travelling user's
+     * zone refreshes automatically.
      */
     private function captureLoginTimezone(LoginRequest $request): void
     {
-        $timezone = $request->input('timezone');
-
-        if (! is_string($timezone) || ! in_array($timezone, \DateTimeZone::listIdentifiers(), true)) {
-            return;
-        }
-
         $user = Auth::user();
-        if (! $user instanceof User || $user->timezone === $timezone) {
+
+        if (! $user instanceof User) {
             return;
         }
 
-        $user->forceFill(['timezone' => $timezone])->saveQuietly();
+        app(TimezoneCaptureService::class)->capture($user, $request->input('timezone'));
     }
 
     /**

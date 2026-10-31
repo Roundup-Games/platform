@@ -16,11 +16,17 @@
     $isTopHundred = $bggRank !== null && $bggRank <= 100;
     $systemName = $gameSystem?->name ?? $entity->name;
 
-    // Date/time display
+    // Date/time display — both branches resolve on the viewer's wall clock
+    // (R089): the "today" shortcut used to render the stored UTC instant
+    // while the weekday branch converted to the viewer zone.
     $dateTime = $isCampaign ? null : $entity->date_time;
-    $formattedDate = $dateTime?->isToday()
-        ? __('common.content_today') . ', ' . $dateTime->format('H:i')
-        : ($dateTime ? format_date($dateTime, 'weekday_datetime') : null);
+    $formattedDate = null;
+    if ($dateTime !== null) {
+        $viewerTime = $dateTime->copy()->setTimezone(viewer_timezone());
+        $formattedDate = $viewerTime->isToday()
+            ? __('common.content_today') . ', ' . $viewerTime->format('H:i')
+            : format_date($dateTime, 'weekday_datetime');
+    }
 
     // Join URL
     $joinRoute = $isCampaign

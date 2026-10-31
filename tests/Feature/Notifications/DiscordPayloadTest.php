@@ -19,6 +19,7 @@ use App\Notifications\SessionReminder;
 use App\Notifications\WaitlistExpiredRejected;
 use App\Notifications\WaitlistPromoted;
 use App\Services\Discord\DiscordWebhookPayload;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Foundation\Testing\TestCase;
 
@@ -80,7 +81,7 @@ class DiscordPayloadTest extends TestCase
         $game = Game::factory()->create();
         $notifiable = User::factory()->create(['preferred_language' => ContentLanguage::En]);
 
-        $payload = (new AttendanceNudge($game, 'tomorrow at 6:00 PM'))->toDiscord($notifiable);
+        $payload = (new AttendanceNudge($game, Carbon::parse('2026-11-06 18:00:00', 'UTC')))->toDiscord($notifiable);
 
         $embed = $this->embed($payload);
         // Title is the static 'Attendance Reminder' key (no :game param);
@@ -269,7 +270,7 @@ class DiscordPayloadTest extends TestCase
         $game = Game::factory()->create();
         $notifiable = User::factory()->create(['preferred_language' => ContentLanguage::En]);
 
-        $embed = $this->embed((new AttendanceNudge($game, 'soon'))->toDiscord($notifiable));
+        $embed = $this->embed((new AttendanceNudge($game, Carbon::parse('2026-11-06 18:00:00', 'UTC')))->toDiscord($notifiable));
 
         $this->assertSame(0x5865F2, $embed['color']);
     }

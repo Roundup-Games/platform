@@ -120,10 +120,14 @@ class EventResource extends Resource
                                     ->required(),
                                 DatePicker::make('end_date')
                                     ->required(),
+                                // R089: stored UTC instants, entered/displayed on the
+                                // admin's wall clock; the DATE pickers are zone-free.
                                 DateTimePicker::make('registration_opens_at')
-                                    ->label('Registration Opens'),
+                                    ->label('Registration Opens')
+                                    ->timezone(fn (): string => viewer_timezone()),
                                 DateTimePicker::make('registration_closes_at')
-                                    ->label('Registration Closes'),
+                                    ->label('Registration Closes')
+                                    ->timezone(fn (): string => viewer_timezone()),
                             ]),
                         Textarea::make('rules')
                             ->rows(3)

@@ -5,6 +5,7 @@ use App\Enums\VenueType;
 use App\Models\Game;
 use App\Models\Location;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
@@ -14,6 +15,22 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
+
+/*
+|--------------------------------------------------------------------------
+| Global afterEach hooks
+|--------------------------------------------------------------------------
+|
+| Frozen-clock leak guard (R089 review): Carbon::setTestNow() is static
+| state that neither Laravel's TestCase tearDown nor this suite resets —
+| a test that freezes time and fails mid-way leaked the frozen clock into
+| every later test in the same worker (order-dependent flakes). Clear it
+| globally; tests that need a frozen clock set it themselves per test.
+*/
+
+afterEach(function () {
+    Carbon::setTestNow();
+});
 
 /*
 |--------------------------------------------------------------------------

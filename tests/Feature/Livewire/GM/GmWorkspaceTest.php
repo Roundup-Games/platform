@@ -93,8 +93,16 @@ describe('GmWorkspace Access Control', function () {
 
         $response = $this->actingAs($gm)->get(route('gm.workspace', 'de'));
 
+        // R089: the stored fixture is a UTC instant; format_date renders it on
+        // the viewer's wall clock (no captured zone → Europe/Berlin). The
+        // expectation derives from the same conversion (tz-explicit, K004).
+        $expectedGerman = Carbon::parse('2026-10-15 14:30:00', 'UTC')
+            ->setTimezone('Europe/Berlin')
+            ->locale('de')
+            ->isoFormat('D. MMMM YYYY, HH:mm');
+
         $response->assertOk()
-            ->assertSee('15. Oktober 2026, 14:30')
+            ->assertSee($expectedGerman)
             ->assertDontSee('Oct 15, 2026');
 
         // No English AM/PM clock anywhere on the page. Word-boundary regex so

@@ -19,6 +19,7 @@ use App\Services\Discord\DiscordCardRenderer;
 use App\Services\Discord\DiscordPublisher;
 use App\Services\Discord\DiscordPublishException;
 use App\Services\Discord\DiscordWebhookClient;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -908,5 +909,63 @@ class DiscordPublisherTest extends TestCase
 
         // The card row is gone either way.
         $this->assertSame(0, DiscordCardMessage::where('game_id', $game->id)->count());
+    }
+    // ════════════════════════════════════════════════════
+    //  R089: thread title carries the community wall date
+    // ════════════════════════════════════════════════════
+
+    #[Test]
+    public function per_session_thread_title_carries_the_community_wall_date()
+    {
+        // 2026-11-05 23:30 UTC is already 2026-11-06 00:30 in Berlin: the
+        // thread title must carry the Berlin wall date ("6 Nov 2026"), not
+        // the previous UTC day the stored instant labels.
+        config(['services.discord.publishing_enabled' => false]);
+        [$game, $guild] = $this->publicGameInOptedInGuild();
+        $game->forceFill(['date_time' => Carbon::parse('2026-11-05 23:30:00', 'UTC')])->saveQuietly();
+        config(['services.discord.publishing_enabled' => true]);
+        $this->fakePostAndThreadSuccess();
+
+        $publisher = $this->makePublisher();
+        $publisher->publish($game);
+
+        Http::assertSent(function (Request $request): bool {
+            if (! str_contains($request->url(), '/messages/*/threads') && ! str_contains($request->url(), '/threads')) {
+                return false;
+            }
+            $data = $request->data();
+            $name = is_array($data) ? (string) ($data['name'] ?? '') : '';
+
+            return str_contains($name, '6 Nov 2026') && ! str_contains($name, '5 Nov 2026');
+        });
+    }
+
+    #[Test]
+    public function per_session_thread_starter_carries_the_community_wall_time()
+    {
+        // Same late-night instant as the title test: 2026-11-05 23:30 UTC is
+        // 00:30 on Nov 6 in Berlin — the starter's 📅 line must show the
+        // Berlin wall clock, matching the card and thread title beside it,
+        // not the stored UTC label (R089).
+        config(['services.discord.publishing_enabled' => false]);
+        [$game, $guild] = $this->publicGameInOptedInGuild();
+        $game->forceFill(['date_time' => Carbon::parse('2026-11-05 23:30:00', 'UTC')])->saveQuietly();
+        config(['services.discord.publishing_enabled' => true]);
+        $this->fakePostAndThreadSuccess();
+
+        $this->makePublisher()->publish($game);
+
+        Http::assertSent(function (Request $request): bool {
+            // The starter is the POST into the fresh thread (thread-1); the
+            // card POST targets the games channel instead.
+            if ($request->method() !== 'POST' || ! str_ends_with($request->url(), '/channels/thread-1/messages')) {
+                return false;
+            }
+            $data = $request->data();
+            $content = is_array($data) ? (string) ($data['content'] ?? '') : '';
+
+            return str_contains($content, '6 Nov 2026 · 00:30')
+                && ! str_contains($content, '5 Nov 2026 · 23:30');
+        });
     }
 }

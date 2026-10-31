@@ -100,11 +100,12 @@ class ParticipantsRelationManager extends RelationManager
                     ->label('Disputed')
                     ->icon(fn ($record) => $record->attendance_disputed_at ? 'heroicon-o-exclamation-triangle' : 'heroicon-o-minus')
                     ->color(fn ($record) => $record->attendance_disputed_at ? 'danger' : 'gray')
-                    ->tooltip(fn ($record) => $record->attendance_disputed_at?->format('M j, Y g:i A'))
+                    // Stored UTC instants → the admin's wall clock (R089).
+                    ->tooltip(fn ($record) => $record->attendance_disputed_at?->copy()->setTimezone(viewer_timezone())->format('M j, Y g:i A'))
                     ->toggleable(),
                 TextColumn::make('attendance_reported_at')
                     ->label('Reported At')
-                    ->formatStateUsing(fn ($state) => $state ? $state->format('M j, Y g:i A') : '—')
+                    ->formatStateUsing(fn ($state) => $state ? $state->copy()->setTimezone(viewer_timezone())->format('M j, Y g:i A') : '—')
                     ->toggleable(),
             ])
             ->filters([

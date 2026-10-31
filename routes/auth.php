@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\TimezoneBeaconController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -64,4 +65,12 @@ Route::middleware(['auth', 'not.disabled'])->group(function () {
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
+
+    // Device-timezone beacon (R089): the on-load JS beacon POSTs here only
+    // when the detected zone changed (cookie guard) — auth'd, throttled, and
+    // always 204. Locale-agnostic like the other auth routes: it is a bare
+    // fetch() from the JS bundle, never a user-visible URL.
+    Route::post('timezone/beacon', [TimezoneBeaconController::class, 'store'])
+        ->middleware('throttle:timezone-beacon')
+        ->name('timezone.beacon');
 });

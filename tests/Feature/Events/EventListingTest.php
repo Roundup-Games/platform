@@ -9,6 +9,7 @@ use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 
 use function Pest\Laravel\get;
@@ -61,6 +62,45 @@ describe('EventListing', function () {
             ->set('type', 'game_day')
             ->assertSee('Game Day A')
             ->assertDontSee('Other B');
+    });
+
+    it('keeps a same-day event upcoming and an event ending today not past (community calendar)', function () {
+        // Midday Berlin on Nov 6 2026 (11:00 UTC): under the old `now()`
+        // binding a DATE column can never satisfy `>= now()` mid-day, so
+        // today's events dropped out of "upcoming" and landed in "past" —
+        // Event::scopeUpcoming's comment documents the same edge (R089).
+        Carbon::setTestNow(Carbon::parse('2026-11-06 11:00:00', 'UTC'));
+
+        Event::factory()->create([
+            'name' => ['en' => 'Same Day Event'],
+            'start_date' => '2026-11-06',
+            'end_date' => '2026-11-07',
+            'is_public' => true,
+            'status' => 'registration_open',
+        ]);
+        // The listing's base query only admits published-ish statuses, so
+        // the past event carries one of those — only its DATES make it past.
+        Event::factory()->create([
+            'name' => ['en' => 'Ended Yesterday'],
+            'start_date' => '2026-11-04',
+            'end_date' => '2026-11-05',
+            'is_public' => true,
+            'status' => 'registration_closed',
+        ]);
+
+        try {
+            Livewire\Livewire::test(EventListing::class)
+                ->set('date', 'upcoming')
+                ->assertSee('Same Day Event')
+                ->assertDontSee('Ended Yesterday');
+
+            Livewire\Livewire::test(EventListing::class)
+                ->set('date', 'past')
+                ->assertSee('Ended Yesterday')
+                ->assertDontSee('Same Day Event');
+        } finally {
+            Carbon::setTestNow();
+        }
     });
 
     it('filters by upcoming date', function () {

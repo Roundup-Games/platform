@@ -18,6 +18,11 @@ trait DashboardFormatting
      *
      * Returns localised strings like "Today at 7 PM", "Tomorrow at 3 PM",
      * "Fri at 6 PM", or "Jan 15 at 2 PM".
+     *
+     * Community wall clock (R089): the today/tomorrow/this-week buckets and
+     * the rendered hour resolve on the Europe/Berlin calendar — the pinned
+     * zone for every dashboard bucket (deterministic cohorts, not per-viewer
+     * drifting labels).
      */
     protected function formatRelativeTime(?Carbon $dateTime): string
     {
@@ -25,7 +30,8 @@ trait DashboardFormatting
             return '';
         }
 
-        $now = now();
+        $dateTime = $dateTime->copy()->setTimezone(community_timezone());
+        $now = community_now();
         $time = $dateTime->format('g A');
 
         if ($dateTime->isToday()) {

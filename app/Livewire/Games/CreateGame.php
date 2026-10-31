@@ -354,6 +354,16 @@ class CreateGame extends Component
 
         $validated = $this->validate();
 
+        // Input edge (R089): datetime-local values are the entering user's
+        // wall clock — parse in their captured zone (fallback Europe/Berlin)
+        // and persist true UTC instants. Cross-field validation above ran on
+        // the raw wall strings; converting both with the same zone keeps the
+        // cutoff-before-start relationship intact.
+        $validated['date_time'] = wall_time_to_utc($validated['date_time'])?->format('Y-m-d H:i:s') ?? $validated['date_time'];
+        $validated['signup_cutoff_at'] = $validated['signup_cutoff_at'] !== null && $validated['signup_cutoff_at'] !== ''
+            ? (wall_time_to_utc($validated['signup_cutoff_at'])?->format('Y-m-d H:i:s') ?? $validated['signup_cutoff_at'])
+            : null;
+
         if ($this->guardCrossFieldSessionRules($validated)) {
             return;
         }

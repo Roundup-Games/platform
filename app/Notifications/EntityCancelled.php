@@ -35,8 +35,11 @@ class EntityCancelled extends BaseNotification
             ->greeting($this->greetingLine($notifiable));
 
         // GameCancelled includes date in body; CampaignCancelled does not
-        if ($type === 'game') {
-            $date = $this->entity->date_time?->format('M j, Y') ?? '';
+        if ($type === 'game' && $this->entity instanceof Game) {
+            // Recipient-zone date (R089): format_date converts the stored UTC
+            // instant to the notifiable's wall clock — the calendar day differs
+            // across zones.
+            $date = format_date($this->entity->date_time, 'date', $notifiable->timezone ?? community_timezone());
             $mail->line(__('notifications.body_game_cancelled', [
                 'game' => $this->entity->name,
                 'date' => $date,

@@ -134,12 +134,20 @@ class UserResource extends Resource
                                     ),
                                 Select::make('timezone')
                                     ->label('Timezone')
-                                    ->options(array_combine(
-                                        \DateTimeZone::listIdentifiers(),
-                                        \DateTimeZone::listIdentifiers(),
-                                    ))
+                                    ->options(function (?User $record): array {
+                                        // Alias-safe options (R089): device capture stores
+                                        // tzdata aliases (Asia/Calcutta) the canonical list
+                                        // omits — surface the stored value so the select
+                                        // renders it preselected instead of blank, which
+                                        // would dehydrate to a wipe on save.
+                                        $identifiers = timezone_identifier_options($record?->timezone);
+
+                                        return array_combine($identifiers, $identifiers);
+                                    })
                                     ->searchable()
-                                    ->helperText('IANA identifier, captured from the login device (R089). Drives per-user notification times; empty falls back to Europe/Berlin.'),
+                                    ->helperText(fn ($record): string => $record instanceof User && $record->timezone_manually_set
+                                        ? 'Pinned manually (R089) — device capture (login, OAuth, beacon) will not overwrite it. Saving a different zone here re-pins it; clearing it returns the user to device capture. Drives per-user displayed times; empty falls back to Europe/Berlin.'
+                                        : 'Captured from the user\'s devices (R089: login, OAuth, beacon). Drives per-user displayed times; empty falls back to Europe/Berlin. Setting or clearing a zone here or on the profile pins/unpins it against device capture.'),
                                 TextInput::make('avatar_url')
                                     ->label('Avatar URL')
                                     ->url()

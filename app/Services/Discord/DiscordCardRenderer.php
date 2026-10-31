@@ -168,7 +168,9 @@ class DiscordCardRenderer
             return null;
         }
 
-        $carbon = $date->copy();
+        // Community display zone (R089): the stored instant renders on the
+        // Berlin wall clock — cards carry no per-recipient zone.
+        $carbon = $date->copy()->setTimezone(community_timezone());
         if ($context->locale !== null && $context->locale !== '') {
             $carbon->locale($context->locale);
         }

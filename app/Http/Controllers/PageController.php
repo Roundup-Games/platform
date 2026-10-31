@@ -33,11 +33,19 @@ class PageController extends Controller
             'home:stats:v1',
             now()->addMinutes(10),
             function (): array {
-                // Weekly rolling activity: sessions happening this week
+                // Weekly rolling activity: sessions happening this week.
+                // Wall-calendar bucket pinned to Europe/Berlin (R089); the
+                // boundaries convert back to UTC instants for the column —
+                // one community-clock reading for both bounds so a request
+                // straddling midnight cannot mix two different "now"s.
+                $communityNow = community_now();
+                $startOfWeek = $communityNow->copy()->startOfWeek()->utc();
+                $endOfWeek = $communityNow->copy()->endOfWeek()->utc();
+
                 $sessionsThisWeek = Game::query()
                     ->public()
-                    ->where('date_time', '>=', now()->startOfWeek())
-                    ->where('date_time', '<=', now()->endOfWeek())
+                    ->where('date_time', '>=', $startOfWeek)
+                    ->where('date_time', '<=', $endOfWeek)
                     ->count();
 
                 // Active campaigns (non-completed, public)
@@ -50,8 +58,8 @@ class PageController extends Controller
                 $peopleThisWeek = Game::query()
                     ->where('games.visibility', 'public')
                     ->where('games.status', 'scheduled')
-                    ->where('games.date_time', '>=', now()->startOfWeek())
-                    ->where('games.date_time', '<=', now()->endOfWeek())
+                    ->where('games.date_time', '>=', $startOfWeek)
+                    ->where('games.date_time', '<=', $endOfWeek)
                     ->join('game_participants', 'games.id', '=', 'game_participants.game_id')
                     ->count();
 

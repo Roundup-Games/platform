@@ -1,6 +1,7 @@
 import './bootstrap';
 import './guest-location';
 import './image-fallback';
+import './timezone-beacon';
 import { initPushSubscriptions } from './push';
 import { showOfflineToast as showOfflineActionToast, showToast } from './toast';
 

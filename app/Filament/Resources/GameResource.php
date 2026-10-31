@@ -106,11 +106,15 @@ class GameResource extends Resource
                                     ->options(collect(GameType::cases())->mapWithKeys(fn (GameType $t) => [$t->value => $t->label()]))
                                     ->default('board_game')
                                     ->required(),
+                                // R089: stored UTC instants, entered/displayed on the
+                                // admin's wall clock (Filament converts both ways).
                                 DateTimePicker::make('date_time')
                                     ->label('Date & Time')
+                                    ->timezone(fn (): string => viewer_timezone())
                                     ->required(),
                                 DateTimePicker::make('signup_cutoff_at')
                                     ->label('Signup Cutoff')
+                                    ->timezone(fn (): string => viewer_timezone())
                                     // M057/S05 (D124): optional absolute time after which new
                                     // signups are blocked across all three participant-write paths.
                                     // Nullable = no cutoff. Mirrors the user-facing CreateGame field.
@@ -176,11 +180,14 @@ class GameResource extends Resource
                                         : 'Not resolved'),
                                 Placeholder::make('attendance_resolved_at_display')
                                     ->label('Resolved At')
-                                    ->content(fn ($record) => $record?->attendance_resolved_at?->format('M j, Y g:i A') ?? '—'),
+                                    // Stored UTC instants → the admin's wall clock (R089), matching
+                                    // the reporting-window placeholder beside it.
+                                    ->content(fn ($record) => $record?->attendance_resolved_at?->copy()->setTimezone(viewer_timezone())->format('M j, Y g:i A') ?? '—'),
                                 Placeholder::make('attendance_window_display')
                                     ->label('Reporting Window')
+                                    // Stored UTC instants → the admin's wall clock (R089).
                                     ->content(fn ($record) => $record?->attendance_window_opens_at
-                                        ? $record->attendance_window_opens_at->format('M j, Y g:i A').' → '.$record->attendance_window_closes_at?->format('M j, Y g:i A')
+                                        ? $record->attendance_window_opens_at->copy()->setTimezone(viewer_timezone())->format('M j, Y g:i A').' → '.$record->attendance_window_closes_at?->copy()->setTimezone(viewer_timezone())->format('M j, Y g:i A')
                                         : '—'),
                             ]),
                     ])
@@ -224,6 +231,7 @@ class GameResource extends Resource
                     ->toggleable(),
                 TextColumn::make('date_time')
                     ->label('Date')
+                    ->timezone(fn (): string => viewer_timezone())
                     ->dateTime()
                     ->sortable(),
                 TextColumn::make('visibility')

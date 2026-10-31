@@ -63,10 +63,14 @@ function previouslyOnTriggerAddSession(User $owner, Campaign $campaign, int $day
 {
     $when = now()->addDays($daysAhead)->startOfHour();
 
+    // R089 input edge: the datetime-local value is parsed in the ENTERING
+    // user's wall clock (no captured zone -> Europe/Berlin fallback), so
+    // post what that user's picker would show — the instant round-trips
+    // and the where() below still matches.
     Livewire::actingAs($owner)
         ->test(AddSessionToCampaign::class, ['id' => $campaign->id])
         ->set('name', 'Session '.$daysAhead)
-        ->set('date_time', $when->format('Y-m-d\TH:i'))
+        ->set('date_time', $when->copy()->setTimezone(viewer_timezone())->format('Y-m-d\TH:i'))
         ->call('save')
         ->assertHasNoErrors();
 

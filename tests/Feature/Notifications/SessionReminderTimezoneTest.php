@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ContentLanguage;
 use App\Models\Game;
 use App\Models\User;
 use App\Notifications\Channels\DiscordChannel;
@@ -63,6 +64,30 @@ it('renders the reminder time in each notifiable user\'s stored timezone', funct
             // Different local time AND different abbreviation than the Berlin user
             return str_contains($pushBody, '2:00 PM EDT')
                 && ! str_contains($pushBody, '7:00 PM CET');
+        });
+});
+
+it('renders the reminder time on the locale dial — 24h for de, 12h AM/PM for en (R089)', function () {
+    $game = Game::factory()->create([
+        'date_time' => Carbon::parse('2026-10-31 18:00:00', 'UTC'),
+    ]);
+
+    $berlin = User::factory()->create([
+        'timezone' => 'Europe/Berlin',
+        'preferred_language' => ContentLanguage::De,
+    ]);
+
+    $berlin->notify(new SessionReminder($game));
+
+    Notification::assertSentTo($berlin, SessionReminder::class,
+        function (SessionReminder $notification) use ($berlin): bool {
+            $body = $notification->toPush($berlin)->body;
+
+            // 18:00 UTC = 19:00 CET — German users see the 24-hour dial
+            // with the timezone abbreviation, no AM/PM.
+            return str_contains($body, '19:00 CET')
+                && ! str_contains($body, 'PM')
+                && ! str_contains($body, 'AM');
         });
 });
 

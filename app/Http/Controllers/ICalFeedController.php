@@ -133,7 +133,11 @@ class ICalFeedController extends Controller
      */
     private function gamesForUser(User $user): Collection
     {
-        return Game::where('date_time', '>=', now()->startOfDay())
+        // "Upcoming from today" resolves on the community wall calendar
+        // (R089): Berlin midnight converted to a UTC instant keeps today's
+        // early-morning sessions in the feed instead of dropping them at
+        // 22:00/23:00 UTC the evening before.
+        return Game::where('date_time', '>=', community_now()->startOfDay()->utc())
             ->where(function ($query) use ($user) {
                 // Games the user hosts.
                 $query->whereBelongsTo($user, 'owner')

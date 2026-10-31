@@ -5,6 +5,7 @@ namespace App\Services\Badges;
 use App\Enums\AttendanceStatus;
 use App\Models\GameParticipant;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
@@ -117,13 +118,14 @@ class RegularsTableEvaluator extends CohortSweepEvaluator
             ->pluck('games.date_time');
 
         foreach ($dates as $date) {
-            // Driver datetimes start 'YYYY-MM-…' — the first seven
-            // characters are the calendar-month bucket. Buckets are
-            // UTC calendar months (the storage timezone): a session at
-            // 00:30 local on the 1st belongs to the previous UTC month.
-            // Deliberate — the streak is a storage-side invariant and
-            // every recompute (sweep, backfill) must bucket identically.
-            [$year, $month] = explode('-', substr($date, 0, 7));
+            // date_time stores true UTC instants (R089); a "covered month" is
+            // a COMMUNITY calendar month — the wall-calendar bucket the streak
+            // meant both before and after the UTC flip. Converting each instant
+            // to Europe/Berlin before bucketing keeps 00:30-on-the-1st sessions
+            // in the month the players experienced, and every recompute (sweep,
+            // backfill) buckets identically for the same stored instants.
+            $berlinMonth = Carbon::parse($date)->setTimezone(community_timezone())->format('Y-n');
+            [$year, $month] = explode('-', $berlinMonth);
 
             $buckets[(int) $year * 12 + ((int) $month - 1)] = true;
         }
@@ -202,7 +204,11 @@ class RegularsTableEvaluator extends CohortSweepEvaluator
 
     private function currentMonthIndex(): int
     {
-        return (int) now()->format('Y') * 12 + ((int) now()->format('n') - 1);
+        // The walker's "now" rides the same community calendar as the
+        // covered-month buckets (R089).
+        $now = community_now();
+
+        return (int) $now->format('Y') * 12 + ((int) $now->format('n') - 1);
     }
 
     /**
