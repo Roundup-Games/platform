@@ -153,8 +153,23 @@ function runMigrations(): void
 
 // ── Parallel: primary worker starts container, others wait ─────────────────
 
+// Captured BEFORE any waiting: a sibling must never adopt a cacheFile that
+// predates its own process (a stale file from a hard-killed prior run points
+// at a container this run's primary is about to prune — the mass-failure
+// signature of 2026-10-31: ~7 of 8 workers failed every DB test instantly).
+$workerStart = time();
+
 if ($isParallel) {
     if ($isPrimary) {
+        // Drop any stale cacheFile from a prior hard-killed run FIRST —
+        // before the 30-60s prune/container/migrate setup — so siblings
+        // that start while we are still setting up cannot adopt its dead
+        // endpoint. (The mtime guard below is the real defense; this unlink
+        // just shrinks the confusion window to the primary's first ms.)
+        if (is_file($cacheFile)) {
+            @unlink($cacheFile);
+        }
+
         // Clean up orphans from prior hard-killed parallel runs BEFORE starting
         // a fresh container, so we never accumulate stale labelled containers.
         pruneOrphanedParallelContainers($dockerHost);
@@ -224,29 +239,56 @@ if ($isParallel) {
 
         echo "  Testcontainers: PostgreSQL ready at {$host}:{$port} (primary worker)\n";
     } else {
-        // Secondary worker: wait for the primary to write connection details
+        // Secondary worker: wait for the primary to publish FRESH connection
+        // details. Mere file existence is NOT enough — a hard-killed prior
+        // run (CI timeout, OOM, Ctrl-C) leaves its cacheFile behind, and the
+        // container it points at is pruned by THIS run's primary within
+        // seconds. Adopting it made every DB test fail instantly in ~7 of 8
+        // workers (seen repeatedly 2026-10-31, 5330 failed / 2550 passed).
+        //
+        // Two guards, both required:
+        //  1. FRESH: filemtime() >= this worker's start (2s fs grace) — a
+        //     stale file from an earlier run always fails this.
+        //  2. ALIVE: the endpoint answers a 1s TCP probe — covers the
+        //     same-run edge of a half-written file or a container that died
+        //     between write and adoption.
         $waited = 0;
-        $maxWait = 60; // seconds
-        while (! file_exists($cacheFile) && $waited < $maxWait) {
+        $maxWait = 90; // seconds — primary setup (prune + container + migrate) can take ~60s
+        $details = null;
+
+        $adoptable = function () use ($cacheFile, $workerStart, &$details): bool {
+            if (! is_file($cacheFile) || filemtime($cacheFile) < $workerStart - 2) {
+                return false;
+            }
+
+            $candidate = json_decode((string) file_get_contents($cacheFile), true);
+            if (! is_array($candidate) || ! isset($candidate['host'], $candidate['port'])) {
+                return false;
+            }
+
+            $socket = @fsockopen((string) $candidate['host'], (int) $candidate['port'], $errno, $errstr, 1.0);
+            if ($socket === false) {
+                return false;
+            }
+            fclose($socket);
+
+            $details = $candidate;
+
+            return true;
+        };
+
+        while (! $adoptable() && $waited < $maxWait) {
             usleep(500_000); // 0.5s
             $waited += 0.5;
         }
 
-        if (! file_exists($cacheFile)) {
-            fwrite(STDERR, "  Testcontainers: TIMED OUT waiting for primary worker to start container\n");
+        if ($details === null) {
+            fwrite(STDERR, '  Testcontainers: TIMED OUT waiting for a FRESH, reachable primary container'
+                ." (waited {$waited}s; stale cacheFile present: ".(is_file($cacheFile) ? 'yes' : 'no').")\n");
             exit(1);
         }
 
-        // Small delay to ensure the file is fully written
-        usleep(100_000);
-
-        $details = json_decode((string) file_get_contents($cacheFile), true);
-        if (! $details || ! isset($details['host'], $details['port'])) {
-            fwrite(STDERR, "  Testcontainers: invalid cache file from primary worker\n");
-            exit(1);
-        }
-
-        applyConnection($details['host'], (int) $details['port']);
+        applyConnection((string) $details['host'], (int) $details['port']);
 
         // Secondary workers do NOT stop the shared container on exit — only
         // the primary created it and only the next run's prune removes it.
