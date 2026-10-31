@@ -25,14 +25,16 @@ it('stores a changed device timezone for the authenticated user', function () {
     expect($user->fresh()->timezone)->toBe('America/New_York');
 });
 
-it('accepts tzdata aliases browsers report and stores them as-is', function () {
+it('accepts tzdata aliases browsers report and stores the canonical form', function () {
     $user = User::factory()->create(['timezone' => null]);
 
     $this->actingAs($user)
         ->post(route('timezone.beacon'), ['timezone' => 'Asia/Calcutta'])
         ->assertNoContent();
 
-    expect($user->fresh()->timezone)->toBe('Asia/Calcutta');
+    // Map-first alias resolution: the canonical IANA target, on every
+    // runtime (R089).
+    expect($user->fresh()->timezone)->toBe('Asia/Kolkata');
 });
 
 it('silently ignores invalid timezones and keeps the stored value', function () {

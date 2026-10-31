@@ -71,10 +71,13 @@ it('does not mutate the caller\'s Carbon instance in format_date', function () {
     expect($instant->format('Y-m-d H:i:s T'))->toBe($before);
 });
 
-it('accepts tzdata aliases and rejects unknown identifiers in canonical_timezone', function () {
-    // CLDR primaries browsers report that listIdentifiers() misses.
-    expect(canonical_timezone('Asia/Calcutta'))->toBe('Asia/Calcutta')
-        ->and(canonical_timezone('America/Buenos_Aires'))->toBe('America/Buenos_Aires')
+it('canonicalizes tzdata aliases to IANA targets and rejects unknown identifiers', function () {
+    // CLDR primaries browsers report that listIdentifiers() misses —
+    // resolved map-first, so the canonical target comes back on runtimes
+    // whose ctor would reject the raw alias too (R089).
+    expect(canonical_timezone('Asia/Calcutta'))->toBe('Asia/Kolkata')
+        ->and(canonical_timezone('America/Buenos_Aires'))->toBe('America/Argentina/Buenos_Aires')
+        ->and(canonical_timezone('Europe/Kiev'))->toBe('Europe/Kyiv')
         ->and(canonical_timezone('Europe/Berlin'))->toBe('Europe/Berlin');
 
     // Etc/Unknown (the browser's "no idea" value), offsets, and garbage

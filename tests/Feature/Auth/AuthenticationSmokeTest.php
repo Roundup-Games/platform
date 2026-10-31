@@ -268,7 +268,9 @@ it('accepts tzdata aliases the browser reports and canonicalizes them', function
 
     // CLDR primaries real browsers report (Intl on Firefox/Windows) that
     // DateTimeZone::listIdentifiers() misses — the ctor-based capture
-    // accepts them (R089 validation fix).
+    // accepts them, and map-first alias resolution stores the canonical
+    // IANA target on EVERY runtime (R089; PHP builds without tzdata
+    // backward links reject the raw alias in the ctor).
     $this->post('/en/login', [
         'email' => $user->email,
         'password' => 'Sup3rSecret!pass',
@@ -276,7 +278,7 @@ it('accepts tzdata aliases the browser reports and canonicalizes them', function
     ]);
 
     $this->assertAuthenticatedAs($user);
-    expect($user->fresh()->timezone)->toBe('Asia/Calcutta');
+    expect($user->fresh()->timezone)->toBe('Asia/Kolkata');
 
     auth()->logout();
     $user2 = User::factory()->create([
@@ -290,7 +292,7 @@ it('accepts tzdata aliases the browser reports and canonicalizes them', function
         'timezone' => 'America/Buenos_Aires',
     ]);
 
-    expect($user2->fresh()->timezone)->toBe('America/Buenos_Aires');
+    expect($user2->fresh()->timezone)->toBe('America/Argentina/Buenos_Aires');
 })->group('smoke');
 
 it('never overwrites a manually-set timezone at login', function () {

@@ -444,7 +444,11 @@ class DemoSeedCommand extends Command
         $this->totalUsers = (int) $this->option('users');
         $this->totalGms = (int) $this->option('gms');
         $this->totalSubscribers = (int) $this->option('subscribers');
-        $this->dryRun = $this->option('dry-run');
+        // filter_var, not a cast: larastan resolves option() by
+        // instantiating the command at analysis time, which fails on some
+        // PHP builds (CI's) and falls back to a mixed union — (bool) would
+        // then trip uselessCast where the resolution DOES work (locally).
+        $this->dryRun = filter_var($this->option('dry-run'), FILTER_VALIDATE_BOOLEAN);
 
         if (! $this->validate()) {
             return self::FAILURE;

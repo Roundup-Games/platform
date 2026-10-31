@@ -30,7 +30,9 @@ class DemoTeardownCommand extends Command
             return self::FAILURE;
         }
 
-        $dryRun = $this->option('dry-run');
+        // filter_var over a cast — see DemoSeedCommand::handle() for why.
+        $dryRun = filter_var($this->option('dry-run'), FILTER_VALIDATE_BOOLEAN);
+        $force = filter_var($this->option('force'), FILTER_VALIDATE_BOOLEAN);
         $marker = DemoSeedCommand::MARKER;
 
         $demoUserIds = User::where('email', 'like', '%@example.org')
@@ -48,7 +50,7 @@ class DemoTeardownCommand extends Command
         if ($dryRun) {
             $this->warn('🔍 DRY RUN — no data will be deleted.');
             $this->newLine();
-        } elseif (! $this->option('force') && ! $this->confirm('Proceed with teardown? This deletes all demo users and data.')) {
+        } elseif (! $force && ! $this->confirm('Proceed with teardown? This deletes all demo users and data.')) {
             $this->info('Aborted.');
 
             return self::SUCCESS;

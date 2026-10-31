@@ -86,16 +86,77 @@ if (! function_exists('community_now')) {
 }
 
 /**
+ * The CLDR-primary identifiers that tzdata carries as backward links — the
+ * subset real browsers actually report via Intl (R089). Mapped to their
+ * canonical IANA targets because acceptance must not depend on the
+ * runtime's tzdata build: PHP builds WITHOUT backward links (seen: CI's
+ * setup-php 8.5) reject the alias in the DateTimeZone constructor, while
+ * production (serversideup/php base) and Homebrew PHP accept them. Resolving
+ * map-first makes every environment agree, and canonical targets are what
+ * DateTimeZone::listIdentifiers() offers — so stored values always render
+ * in selects (timezone_identifier_options() still surfaces legacy stored
+ * aliases defensively).
+ *
+ * Source: tzdata `backward`. Keep curated — add an entry only when a real
+ * browser population reports it.
+ */
+if (! function_exists('cldr_timezone_aliases')) {
+    /**
+     * @return array<string, string> alias => canonical IANA identifier
+     */
+    function cldr_timezone_aliases(): array
+    {
+        return [
+            'Asia/Calcutta' => 'Asia/Kolkata',
+            'Asia/Katmandu' => 'Asia/Kathmandu',
+            'Asia/Saigon' => 'Asia/Ho_Chi_Minh',
+            'Asia/Rangoon' => 'Asia/Yangon',
+            'Asia/Dacca' => 'Asia/Dhaka',
+            'Asia/Chungking' => 'Asia/Chongqing',
+            'Asia/Macao' => 'Asia/Macau',
+            'Asia/Thimbu' => 'Asia/Thimphu',
+            'Asia/Dharan' => 'Asia/Dhahran',
+            'Asia/Ashkhabad' => 'Asia/Ashgabat',
+            'Asia/Ujung_Pandang' => 'Asia/Makassar',
+            'Asia/Tel_Aviv' => 'Asia/Jerusalem',
+            'Asia/Istanbul' => 'Europe/Istanbul',
+            'America/Buenos_Aires' => 'America/Argentina/Buenos_Aires',
+            'America/Cordoba' => 'America/Argentina/Cordoba',
+            'America/Catamarca' => 'America/Argentina/Catamarca',
+            'America/Jujuy' => 'America/Argentina/Jujuy',
+            'America/Mendoza' => 'America/Argentina/Mendoza',
+            'America/Godthab' => 'America/Nuuk',
+            'America/Montreal' => 'America/Toronto',
+            'America/Indianapolis' => 'America/Indiana/Indianapolis',
+            'America/Fort_Wayne' => 'America/Indiana/Indianapolis',
+            'America/Ensenada' => 'America/Tijuana',
+            'Atlantic/Faeroe' => 'Atlantic/Faroe',
+            'Europe/Kiev' => 'Europe/Kyiv',
+            'Europe/Uzhgorod' => 'Europe/Uzhhorod',
+            'Europe/Zaporozhye' => 'Europe/Zaporizhzhia',
+            'Europe/Tiraspol' => 'Europe/Chisinau',
+            'Africa/Asmera' => 'Africa/Asmara',
+            'Africa/Timbuktu' => 'Africa/Bamako',
+            'Pacific/Enderbury' => 'Pacific/Kanton',
+            'Pacific/Johnston' => 'Pacific/Honolulu',
+            'Australia/Canberra' => 'Australia/Sydney',
+        ];
+    }
+}
+
+/**
  * Validate and canonicalize a browser-reported timezone identifier (R089).
  *
  * Accepts tzdata aliases (CLDR primaries like Asia/Calcutta and
  * America/Buenos_Aires) that DateTimeZone::listIdentifiers() — and with it
  * Laravel's `timezone` validation rule, which is a list lookup — wrongly
- * rejects; the DateTimeZone constructor is the authoritative parser.
- * Etc/Unknown, offsets like "UTC+02:00", and garbage throw in the
- * constructor and map to null.
+ * rejects. Aliases resolve to their canonical IANA target via
+ * cldr_timezone_aliases() FIRST, so the same input canonicalizes
+ * identically on every runtime; then the DateTimeZone constructor is the
+ * authoritative parser. Etc/Unknown, offsets like "UTC+02:00", and garbage
+ * throw in the constructor and map to null.
  *
- * @return string|null The identifier exactly as DateTimeZone reports it, or null when invalid.
+ * @return string|null The canonical identifier DateTimeZone reports, or null when invalid.
  */
 if (! function_exists('canonical_timezone')) {
     function canonical_timezone(mixed $timezone): ?string
@@ -103,6 +164,8 @@ if (! function_exists('canonical_timezone')) {
         if (! is_string($timezone) || $timezone === '' || strlen($timezone) > 64) {
             return null;
         }
+
+        $timezone = cldr_timezone_aliases()[$timezone] ?? $timezone;
 
         try {
             return (new DateTimeZone($timezone))->getName();
@@ -114,18 +177,18 @@ if (! function_exists('canonical_timezone')) {
 
 if (! function_exists('timezone_identifier_options')) {
     /**
-     * Identifier list for timezone selects, with a stored device-captured
-     * tzdata alias surfaced when it is missing from the canonical list
-     * (R089).
+     * Identifier list for timezone selects, with a stored identifier
+     * surfaced when it is missing from the canonical list (R089).
      *
-     * canonical_timezone() accepts aliases (Asia/Calcutta) that
-     * DateTimeZone::listIdentifiers() omits, so a user's stored zone can
-     * be a value no canonical-list select offers. Feeding such a select
-     * without surfacing the stored value renders it blank — and on save
-     * the select dehydrates empty, silently wiping the stored zone. This
-     * single source (profile partial + Filament UserResource) keeps every
-     * timezone select alias-safe: the stored identifier is prepended when
-     * the canonical list lacks it.
+     * canonical_timezone() now resolves aliases map-first, so captures
+     * store canonical IANA targets — but users.timezone can still carry a
+     * legacy alias (stored before the map, written by an external tool),
+     * and DateTimeZone::listIdentifiers() omits those identifiers. Feeding
+     * such a select without surfacing the stored value renders it blank —
+     * and on save the select dehydrates empty, silently wiping the stored
+     * zone. This single source (profile partial + Filament UserResource)
+     * keeps every timezone select alias-safe: the stored identifier is
+     * prepended when the canonical list lacks it.
      *
      * @param  string|null  $ensureIncluded  A stored identifier to guarantee present (canonical values pass through unchanged, null/'' ignored).
      * @return array<int, string>

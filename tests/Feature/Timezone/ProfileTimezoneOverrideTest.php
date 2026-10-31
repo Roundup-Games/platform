@@ -26,7 +26,7 @@ it('stores a manually chosen timezone and pins it against device capture', funct
         ->and($user->fresh()->timezone_manually_set)->toBeTrue();
 });
 
-it('accepts a tzdata alias on the profile select and stores it as-is', function () {
+it('accepts a tzdata alias on the profile select and stores its canonical form', function () {
     $user = User::factory()->create();
 
     Livewire::actingAs($user)
@@ -37,7 +37,8 @@ it('accepts a tzdata alias on the profile select and stores it as-is', function 
         ->call('saveProfile')
         ->assertHasNoErrors();
 
-    expect($user->fresh()->timezone)->toBe('Asia/Calcutta')
+    // Map-first alias resolution: canonical IANA target on every runtime.
+    expect($user->fresh()->timezone)->toBe('Asia/Kolkata')
         ->and($user->fresh()->timezone_manually_set)->toBeTrue();
 });
 

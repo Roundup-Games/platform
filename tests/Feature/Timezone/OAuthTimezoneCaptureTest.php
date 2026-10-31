@@ -77,7 +77,8 @@ it('captures the stashed device timezone on OAuth login via a linked account', f
     $this->get('/auth/google/redirect?timezone=Asia/Calcutta');
     $this->get('/auth/google/callback');
 
-    expect($user->fresh()->timezone)->toBe('Asia/Calcutta');
+    // Map-first alias resolution stores the canonical IANA target (R089).
+    expect($user->fresh()->timezone)->toBe('Asia/Kolkata');
 });
 
 it('never overwrites a manually-set timezone on OAuth login', function () {
