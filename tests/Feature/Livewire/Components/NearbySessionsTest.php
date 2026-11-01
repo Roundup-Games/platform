@@ -340,7 +340,10 @@ describe('Observability', function () {
 
         Log::shouldReceive('info')
             ->once()
-            ->withArgs(fn (string $message, array $context) => $context['source'] === 'browser' &&
+            // Null-safe context access: the matcher runs against EVERY info() call
+            // while looking for the match — unrelated component noise (Discord
+            // observer etc.) without a 'source' key crashed it under load.
+            ->withArgs(fn (string $message, array $context) => ($context['source'] ?? null) === 'browser' &&
                 $context['result_count'] === 1
             );
 

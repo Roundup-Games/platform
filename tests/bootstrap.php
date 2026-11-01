@@ -149,6 +149,20 @@ function runMigrations(): void
     } else {
         echo "  Testcontainers: schema migrated.\n";
     }
+
+    // Seed static reference data ONCE, COMMITTED (outside every worker's
+    // DatabaseTransactions wrapper). Feature tests seed permissions/roles
+    // per-test via tests/Pest.php helpers; under --parallel those
+    // firstOrCreate storms deadlocked concurrent workers on the shared DB
+    // (permissions_name_guard_name_unique, 2026-10-31). Runs INSIDE
+    // runMigrations() so the parallel primary publishes its cacheFile only
+    // after the rows exist — siblings can never race the seed.
+    $seedOutput = shell_exec("{$env} php {$artisan} tinker --execute='Tests\\Helpers\\SeedSharedReferenceData::all();' 2>&1");
+    if (str_contains($seedOutput ?? '', 'ERROR') || str_contains($seedOutput ?? '', 'Exception')) {
+        fprintf(STDERR, "  Testcontainers: reference-data seed FAILED\n%s\n", $seedOutput);
+    } else {
+        echo "  Testcontainers: reference data seeded.\n";
+    }
 }
 
 // ── Parallel: primary worker starts container, others wait ─────────────────

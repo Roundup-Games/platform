@@ -12,8 +12,8 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Helpers\SeedSharedReferenceData;
 use Tests\TestCase;
 
 /*
@@ -147,96 +147,24 @@ function seedPermissions()
 {
     app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-    $entities = ['user', 'team', 'game', 'campaign', 'event', 'membership', 'game system'];
-    $actions = ['view', 'create', 'update', 'delete'];
-
-    foreach ($entities as $entity) {
-        foreach ($actions as $action) {
-            Permission::firstOrCreate([
-                'name' => "{$action} {$entity}",
-                'guard_name' => 'web',
-            ]);
-        }
-    }
-
-    foreach (['view dashboard', 'manage roles', 'view audit log', 'manage settings', 'manage tickets'] as $perm) {
-        Permission::firstOrCreate([
-            'name' => $perm,
-            'guard_name' => 'web',
-        ]);
-    }
+    // Rows are pre-seeded COMMITTED at container bootstrap
+    // (Tests\Helpers\SeedSharedReferenceData, via tests/bootstrap.php), so
+    // under --parallel this degrades to read-only lookups — per-test
+    // firstOrCreate insert storms deadlocked concurrent workers
+    // (permissions_name_guard_name_unique, 2026-10-31).
+    SeedSharedReferenceData::permissions();
 
     app()[PermissionRegistrar::class]->forgetCachedPermissions();
 }
 
 /**
- * Seed the 4 roles from RoleSeeder, each with their permissions.
+ * Seed the roles from RoleSeeder, each with their permissions.
  */
 function seedRoles()
 {
     seedPermissions();
 
-    $allPerms = Permission::all();
-
-    $platformAdmin = Role::firstOrCreate([
-        'name' => 'Platform Admin',
-        'guard_name' => 'web',
-        'team_id' => null,
-    ]);
-    $platformAdmin->syncPermissions($allPerms);
-
-    $gamesAdmin = Role::firstOrCreate([
-        'name' => 'Games Admin',
-        'guard_name' => 'web',
-        'team_id' => null,
-    ]);
-    $gamesAdmin->syncPermissions([
-        'view dashboard',
-        'view game', 'create game', 'update game', 'delete game',
-        'view campaign', 'create campaign', 'update campaign', 'delete campaign',
-        'view game system', 'create game system', 'update game system', 'delete game system',
-        'view user',
-    ]);
-
-    $teamAdmin = Role::firstOrCreate([
-        'name' => 'Team Admin',
-        'guard_name' => 'web',
-        'team_id' => null,
-    ]);
-    $teamAdmin->syncPermissions([
-        'view dashboard',
-        'view team', 'update team',
-        'view membership', 'create membership', 'update membership', 'delete membership',
-        'view game', 'update game',
-        'view campaign', 'update campaign',
-        'view event',
-        'view user',
-    ]);
-
-    $eventAdmin = Role::firstOrCreate([
-        'name' => 'Event Admin',
-        'guard_name' => 'web',
-        'team_id' => null,
-    ]);
-    $eventAdmin->syncPermissions([
-        'view dashboard',
-        'view event', 'create event', 'update event', 'delete event',
-        'view team', 'update team',
-        'view membership', 'create membership', 'update membership',
-        'view game',
-        'view user',
-    ]);
-
-    $serviceAdmin = Role::firstOrCreate([
-        'name' => 'Service Admin',
-        'guard_name' => 'web',
-        'team_id' => null,
-    ]);
-    $serviceAdmin->syncPermissions([
-        'view dashboard',
-        'manage tickets',
-        'view user',
-    ]);
+    SeedSharedReferenceData::roleSyncs();
 
     app()[PermissionRegistrar::class]->forgetCachedPermissions();
 }

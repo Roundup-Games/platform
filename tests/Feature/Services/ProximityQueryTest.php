@@ -226,7 +226,11 @@ class ProximityQueryTest extends TestCase
             'visibility' => 'public',
         ]);
 
-        // Fast query — should NOT trigger the slow-query log
+        // Fast query — should NOT trigger the slow-query log. The threshold
+        // is raised out of reach first: asserting a wall-clock "fast" leg
+        // against the real 100ms default flakes under parallel-suite CPU
+        // starvation (first query in a cold worker can exceed it).
+        config(['services.proximity.slow_ms' => 60_000]);
         $this->proximity->nearby($this->centerLat, $this->centerLng, 5, 'game');
 
         $this->assertNull(

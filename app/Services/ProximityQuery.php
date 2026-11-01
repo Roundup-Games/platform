@@ -157,9 +157,12 @@ class ProximityQuery
             ->limit($limit)
             ->get();
 
-        // Log slow proximity queries (>100ms threshold per slice verification)
+        // Log slow proximity queries (>100ms default; config-driven so tests
+        // and tuned environments can move the bar — wall-clock thresholds are
+        // CPU-starvation sensitive under the parallel suite).
         $durationMs = (microtime(true) - $startTime) * 1000;
-        if ($durationMs > 100) {
+        $slowMs = config('services.proximity.slow_ms', 100);
+        if ($durationMs > (is_numeric($slowMs) ? (float) $slowMs : 100.0)) {
             Log::info('Proximity query slow', [
                 'entity_type' => $entityType,
                 'radius_km' => $radiusKm,
