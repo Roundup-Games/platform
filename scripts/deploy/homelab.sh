@@ -177,6 +177,21 @@ read_state_field() {  # $1 = jq-style key (crude grep — no jq dependency)
     grep -oE "\"$1\"[^,}]+" "$STATE_FILE" 2>/dev/null | cut -d'"' -f4
 }
 
+# ── GHCR auth (reboot-proof, 2026-11-01 incident) ──────────────────────────
+# unRAID's /home is RAM-backed: a `docker login` there vanishes on every
+# reboot (the 2026-10-31 safe-mode reboot wiped it and blocked the deploy
+# with GHCR "unauthorized" on every pull). A read:packages PAT lives on the
+# ARRAY at GHCR_PAT_FILE (survives reboots) and this block re-arms the login
+# whenever ~/.docker/config.json no longer carries ghcr.io — deploys stay
+# self-healing without touching shell profiles.
+GHCR_PAT_FILE="${GHCR_PAT_FILE:-/mnt/user/appdata/.ghcr/ghcr.pat}"
+GHCR_USER="${GHCR_USER:-vburghelea}"
+if ! grep -q '"ghcr.io"' "$HOME/.docker/config.json" 2>/dev/null; then
+    [[ -r "$GHCR_PAT_FILE" ]] || die "no GHCR auth: $HOME/.docker/config.json lacks ghcr.io and $GHCR_PAT_FILE is unreadable (re-arm with: docker login ghcr.io -u $GHCR_USER --password-stdin < $GHCR_PAT_FILE)."
+    log "re-arming GHCR login from $GHCR_PAT_FILE (RAM-backed home lost it)"
+    docker login ghcr.io -u "$GHCR_USER" --password-stdin < "$GHCR_PAT_FILE" >/dev/null         || die "docker login ghcr.io failed — PAT expired? Replace $GHCR_PAT_FILE."
+fi
+
 # ── Preflight ─────────────────────────────────────────────────────────────
 
 TAG="sha-$(git rev-parse --short=7 HEAD)"
