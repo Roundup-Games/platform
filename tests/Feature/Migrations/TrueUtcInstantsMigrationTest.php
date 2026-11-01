@@ -7,6 +7,16 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 //
+// NOTE on DDL + --parallel: these tests run REAL DDL (dropColumn + the
+// guarded up()) inside DatabaseTransactions on the SHARED parallel
+// database. DDL takes AccessExclusive locks (plus FK revalidation across
+// the schema) that can deadlock against concurrent workers' readers under
+// lock-order inversion (SQLSTATE 40P01, seen 2026-11-01: EntityJoinGateTest
+// + DiscoveryQueryServiceTest killed as victims). Each body therefore runs
+// inside DB::transaction(..., attempts: 2): on deadlock Laravel rolls back
+// to the SAVEPOINT and re-runs the body — the outer test transaction stays
+// intact, and a genuine regression still fails both attempts.
+//
 // R089 — the storage flip migration: existing wall-Berlin-labeled rows are
 // reinterpreted as Europe/Berlin wall time → true UTC instants (DST-correct
 // per row), users.timezone_manually_set lands in the same migration, and a
@@ -21,64 +31,73 @@ function runTrueUtcMigration(): void
 }
 
 it('shifts wall-clock rows to true UTC instants and adds the override flag', function () {
-    $game = Game::factory()->create(['expected_duration' => 0]);
-    DB::table('games')->where('id', $game->id)->update([
-        // Berlin wall times stored under the UTC label (the old convention).
-        'date_time' => '2026-07-01 19:00:00',        // CEST (+2) in effect
-        'signup_cutoff_at' => '2026-01-15 20:00:00', // CET (+1) in effect
-    ]);
+    DB::transaction(function (): void {
+        $game = Game::factory()->create(['expected_duration' => 0]);
+        DB::table('games')->where('id', $game->id)->update([
+            // Berlin wall times stored under the UTC label (the old convention).
+            'date_time' => '2026-07-01 19:00:00',        // CEST (+2) in effect
+            'signup_cutoff_at' => '2026-01-15 20:00:00', // CET (+1) in effect
+        ]);
 
-    $event = Event::factory()->create();
-    DB::table('events')->where('id', $event->id)->update([
-        'registration_opens_at' => '2026-01-15 09:00:00', // CET (+1)
-    ]);
+        $event = Event::factory()->create();
+        DB::table('events')->where('id', $event->id)->update([
+            'registration_opens_at' => '2026-01-15 09:00:00', // CET (+1)
+        ]);
 
-    // Simulate the pre-migration state: flag column absent.
-    Schema::table('users', fn ($t) => $t->dropColumn('timezone_manually_set'));
+        // Simulate the pre-migration state: flag column absent.
+        Schema::table('users', fn ($t) => $t->dropColumn('timezone_manually_set'));
 
-    runTrueUtcMigration();
+        runTrueUtcMigration();
 
-    expect(Schema::hasColumn('users', 'timezone_manually_set'))->toBeTrue()
-        ->and(DB::table('games')->where('id', $game->id)->value('date_time'))->toBe('2026-07-01 17:00:00')
-        ->and(DB::table('games')->where('id', $game->id)->value('signup_cutoff_at'))->toBe('2026-01-15 19:00:00')
-        ->and(DB::table('events')->where('id', $event->id)->value('registration_opens_at'))->toBe('2026-01-15 08:00:00')
-        // Default: device capture is allowed until the user pins a zone.
-        ->and(User::first()->timezone_manually_set)->toBeFalse();
+        expect(Schema::hasColumn('users', 'timezone_manually_set'))->toBeTrue()
+            ->and(DB::table('games')->where('id', $game->id)->value('date_time'))->toBe('2026-07-01 17:00:00')
+            ->and(DB::table('games')->where('id', $game->id)->value('signup_cutoff_at'))->toBe('2026-01-15 19:00:00')
+            ->and(DB::table('events')->where('id', $event->id)->value('registration_opens_at'))->toBe('2026-01-15 08:00:00')
+            // Default: device capture is allowed until the user pins a zone.
+            ->and(User::first()->timezone_manually_set)->toBeFalse();
+    }, attempts: 2);
+
 });
 
 it('is idempotent — a second execution shifts nothing', function () {
-    $game = Game::factory()->create(['expected_duration' => 0]);
-    DB::table('games')->where('id', $game->id)->update(['date_time' => '2026-07-01 19:00:00']);
+    DB::transaction(function (): void {
+        $game = Game::factory()->create(['expected_duration' => 0]);
+        DB::table('games')->where('id', $game->id)->update(['date_time' => '2026-07-01 19:00:00']);
 
-    Schema::table('users', fn ($t) => $t->dropColumn('timezone_manually_set'));
+        Schema::table('users', fn ($t) => $t->dropColumn('timezone_manually_set'));
 
-    runTrueUtcMigration();
-    $firstRun = DB::table('games')->where('id', $game->id)->value('date_time');
-    expect($firstRun)->toBe('2026-07-01 17:00:00');
+        runTrueUtcMigration();
+        $firstRun = DB::table('games')->where('id', $game->id)->value('date_time');
+        expect($firstRun)->toBe('2026-07-01 17:00:00');
 
-    // Re-run: the timezone_manually_set guard returns before touching data.
-    runTrueUtcMigration();
+        // Re-run: the timezone_manually_set guard returns before touching data.
+        runTrueUtcMigration();
 
-    expect(DB::table('games')->where('id', $game->id)->value('date_time'))->toBe($firstRun);
+        expect(DB::table('games')->where('id', $game->id)->value('date_time'))->toBe($firstRun);
+    }, attempts: 2);
+
 });
 
 it('leaves null columns and date-only event columns untouched', function () {
-    $game = Game::factory()->create(['expected_duration' => 0]);
-    DB::table('games')->where('id', $game->id)->update([
-        'date_time' => '2026-07-01 19:00:00',
-        'signup_cutoff_at' => null,
-    ]);
+    DB::transaction(function (): void {
+        $game = Game::factory()->create(['expected_duration' => 0]);
+        DB::table('games')->where('id', $game->id)->update([
+            'date_time' => '2026-07-01 19:00:00',
+            'signup_cutoff_at' => null,
+        ]);
 
-    $event = Event::factory()->create([
-        'start_date' => '2026-03-05',
-        'end_date' => '2026-03-07',
-    ]);
+        $event = Event::factory()->create([
+            'start_date' => '2026-03-05',
+            'end_date' => '2026-03-07',
+        ]);
 
-    Schema::table('users', fn ($t) => $t->dropColumn('timezone_manually_set'));
-    runTrueUtcMigration();
+        Schema::table('users', fn ($t) => $t->dropColumn('timezone_manually_set'));
+        runTrueUtcMigration();
 
-    expect(DB::table('games')->where('id', $game->id)->value('signup_cutoff_at'))->toBeNull()
-        // DATE columns carry no wall-time instant — deliberately unshifted.
-        ->and(DB::table('events')->where('id', $event->id)->value('start_date'))->toBe('2026-03-05')
-        ->and(DB::table('events')->where('id', $event->id)->value('end_date'))->toBe('2026-03-07');
+        expect(DB::table('games')->where('id', $game->id)->value('signup_cutoff_at'))->toBeNull()
+            // DATE columns carry no wall-time instant — deliberately unshifted.
+            ->and(DB::table('events')->where('id', $event->id)->value('start_date'))->toBe('2026-03-05')
+            ->and(DB::table('events')->where('id', $event->id)->value('end_date'))->toBe('2026-03-07');
+    }, attempts: 2);
+
 });
