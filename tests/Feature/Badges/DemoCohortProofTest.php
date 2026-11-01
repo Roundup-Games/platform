@@ -70,10 +70,14 @@ beforeEach(function () {
     }
 
     // Fresh demo environment at toy scale, then the stateless backfill.
+    // --cohort-only: the proof contract covers the badge fixtures and the
+    // completed sessions behind debut/first_seat/resolution stamps — the
+    // seeder's noise blocks are skipped (2026-11-01 harness report).
     $this->artisan('demo:seed', [
         '--users' => '25',
         '--gms' => '3',
         '--subscribers' => '1',
+        '--cohort-only' => true,
     ])->assertSuccessful();
 
     $this->artisan('badges:sync')->assertSuccessful();
@@ -85,7 +89,10 @@ it('produces all eight demo-contract badges through the stateless sweep backfill
         'debut', 'first_seat', 'founding_table', 'still_rolling', 'guild_linked',
         'regulars_table', 'trusted_organizer', 'mentor',
     ] as $key) {
-        expect(demoCohortHoldsFor($key))->toBeGreaterThan(0);
+        // Named-key message: the contract covers eight badges, and a bare
+        // toBeGreaterThan(0) failure never says WHICH badge lost its cohort
+        // (the 2026-11-01 CI flake was diagnosed blind).
+        expect(demoCohortHoldsFor($key))->toBeGreaterThan(0, "demo cohort lost [{$key}]: zero holds after seed+sync+sweep");
     }
 });
 
@@ -99,7 +106,9 @@ it('writes the awarded audit trail for the cohort', function () {
             ->whereHas('badgeUser.badgeDefinition', fn ($query) => $query->where('key', $key))
             ->exists();
 
-        expect($audited)->toBeTrue();
+        // Same named-key discipline as the holds test — a bare false told
+        // us nothing about which badge lost its award audit.
+        expect($audited)->toBeTrue("demo cohort lost [{$key}]: no Awarded audit row after seed+sync+sweep");
     }
 });
 

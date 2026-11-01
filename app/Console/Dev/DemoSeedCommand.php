@@ -32,6 +32,7 @@ class DemoSeedCommand extends Command
         {--users=10000 : Total users to create}
         {--gms=500 : Number of game organizers}
         {--subscribers=100 : GMs with paid membership}
+        {--cohort-only : Skip the noise blocks; seed only what the badge-cohort contract needs (fast path for DemoCohortProofTest)}
         {--dry-run : Simulate without writing to the database}';
 
     protected $description = 'Seed a realistic 10k-user dataset with games, campaigns, reviews, and social graph.';
@@ -468,22 +469,49 @@ class DemoSeedCommand extends Command
         $this->createLocations();
         $this->createUsers();
         $this->setupGMs();
-        $this->buildSocialGraph();
-        $this->seedUserPreferences();
-        $this->seedGmSocialLinks();
+
+        // --cohort-only (2026-11-01 harness report): the badge-cohort
+        // contract needs users/GMs, locations, completed sessions (debut,
+        // first_seat, organizer-resolved attendance stamps) and the
+        // deterministic fixtures — the guarded blocks below are demo NOISE
+        // the proof tests never read. Skipping them roughly halves the
+        // proof tests' seeding cost; full-scale coverage stays in
+        // DemoSeedCommandTest.
+        // filter_var over a cast: larastan's option() resolution is runtime-
+        // dependent (MEM1509) — a (bool) cast re-trips uselessCast where the
+        // resolution succeeds.
+        $cohortOnly = filter_var($this->option('cohort-only'), FILTER_VALIDATE_BOOLEAN);
+
+        if (! $cohortOnly) {
+            $this->buildSocialGraph();
+            $this->seedUserPreferences();
+            $this->seedGmSocialLinks();
+        }
+
         $this->createCompletedBoardGameSessions();
-        $this->createScheduledBoardGameSessions();
+
+        if (! $cohortOnly) {
+            $this->createScheduledBoardGameSessions();
+        }
+
         $this->createAttendanceReports();
-        $this->createReviews();
-        $this->createCampaigns();
-        $this->createCampaignReviews();
+
+        if (! $cohortOnly) {
+            $this->createReviews();
+            $this->createCampaigns();
+            $this->createCampaignReviews();
+        }
+
         $this->createBadgeCohortFixtures();
-        $this->createSessionDebriefings();
-        $this->createLinkedAccounts();
-        $this->seedActivityLogs();
-        $this->createShortLinks();
-        $this->assignShortLinkAttribution();
-        $this->seedNotifications();
+
+        if (! $cohortOnly) {
+            $this->createSessionDebriefings();
+            $this->createLinkedAccounts();
+            $this->seedActivityLogs();
+            $this->createShortLinks();
+            $this->assignShortLinkAttribution();
+            $this->seedNotifications();
+        }
 
         // populate the canonical game_game_system + campaign_game_system
         // pivots from the just-written anchor columns. Idempotent (ON CONFLICT
