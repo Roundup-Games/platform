@@ -31,7 +31,7 @@ use Carbon\Carbon;
  */
 function stillRollingHostGame(User $user, Carbon $dateTime, GameStatus $status = GameStatus::Scheduled): Game
 {
-    return Game::factory()->create([
+    return Game::factory()->withoutGameSystems()->create([
         'owner_id' => $user,
         'date_time' => $dateTime,
         'status' => $status->value,

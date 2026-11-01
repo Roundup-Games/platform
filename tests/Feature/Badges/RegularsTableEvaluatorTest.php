@@ -35,7 +35,7 @@ use Carbon\Carbon;
  */
 function regularsAttendMonth(User $user, string $month, AttendanceStatus $status = AttendanceStatus::Attended, bool $resolved = true): GameParticipant
 {
-    $game = Game::factory()->create([
+    $game = Game::factory()->withoutGameSystems()->create([
         'date_time' => Carbon::parse("{$month}-15 18:00:00"),
         'attendance_resolved_at' => $resolved ? Carbon::parse("{$month}-20 12:00:00") : null,
     ]);

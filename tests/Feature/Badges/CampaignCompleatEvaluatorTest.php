@@ -53,7 +53,7 @@ function compleatCampaign(User $owner, array $attributes = []): Campaign
  */
 function compleatSession(Campaign $campaign, array $attributes = []): Game
 {
-    return Game::factory()->create(array_merge([
+    return Game::factory()->withoutGameSystems()->create(array_merge([
         'campaign_id' => $campaign->id,
         'owner_id' => $campaign->owner_id,
         'status' => GameStatus::Completed->value,

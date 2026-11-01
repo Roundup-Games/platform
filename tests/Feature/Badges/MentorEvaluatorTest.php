@@ -50,7 +50,7 @@ function mentorGm(): array
  */
 function mentorSession(User $gm, int $monthsAgo = 1): Game
 {
-    return Game::factory()->create([
+    return Game::factory()->withoutGameSystems()->create([
         'owner_id' => $gm,
         'date_time' => now()->subMonths($monthsAgo)->setTime(18, 0),
     ]);
@@ -257,8 +257,8 @@ it('resolves a same-date_time tie on game id deterministically', function () {
     // fillers' one-month sessions can never collide with the tie.
     $tieBreaker = User::factory()->create();
     $date = now()->subMonths(3)->setTime(18, 0);
-    $first = Game::factory()->create(['owner_id' => $gm, 'date_time' => $date]);
-    $second = Game::factory()->create(['owner_id' => $gm, 'date_time' => $date]);
+    $first = Game::factory()->withoutGameSystems()->create(['owner_id' => $gm, 'date_time' => $date]);
+    $second = Game::factory()->withoutGameSystems()->create(['owner_id' => $gm, 'date_time' => $date]);
     mentorAttends($first, $tieBreaker);
     mentorAttends($second, $tieBreaker);
 

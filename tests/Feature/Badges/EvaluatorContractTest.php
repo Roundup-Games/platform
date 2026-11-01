@@ -69,7 +69,7 @@ it('evaluate() is pure for every badge — no hold rows, no audit rows', functio
 it('evaluate() is pure even for a user who qualifies — a proposal is not an outcome', function () {
     // Debut is the cheapest deterministic qualifier: an owned past game.
     $owner = User::factory()->create();
-    $game = Game::factory()->create([
+    $game = Game::factory()->withoutGameSystems()->create([
         'owner_id' => $owner->id,
         'status' => 'completed',
         'date_time' => now()->subDay(),

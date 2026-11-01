@@ -64,7 +64,7 @@ function trustedOrganizerQuarter(User $organizer, int $quartersAgo, int $eventCo
         $events[] = trustedOrganizerEvent($organizer, $quartersAgo, 5 + 7 * $i);
     }
 
-    $game = Game::factory()->create(['event_id' => $events[0]]);
+    $game = Game::factory()->withoutGameSystems()->create(['event_id' => $events[0]]);
 
     foreach ($ratings as $rating) {
         // gm_profile_id null: the derivation only reads

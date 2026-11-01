@@ -36,7 +36,7 @@ use Carbon\Carbon;
  */
 function firstSeatAttend(User $user, Carbon $sessionAt, AttendanceStatus $attendance = AttendanceStatus::Attended, bool $resolved = true): GameParticipant
 {
-    $game = Game::factory()->create([
+    $game = Game::factory()->withoutGameSystems()->create([
         'date_time' => $sessionAt,
         'attendance_resolved_at' => $resolved ? $sessionAt->copy()->addDay() : null,
     ]);

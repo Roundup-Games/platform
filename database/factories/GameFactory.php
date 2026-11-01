@@ -46,6 +46,23 @@ class GameFactory extends Factory
     }
 
     /**
+     * No offered game system: claims the pivot at make() time so the
+     * default afterCreating attach (new GameSystem + sync) is skipped.
+     *
+     * For fixtures that never read the offered-system relation — badge
+     * evaluators, journal entries, attendance matrices — this saves a
+     * GameSystem INSERT + pivot sync + relation reload per game
+     * (~3-4 queries; the badges matrix creates dozens of games per
+     * test). Games with zero systems are pivot-legal (many-to-many).
+     */
+    public function withoutGameSystems(): static
+    {
+        return $this->afterMaking(function (Game $game): void {
+            $game->setRelation('factoryPivotClaimed', true);
+        });
+    }
+
+    /**
      * Define the model's default state.
      *
      * @return array<string, mixed>

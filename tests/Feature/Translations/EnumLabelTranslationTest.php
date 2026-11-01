@@ -114,42 +114,72 @@ function entityTypeInterpolationDataset(): array
     return $datasets;
 }
 
-// ── Enum label homes ──────────────────────────────────────────────────
+// ── Enum label homes ───────────────────────────────────────────────────────
 
 describe('Enum Label Translation', function () {
-    it('renders a translated label for every case of every translated enum method in :locale', function (string $locale, string $enum, string $value, string $method) {
-        app()->setLocale($locale);
-
-        $label = $enum::from($value)->{$method}();
-
+    it('renders a translated label for every case of every translated enum method in every locale', function () {
+        // One test looping the whole reflection matrix: identical coverage
+        // per case (every key still checked on every run), but a single app
+        // boot instead of ~538 — and a failure now reports EVERY leaked key
+        // at once instead of one per red dataset row (harness performance
+        // report, 2026-10-31).
         $domains = collect(glob(lang_path('en/*.php')))
             ->map(fn (string $file) => basename($file, '.php'))
             ->implode('|');
 
-        expect($label)->toBeString()
-            ->and($label)->not->toBeEmpty()
-            // A leak always starts with a real translation domain followed by a dot.
-            ->and($label)->not->toMatch("#^(?:{$domains})\\.#");
-    })->with(fn () => enumLabelDataset());
+        $leaks = [];
+
+        foreach (enumLabelDataset() as [$locale, $enum, $value, $method]) {
+            app()->setLocale($locale);
+
+            $label = $enum::from($value)->{$method}();
+
+            if (! is_string($label)
+                || $label === ''
+                // A leak always starts with a real translation domain followed by a dot.
+                || preg_match("#^(?:{$domains})\\.#", $label) === 1) {
+                $leaks[] = "{$enum}::{$value}::{$method} [{$locale}] => ".(is_string($label) ? $label : gettype($label));
+            }
+        }
+
+        expect($leaks)->toBeEmpty();
+    });
 });
 
-// ── String-column families resolved via labelFor() ────────────────────
+// ── String-column families resolved via labelFor() ─────────────────────
 
 describe('LabelFor Families', function () {
-    it('resolves :key for :enum::labelFor() in :locale', function (string $locale, string $enum, string $key) {
-        app()->setLocale($locale);
+    it('resolves every labelFor() family key in every locale', function () {
+        $leaks = [];
 
-        expect($enum::labelFor(substr($key, strpos($key, '.') + 1)))
-            ->not->toBe($key);
-    })->with(fn () => labelForDataset());
+        foreach (labelForDataset() as [$locale, $enum, $key]) {
+            app()->setLocale($locale);
+
+            $resolved = $enum::labelFor(substr($key, strpos($key, '.') + 1));
+
+            if ($resolved === $key) {
+                $leaks[] = "{$key} [{$locale}]";
+            }
+        }
+
+        expect($leaks)->toBeEmpty();
+    });
 });
 
-// ── Notification entity-type interpolations ───────────────────────────
+// ── Notification entity-type interpolations ─────────────────────────────────
 
 describe('Entity-Type Interpolated Keys', function () {
-    it('resolves :key (notification interpolation) in :locale', function (string $locale, string $key) {
-        app()->setLocale($locale);
+    it('resolves every notification entity-type interpolated key in every locale', function () {
+        $leaks = [];
 
-        expect(__($key))->not->toBe($key);
-    })->with(fn () => entityTypeInterpolationDataset());
+        foreach (entityTypeInterpolationDataset() as [$locale, $key]) {
+            app()->setLocale($locale);
+
+            if (__($key) === $key) {
+                $leaks[] = "{$key} [{$locale}]";
+            }
+        }
+
+        expect($leaks)->toBeEmpty();
+    });
 });
