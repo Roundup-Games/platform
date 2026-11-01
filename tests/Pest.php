@@ -18,22 +18,6 @@ use Tests\TestCase;
 
 /*
 |--------------------------------------------------------------------------
-| Global afterEach hooks
-|--------------------------------------------------------------------------
-|
-| Frozen-clock leak guard (R089 review): Carbon::setTestNow() is static
-| state that neither Laravel's TestCase tearDown nor this suite resets —
-| a test that freezes time and fails mid-way leaked the frozen clock into
-| every later test in the same worker (order-dependent flakes). Clear it
-| globally; tests that need a frozen clock set it themselves per test.
-*/
-
-afterEach(function () {
-    Carbon::setTestNow();
-});
-
-/*
-|--------------------------------------------------------------------------
 | Test Case
 |--------------------------------------------------------------------------
 |
@@ -51,17 +35,97 @@ afterEach(function () {
 | need this config — they extend nothing and have no DB.
 */
 
+/*
+|--------------------------------------------------------------------------
+| Shared per-test hooks (wired into every extend block below)
+|--------------------------------------------------------------------------
+|
+| NOTE (2026-10-31, Pest 5): bare top-level beforeEach/afterEach hooks in
+| Pest.php do NOT fire for files bound via pest()->extend()->in() — only
+| the chained hooks run. Everything shared lives here and is attached
+| explicitly to each extension, or it is dead code (the frozen-clock
+| guard silently was, until this restructure).
+*/
+
+// Frozen-clock leak guard: Carbon::setTestNow() is static state no
+// framework teardown resets — a test that freezes time and fails mid-way
+// leaked the frozen clock into every later test in the same worker.
+$frozenClockGuard = function (): void {
+    Carbon::setTestNow();
+};
+
+// Optional per-test profiling (TEST_PROFILE=1): appends one CSV row per
+// test — duration, DB query count (DB::listen on the test's own
+// connection) and memory delta — to TEST_PROFILE_FILE. Pair with a
+// sequential --log-junit run (authoritative time + assertion counts);
+// the datasets join on test name (harness performance report, 2026-10-31).
+// Zero overhead when the env var is absent.
+$profileBeforeEach = null;
+$profileAfterEach = null;
+if (getenv('TEST_PROFILE') === '1') {
+    $profileFile = getenv('TEST_PROFILE_FILE') ?: sys_get_temp_dir().'/test-profile.csv';
+    $profileState = (object) ['t0' => 0.0, 'queries' => 0, 'mem0' => 0];
+
+    if (! is_file($profileFile)) {
+        @file_put_contents($profileFile, "file,test,duration_ms,queries,mem_delta_kb\n");
+    }
+
+    $profileBeforeEach = function () use ($profileState): void {
+        $profileState->t0 = microtime(true);
+        $profileState->queries = 0;
+        $profileState->mem0 = memory_get_usage(true);
+
+        try {
+            DB::listen(function () use ($profileState): void {
+                $profileState->queries++;
+            });
+        } catch (Throwable) {
+            // Pure unit tests without a booted container — nothing to count.
+        }
+    };
+
+    $profileAfterEach = function () use ($profileState, $profileFile): void {
+        $durationMs = (microtime(true) - $profileState->t0) * 1000;
+        $memDeltaKb = (int) ((memory_get_usage(true) - $profileState->mem0) / 1024);
+
+        $file = 'unknown';
+        $test = 'unknown';
+        try {
+            $file = (string) (new ReflectionClass($this))->getFileName();
+            $test = method_exists($this, 'name') ? $this->name() : $this->getName(false);
+        } catch (Throwable) {
+            // Keep the fallback names — the row still carries timing/queries.
+        }
+
+        @file_put_contents(
+            $profileFile,
+            sprintf('%s,%s,%.1f,%d,%d', $file, str_replace(',', ';', $test), $durationMs, $profileState->queries, $memDeltaKb).PHP_EOL,
+            FILE_APPEND,
+        );
+    };
+}
+
 $unitDirsNeedingTransactions = [
     'Unit/SEO',
     'Unit/Services',
 ];
 
-pest()->extend(TestCase::class)
+$featureExtension = pest()->extend(TestCase::class)
     ->use(DatabaseTransactions::class)
     ->beforeEach(function () {
         URL::defaults(['locale' => 'en']);
     })
-    ->in('Feature');
+    ->afterEach($frozenClockGuard);
+
+if ($profileBeforeEach !== null) {
+    // Profiling rides along on the SAME extension (a second extend on the
+    // same dir throws TestCaseAlreadyInUse in Pest 5).
+    $featureExtension = $featureExtension
+        ->beforeEach($profileBeforeEach)
+        ->afterEach($profileAfterEach);
+}
+
+$featureExtension->in('Feature');
 
 foreach ($unitDirsNeedingTransactions as $dir) {
     pest()->extend(TestCase::class)
@@ -69,6 +133,7 @@ foreach ($unitDirsNeedingTransactions as $dir) {
         ->beforeEach(function () {
             URL::defaults(['locale' => 'en']);
         })
+        ->afterEach($frozenClockGuard)
         ->in($dir);
 }
 
@@ -99,7 +164,7 @@ foreach ($unitDirsContainerOnly as $dir) {
             // suite (and across --parallel sibling workers).
             DB::enableQueryLog();
         })
-        ->afterEach(function () {
+        ->afterEach(function () use ($frozenClockGuard) {
             $writes = array_filter(
                 DB::getQueryLog(),
                 fn (array $q) => (bool) preg_match(
@@ -108,6 +173,7 @@ foreach ($unitDirsContainerOnly as $dir) {
                 )
             );
             DB::disableQueryLog();
+            $frozenClockGuard();
             expect($writes)->toBeEmpty(
                 'DB write leaked from a container-only Unit test (no DatabaseTransactions). '
                 .'Move this test into Unit/Services or Unit/SEO, or add DatabaseTransactions.'
