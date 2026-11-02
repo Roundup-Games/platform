@@ -5,8 +5,10 @@ use App\Enums\BadgeEventAction;
 use App\Models\BadgeDefinition;
 use App\Models\BadgeEvent;
 use App\Models\BadgeUser;
+use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /*
@@ -121,7 +123,23 @@ it('writes the awarded audit trail for the cohort', function () {
                 ->implode(',');
             $holds = demoCohortHoldsFor($key);
 
-            $missing[] = "{$key} (holds={$holds}, badge_event actions=[{$actions}])";
+            $detail = '';
+            if ($key === 'regulars_table') {
+                // TEMP DIAGNOSTIC (remove once the draw is caught): dump the
+                // covered months of every user on a Regulars Night fixture.
+                $rgameIds = Game::query()->where('name->en', 'like', '%Regulars Night%')->pluck('id');
+                $detail = ' MONTHS:';
+                foreach (GameParticipant::query()->whereIn('game_id', $rgameIds)->pluck('user_id')->unique() as $uid) {
+                    $months = GameParticipant::query()
+                        ->verifiedAttendance()
+                        ->where('game_participants.user_id', $uid)
+                        ->pluck('games.date_time')
+                        ->map(fn ($d) => Carbon::parse($d)->setTimezone(community_timezone())->format('Y-m'))
+                        ->unique()->sort()->values()->implode(',');
+                    $detail .= " u=[{$months}]";
+                }
+            }
+            $missing[] = "{$key} (holds={$holds}, badge_event actions=[{$actions}]){$detail}";
         }
     }
 
