@@ -2791,10 +2791,16 @@ class DemoSeedCommand extends Command
         }
 
         // ── Regulars' Table: the pair's three covered months ──
+        // Calendar-month anchors (the 5th of each of the last three FULL
+        // months), NOT fixed day offsets: now-110/70/30 spacing produced
+        // non-consecutive covered months on some days-of-month (e.g. Nov 2:
+        // Jul, [gap Aug], Sep, Oct) — bronze's consecutive-month walker then
+        // needed noise-month luck and the cohort flaked (2026-11-01 CI,
+        // 2026-11-02 gate). Month arithmetic is consecutive by construction.
         $pairPlayer = $this->playerIds[0];
 
-        foreach ([110, 70, 30] as $i => $daysAgo) {
-            $date = Carbon::now()->subDays($daysAgo)->setTime(18, 0);
+        foreach ([3, 2, 1] as $i => $monthsBack) {
+            $date = Carbon::now()->startOfMonth()->subMonths($monthsBack)->addDays(4)->setTime(18, 0);
             $gameId = (string) Str::uuid7();
 
             $games[] = $this->badgeCohortGameRow($gameId, $veteranGm['id'], $date, $system, 'Regulars Night '.($i + 1));

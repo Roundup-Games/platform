@@ -97,6 +97,12 @@ it('produces all eight demo-contract badges through the stateless sweep backfill
 });
 
 it('writes the awarded audit trail for the cohort', function () {
+    // Collect ALL unaudited keys, not the first: the flake (2026-11-01 CI,
+    // 2026-11-02 gate) is a per-draw single badge losing its award, and a
+    // collected failure names the badge(s) + every action seen for them —
+    // the diagnosis the bare toBeTrue never gave.
+    $missing = [];
+
     foreach ([
         'debut', 'first_seat', 'founding_table', 'still_rolling', 'guild_linked',
         'regulars_table', 'trusted_organizer', 'mentor',
@@ -106,10 +112,20 @@ it('writes the awarded audit trail for the cohort', function () {
             ->whereHas('badgeUser.badgeDefinition', fn ($query) => $query->where('key', $key))
             ->exists();
 
-        // Same named-key discipline as the holds test — a bare false told
-        // us nothing about which badge lost its award audit.
-        expect($audited)->toBeTrue("demo cohort lost [{$key}]: no Awarded audit row after seed+sync+sweep");
+        if (! $audited) {
+            $actions = BadgeEvent::query()
+                ->whereHas('badgeUser.badgeDefinition', fn ($query) => $query->where('key', $key))
+                ->distinct()
+                ->pluck('action')
+                ->map(fn ($action) => $action->value)
+                ->implode(',');
+            $holds = demoCohortHoldsFor($key);
+
+            $missing[] = "{$key} (holds={$holds}, badge_event actions=[{$actions}])";
+        }
     }
+
+    expect($missing)->toBeEmpty('demo cohort audit gaps: '.implode(' | ', $missing));
 });
 
 it('keeps campaign compleat and chartered live but unheld in the demo cohort', function () {
