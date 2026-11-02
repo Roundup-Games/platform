@@ -55,7 +55,7 @@ it('shifts wall-clock rows to true UTC instants and adds the override flag', fun
             ->and(DB::table('events')->where('id', $event->id)->value('registration_opens_at'))->toBe('2026-01-15 08:00:00')
             // Default: device capture is allowed until the user pins a zone.
             ->and(User::first()->timezone_manually_set)->toBeFalse();
-    }, attempts: 2);
+    }, 2);
 
 });
 
@@ -74,7 +74,7 @@ it('is idempotent — a second execution shifts nothing', function () {
         runTrueUtcMigration();
 
         expect(DB::table('games')->where('id', $game->id)->value('date_time'))->toBe($firstRun);
-    }, attempts: 2);
+    }, 2);
 
 });
 
@@ -98,6 +98,6 @@ it('leaves null columns and date-only event columns untouched', function () {
             // DATE columns carry no wall-time instant — deliberately unshifted.
             ->and(DB::table('events')->where('id', $event->id)->value('start_date'))->toBe('2026-03-05')
             ->and(DB::table('events')->where('id', $event->id)->value('end_date'))->toBe('2026-03-07');
-    }, attempts: 2);
+    }, 2);
 
 });
