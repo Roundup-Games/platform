@@ -11,6 +11,7 @@ use App\Models\GameSystem;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Tests\Traits\CapturesLogRecords;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,6 +35,8 @@ use Illuminate\Support\Facades\DB;
 | deterministic fixture blocks inside demo:seed are what makes this
 | true at ANY scale; see DemoSeedCommand::createBadgeCohortFixtures().
 */
+
+uses(CapturesLogRecords::class);
 
 /**
  * Holds (badge_user rows) for one registry key.
@@ -73,6 +76,13 @@ beforeEach(function () {
     }
 
     // Fresh demo environment at toy scale, then the stateless backfill.
+    // Capture logs from the sweep onward: CohortSweepEvaluator swallows
+    // per-user award failures (catch Throwable -> Log::error 'badges.sweep.
+    // user_failed' -> keep sweeping, command exits 0) — the only observable
+    // trace of the intermittent regulars_table zero-holds flake. Surfacing
+    // the captured exception turns any recurrence into a full diagnosis.
+    $this->captureLogRecords();
+
     // --cohort-only: the proof contract covers the badge fixtures and the
     // completed sessions behind debut/first_seat/resolution stamps — the
     // seeder's noise blocks are skipped (2026-11-01 harness report).
@@ -140,7 +150,12 @@ it('writes the awarded audit trail for the cohort', function () {
                     $detail .= " u=[{$months}]";
                 }
             }
-            $missing[] = "{$key} (holds={$holds}, badge_event actions=[{$actions}]){$detail}";
+            $sweepErrors = collect($this->logRecords())
+                ->filter(fn (array $r) => ($r['context']['badge'] ?? null) === $key || str_contains($r['message'], 'badges.sweep'))
+                ->map(fn (array $r) => $r['message'].' '.json_encode($r['context']))
+                ->implode(' || ');
+
+            $missing[] = "{$key} (holds={$holds}, badge_event actions=[{$actions}]){$detail} SWEEP_ERRORS=[{$sweepErrors}]";
         }
     }
 
