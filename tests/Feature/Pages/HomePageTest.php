@@ -168,7 +168,7 @@ describe('Living Stats', function () {
             'game_system_id' => $gameSystem->id,
             'status' => 'scheduled',
             'visibility' => 'public',
-            'date_time' => min(now()->endOfWeek()->subHour(), now()->addDays(5)),
+            'date_time' => min(community_now()->endOfWeek()->subHour(), now()->addDays(5)),
         ]);
 
         // Session next week (should not count)

@@ -40,7 +40,7 @@ beforeEach(function () {
  * and is invalidated via a separate method).
  */
 $sections = function (): array {
-    $weekKey = now()->startOfWeek()->format('Y-m-d');
+    $weekKey = community_now()->startOfWeek()->format('Y-m-d');
     $geohash = 'u33d';
 
     return [
@@ -261,7 +261,7 @@ it('warm_trending_nearby returns game count and stores empty list for remote til
 
 it('invalidates every section by default when no section list is passed', function () {
     $user = User::factory()->create();
-    $weekKey = now()->startOfWeek()->format('Y-m-d');
+    $weekKey = community_now()->startOfWeek()->format('Y-m-d');
 
     Cache::put("dashboard:week:{$user->id}:{$weekKey}", ['data' => true], 300);
     Cache::put("dashboard:feed:{$user->id}", ['data' => true], 900);
@@ -285,7 +285,7 @@ it('invalidate_trending_for_geohash clears the trending cache key', function () 
 it('invalidate_for_game_event clears week cache for the owner', function () {
     $owner = User::factory()->create();
     $game = Game::factory()->create(['owner_id' => $owner->id, 'status' => GameStatus::Scheduled]);
-    $weekKey = now()->startOfWeek()->format('Y-m-d');
+    $weekKey = community_now()->startOfWeek()->format('Y-m-d');
     $ownerWeekKey = "dashboard:week:{$owner->id}:{$weekKey}";
     Cache::put($ownerWeekKey, ['data' => true], 300);
 
@@ -303,7 +303,7 @@ it('invalidate_for_game_event clears week cache for approved participants', func
         'user_id' => $player->id,
         'status' => ParticipantStatus::Approved,
     ]);
-    $weekKey = now()->startOfWeek()->format('Y-m-d');
+    $weekKey = community_now()->startOfWeek()->format('Y-m-d');
     $playerWeekKey = "dashboard:week:{$player->id}:{$weekKey}";
     Cache::put($playerWeekKey, ['data' => true], 300);
 
@@ -349,7 +349,7 @@ it('week cache key is namespaced by the start-of-week date', function () {
 
     $this->service->getWeekData($user);
 
-    $weekKey = now()->startOfWeek()->format('Y-m-d');
+    $weekKey = community_now()->startOfWeek()->format('Y-m-d');
     expect(Cache::get("dashboard:week:{$user->id}:{$weekKey}"))->not->toBeNull()
         ->and(Cache::get("dashboard:week:{$user->id}:2099-12-31"))->toBeNull();
 });

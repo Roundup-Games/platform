@@ -46,7 +46,13 @@ class DashboardSmartPromptServiceTest extends TestCase
         // Mon–Wed when the week is empty) cannot preempt the lower-priority
         // prompts under test here. Tests that explicitly assert empty_week
         // behaviour override this with their own travelTo().
-        $this->travelTo(now()->startOfWeek()->addDays(3)); // Thursday
+        // setHour(12): the anchor is BERLIN-zoned (community_now) and must pin
+        // the hour — an anchor carrying the real wall hour near midnight
+        // converts back to the PREVIOUS UTC day inside the service's now()
+        // (Thu 00:xx CET = Wed 23:xx UTC), letting the Mon-Wed empty_week
+        // gate preempt the prompts under test. Window: 00:00-01:00 CET
+        // daily (2026-11-02 midnight-run flake).
+        $this->travelTo(community_now()->startOfWeek()->addDays(3)->setHour(12)); // Thursday midday
 
         $cacheService = $this->createMock(DashboardCacheService::class);
         $cacheService->method('getWeekData')->willReturn([
@@ -306,7 +312,9 @@ class DashboardSmartPromptServiceTest extends TestCase
     #[DataProvider('emptyWeekDays')]
     public function empty_week_prompt_only_fires_mon_through_wed(int $dayOffset, bool $shouldShow): void
     {
-        $this->travelTo(now()->startOfWeek()->addDays($dayOffset));
+        // Midday anchor — see setUp()'s setHour(12) note (day must survive
+        // the Berlin->UTC conversion inside the service).
+        $this->travelTo(community_now()->startOfWeek()->addDays($dayOffset)->setHour(12));
 
         $user = User::factory()->create(['created_at' => now()->subDays(30)]);
         Cache::flush();
@@ -323,7 +331,7 @@ class DashboardSmartPromptServiceTest extends TestCase
     #[Test]
     public function empty_week_does_not_show_when_games_exist(): void
     {
-        $this->travelTo(now()->startOfWeek()); // Monday
+        $this->travelTo(community_now()->startOfWeek()->setHour(12)); // Monday midday
 
         $user = User::factory()->create(['created_at' => now()->subDays(30)]);
         Game::factory()->create([

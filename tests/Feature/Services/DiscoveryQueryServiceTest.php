@@ -173,7 +173,7 @@ describe('results() filter application', function () {
 
     it('applies mode-scoped filters: the games date window and campaigns recurrence via the DTO', function () {
         $thisWeek = Game::factory()->create([
-            'date_time' => min(now()->endOfWeek()->subHour(), now()->addDays(3)),
+            'date_time' => min(community_now()->endOfWeek()->subHour(), now()->addDays(3)),
         ]);
         Game::factory()->create(['date_time' => now()->addMonths(2)]);
 

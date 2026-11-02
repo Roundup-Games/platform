@@ -112,7 +112,7 @@ class DashboardWeekDataTest extends TestCase
         $game = Game::factory()->create([
             'owner_id' => $user->id,
             'status' => GameStatus::Scheduled,
-            'date_time' => now()->startOfWeek()->addDays(2)->setHour(19),
+            'date_time' => community_now()->startOfWeek()->addDays(2)->setHour(19),
         ]);
 
         $result = $this->service->computeWeekData($user);
@@ -126,7 +126,7 @@ class DashboardWeekDataTest extends TestCase
     public function owned_game_is_placed_on_correct_day(): void
     {
         $user = User::factory()->create();
-        $targetDate = now()->startOfWeek()->addDays(3)->setHour(18);
+        $targetDate = community_now()->startOfWeek()->addDays(3)->setHour(18);
         Game::factory()->create([
             'owner_id' => $user->id,
             'status' => GameStatus::Scheduled,
@@ -151,7 +151,7 @@ class DashboardWeekDataTest extends TestCase
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
             'status' => GameStatus::Scheduled,
-            'date_time' => now()->startOfWeek()->addDays(1)->setHour(19),
+            'date_time' => community_now()->startOfWeek()->addDays(1)->setHour(19),
         ]);
         GameParticipant::factory()->create([
             'game_id' => $game->id,
@@ -174,7 +174,7 @@ class DashboardWeekDataTest extends TestCase
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
             'status' => GameStatus::Scheduled,
-            'date_time' => now()->startOfWeek()->addDays(1)->setHour(19),
+            'date_time' => community_now()->startOfWeek()->addDays(1)->setHour(19),
         ]);
         GameParticipant::factory()->create([
             'game_id' => $game->id,
@@ -198,14 +198,14 @@ class DashboardWeekDataTest extends TestCase
         Game::factory()->create([
             'owner_id' => $user->id,
             'status' => GameStatus::Scheduled,
-            'date_time' => now()->startOfWeek()->subDays(3),
+            'date_time' => community_now()->startOfWeek()->subDays(3),
         ]);
 
         // Next week
         Game::factory()->create([
             'owner_id' => $user->id,
             'status' => GameStatus::Scheduled,
-            'date_time' => now()->endOfWeek()->addDays(3),
+            'date_time' => community_now()->endOfWeek()->addDays(3),
         ]);
 
         $result = $this->service->computeWeekData($user);
@@ -223,17 +223,17 @@ class DashboardWeekDataTest extends TestCase
         Game::factory()->create([
             'owner_id' => $user->id,
             'status' => GameStatus::Scheduled,
-            'date_time' => now()->startOfWeek()->addDays(1)->setHour(18),
+            'date_time' => community_now()->startOfWeek()->addDays(1)->setHour(18),
         ]);
         Game::factory()->create([
             'owner_id' => $user->id,
             'status' => GameStatus::Completed,
-            'date_time' => now()->startOfWeek()->addDays(2)->setHour(18),
+            'date_time' => community_now()->startOfWeek()->addDays(2)->setHour(18),
         ]);
         Game::factory()->create([
             'owner_id' => $user->id,
             'status' => GameStatus::Canceled,
-            'date_time' => now()->startOfWeek()->addDays(3)->setHour(18),
+            'date_time' => community_now()->startOfWeek()->addDays(3)->setHour(18),
         ]);
 
         $result = $this->service->computeWeekData($user);
@@ -253,13 +253,13 @@ class DashboardWeekDataTest extends TestCase
         Game::factory()->create([
             'owner_id' => $user->id,
             'status' => GameStatus::Completed,
-            'date_time' => now()->startOfWeek()->addHours(2),
+            'date_time' => community_now()->startOfWeek()->addHours(2),
         ]);
 
         Game::factory()->create([
             'owner_id' => $user->id,
             'status' => GameStatus::Scheduled,
-            'date_time' => now()->endOfWeek()->subHours(2),
+            'date_time' => community_now()->endOfWeek()->subHours(2),
         ]);
 
         $result = $this->service->computeWeekData($user);
@@ -284,7 +284,7 @@ class DashboardWeekDataTest extends TestCase
         Game::factory()->create([
             'owner_id' => $user->id,
             'status' => GameStatus::Scheduled,
-            'date_time' => now()->startOfWeek()->addDays(1)->setHour(19),
+            'date_time' => community_now()->startOfWeek()->addDays(1)->setHour(19),
         ]);
 
         $result = $this->service->computeWeekData($user);
@@ -302,7 +302,7 @@ class DashboardWeekDataTest extends TestCase
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
             'status' => GameStatus::Scheduled,
-            'date_time' => now()->startOfWeek()->addDays(1)->setHour(19),
+            'date_time' => community_now()->startOfWeek()->addDays(1)->setHour(19),
         ]);
         GameParticipant::factory()->create([
             'game_id' => $game->id,
@@ -325,7 +325,7 @@ class DashboardWeekDataTest extends TestCase
         $game = Game::factory()->create([
             'owner_id' => $user->id,
             'status' => GameStatus::Scheduled,
-            'date_time' => now()->startOfWeek()->addDays(1)->setHour(19),
+            'date_time' => community_now()->startOfWeek()->addDays(1)->setHour(19),
         ]);
 
         // Add 3 approved participants
@@ -360,7 +360,7 @@ class DashboardWeekDataTest extends TestCase
             'owner_id' => $user->id,
             'campaign_id' => $campaign->id,
             'status' => GameStatus::Completed,
-            'date_time' => now()->startOfWeek()->addHours(2), // past
+            'date_time' => community_now()->startOfWeek()->addHours(2), // past
         ]);
 
         $result = $this->service->computeWeekData($user);
@@ -378,7 +378,7 @@ class DashboardWeekDataTest extends TestCase
             'owner_id' => $user->id,
             'campaign_id' => $campaign->id,
             'status' => GameStatus::Completed,
-            'date_time' => now()->startOfWeek()->addHours(2),
+            'date_time' => community_now()->startOfWeek()->addHours(2),
         ]);
         CampaignJournalEntry::factory()->forCampaignSession($game)
             ->create(['body' => 'Great session! Everyone had fun.']);
@@ -399,7 +399,7 @@ class DashboardWeekDataTest extends TestCase
             'owner_id' => $user->id,
             'campaign_id' => null,
             'status' => GameStatus::Completed,
-            'date_time' => now()->startOfWeek()->addHours(2), // past
+            'date_time' => community_now()->startOfWeek()->addHours(2), // past
         ]);
 
         $result = $this->service->computeWeekData($user);
@@ -418,7 +418,7 @@ class DashboardWeekDataTest extends TestCase
             'owner_id' => $owner->id,
             'campaign_id' => $campaign->id,
             'status' => GameStatus::Completed,
-            'date_time' => now()->startOfWeek()->addHours(2),
+            'date_time' => community_now()->startOfWeek()->addHours(2),
         ]);
         GameParticipant::factory()->create([
             'game_id' => $game->id,
@@ -439,7 +439,7 @@ class DashboardWeekDataTest extends TestCase
         Game::factory()->create([
             'owner_id' => $user->id,
             'status' => GameStatus::Scheduled,
-            'date_time' => now()->endOfWeek()->subHours(2), // future
+            'date_time' => community_now()->endOfWeek()->subHours(2), // future
         ]);
 
         $result = $this->service->computeWeekData($user);
@@ -458,7 +458,7 @@ class DashboardWeekDataTest extends TestCase
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
             'status' => GameStatus::Completed,
-            'date_time' => now()->startOfWeek()->addHours(2),
+            'date_time' => community_now()->startOfWeek()->addHours(2),
         ]);
         GameParticipant::factory()->create([
             'game_id' => $game->id,
@@ -481,7 +481,7 @@ class DashboardWeekDataTest extends TestCase
         $game = Game::factory()->create([
             'owner_id' => $owner->id,
             'status' => GameStatus::Completed,
-            'date_time' => now()->startOfWeek()->addHours(2),
+            'date_time' => community_now()->startOfWeek()->addHours(2),
         ]);
         GameParticipant::factory()->create([
             'game_id' => $game->id,
@@ -503,7 +503,7 @@ class DashboardWeekDataTest extends TestCase
         Game::factory()->create([
             'owner_id' => $user->id,
             'status' => GameStatus::Completed,
-            'date_time' => now()->startOfWeek()->addHours(2),
+            'date_time' => community_now()->startOfWeek()->addHours(2),
         ]);
 
         $result = $this->service->computeWeekData($user);
@@ -523,7 +523,7 @@ class DashboardWeekDataTest extends TestCase
             'owner_id' => $user->id,
             'game_system_id' => $gameSystem->id,
             'status' => GameStatus::Scheduled,
-            'date_time' => now()->startOfWeek()->addDays(2)->setHour(19),
+            'date_time' => community_now()->startOfWeek()->addDays(2)->setHour(19),
         ]);
 
         $result = $this->service->computeWeekData($user);
@@ -541,7 +541,7 @@ class DashboardWeekDataTest extends TestCase
             'owner_id' => $user->id,
             'campaign_id' => $campaign->id,
             'status' => GameStatus::Scheduled,
-            'date_time' => now()->startOfWeek()->addDays(2)->setHour(19),
+            'date_time' => community_now()->startOfWeek()->addDays(2)->setHour(19),
         ]);
 
         $result = $this->service->computeWeekData($user);
@@ -558,7 +558,7 @@ class DashboardWeekDataTest extends TestCase
             'owner_id' => $user->id,
             'campaign_id' => null,
             'status' => GameStatus::Scheduled,
-            'date_time' => now()->startOfWeek()->addDays(2)->setHour(19),
+            'date_time' => community_now()->startOfWeek()->addDays(2)->setHour(19),
         ]);
 
         $result = $this->service->computeWeekData($user);
@@ -576,7 +576,7 @@ class DashboardWeekDataTest extends TestCase
         $game = Game::factory()->create([
             'owner_id' => $user->id,
             'status' => GameStatus::Scheduled,
-            'date_time' => now()->startOfWeek()->addDays(1)->setHour(19),
+            'date_time' => community_now()->startOfWeek()->addDays(1)->setHour(19),
         ]);
         // User is also an approved participant of their own game
         GameParticipant::factory()->create([
@@ -597,7 +597,7 @@ class DashboardWeekDataTest extends TestCase
     public function multiple_games_on_same_day(): void
     {
         $user = User::factory()->create();
-        $dayDate = now()->startOfWeek()->addDays(2);
+        $dayDate = community_now()->startOfWeek()->addDays(2);
         Game::factory()->create([
             'owner_id' => $user->id,
             'status' => GameStatus::Scheduled,
@@ -628,7 +628,7 @@ class DashboardWeekDataTest extends TestCase
         Game::factory()->create([
             'owner_id' => $user->id,
             'status' => GameStatus::Scheduled,
-            'date_time' => now()->startOfWeek()->addDays(1)->setHour(19),
+            'date_time' => community_now()->startOfWeek()->addDays(1)->setHour(19),
         ]);
 
         $result = $this->service->computeWeekData($user);

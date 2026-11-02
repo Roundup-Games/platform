@@ -68,7 +68,7 @@ test('established user sees established mode', function () {
 
 test('schedule timeline shows grouped upcoming games', function () {
     // Freeze to Wednesday to ensure "2 days out" is always "this week"
-    $this->travelTo(now()->startOfWeek()->addDays(2)->setHour(10));
+    $this->travelTo(community_now()->startOfWeek()->addDays(2)->setHour(10));
 
     $user = createEstablishedUser();
     $system = GameSystem::factory()->create();

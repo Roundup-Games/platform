@@ -20,7 +20,10 @@ use Illuminate\Support\Facades\Queue;
 beforeEach(function () {
     // Default to Thursday so the empty_week smart prompt (Priority 4, fires
     // Mon-Wed when the week is empty) cannot shadow the prompts under test.
-    $this->travelTo(now()->startOfWeek()->addDays(3)); // Thursday
+    // setHour(12): the anchor must pin the hour too — smart-prompt type
+    // selection is time-of-day sensitive, and carrying the real wall-clock
+    // hour failed the suite when run around midnight (2026-11-02).
+    $this->travelTo(community_now()->startOfWeek()->addDays(3)->setHour(12)); // Thursday midday
 
     $this->user = User::factory()->create();
     $this->actingAs($this->user);
@@ -159,7 +162,7 @@ describe('Cache lifecycle', function () {
         DB::disableQueryLog();
 
         // Verify cache was populated
-        $weekKey = now()->startOfWeek()->format('Y-m-d');
+        $weekKey = community_now()->startOfWeek()->format('Y-m-d');
         $cacheKey = "dashboard:week:{$this->user->id}:{$weekKey}";
         expect(Cache::get($cacheKey))->not->toBeNull();
 
@@ -189,7 +192,7 @@ describe('Cache lifecycle', function () {
 describe('Cache invalidation', function () {
     test('cache invalidation on game creation clears week data for owner', function () {
         $cacheService = app(DashboardCacheService::class);
-        $weekKey = now()->startOfWeek()->format('Y-m-d');
+        $weekKey = community_now()->startOfWeek()->format('Y-m-d');
 
         // Pre-populate week cache using the service (correct key format)
         $cacheService->getWeekData($this->user);
