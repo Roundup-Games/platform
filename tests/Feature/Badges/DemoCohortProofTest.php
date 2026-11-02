@@ -5,6 +5,7 @@ use App\Enums\BadgeEventAction;
 use App\Models\BadgeDefinition;
 use App\Models\BadgeEvent;
 use App\Models\BadgeUser;
+use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
