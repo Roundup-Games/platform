@@ -1,4 +1,5 @@
 import './bootstrap';
+import './client-errors';
 import './guest-location';
 import './image-fallback';
 import './timezone-beacon';

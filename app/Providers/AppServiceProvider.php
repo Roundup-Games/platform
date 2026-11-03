@@ -522,6 +522,16 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($request->user()->id ?? $request->ip());
         });
 
+        // Client runtime-error beacon limiter — the error beacon is
+        // consent-independent and guest-accessible, so the budget falls back
+        // to per-IP (the timezone beacon is per-user because it only ever
+        // fires for signed-in members). Tight ceiling: a crashed page sends
+        // at most 5 reports/min client-side; this stops a corrupted client
+        // or an attacker from flooding the error log.
+        RateLimiter::for('client-errors', function (Request $request) {
+            return Limit::perMinute(10)->by($request->user()->id ?? $request->ip());
+        });
+
         // Register custom notification channels
         Notification::extend('push', function ($app) {
             return $app->make(PushChannel::class);

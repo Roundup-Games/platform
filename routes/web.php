@@ -16,6 +16,7 @@ Route::get('/up', function (): Response {
 });
 
 use App\Http\Controllers\Auth\OAuthController;
+use App\Http\Controllers\ClientErrorReportController;
 use App\Http\Controllers\DiscordBotInstallController;
 use App\Http\Controllers\DiscordInteractionController;
 use App\Http\Controllers\DiscordJoinController;
@@ -147,6 +148,17 @@ Route::post('paddle/webhook', PaddleWebhookController::class)
 // CSRF is N/A — mirrors the Paddle webhook precedent.
 Route::post('webhooks/resend', ResendWebhookController::class)
     ->name('webhooks.resend');
+
+// ── Client Runtime-Error Beacon (consent-independent) ──
+// The JS beacon (resources/js/client-errors.js) POSTs minimal, PII-free
+// runtime-error fingerprints from ANY page — guests included by design,
+// since posthog-js only covers consented sessions. Top-level (outside the
+// {locale} group) and locale-agnostic; CSRF rides the standard web group
+// (the beacon sends the X-CSRF-TOKEN header from the layout meta tag);
+// floods stopped by the dedicated client-errors limiter.
+Route::post('client-errors', ClientErrorReportController::class)
+    ->middleware('throttle:client-errors')
+    ->name('client-errors.report');
 
 // ── Discord HTTP Interactions endpoint (M057/S03) ─────
 // Public, stateless surface called by Discord (NOT a browser form POST).
