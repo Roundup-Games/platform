@@ -22,6 +22,31 @@
             .audit-avoid-break {
                 break-inside: avoid;
             }
+
+            /* Fragmentation: table rows never split across pages, and
+               section headings stay attached to the block they
+               introduce (no orphaned headings at page bottoms). */
+            tr {
+                break-inside: avoid;
+            }
+
+            h3,
+            h4 {
+                break-after: avoid;
+            }
+
+            /* Screen scroll wrappers must not clip on paper — print
+               fragments normal-flow tables, not overflow containers. */
+            .overflow-x-auto {
+                overflow: visible !important;
+            }
+
+            /* Screen card shadows and tints do not print — a hairline
+               keeps the audit sections visually separated on paper. */
+            section {
+                border: 1px solid var(--color-outline);
+                box-shadow: none !important;
+            }
         }
     </style>
 
