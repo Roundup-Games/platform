@@ -61,7 +61,7 @@ it('renders every admin resource List page as Platform Admin', function () use (
     foreach (array_keys($resources) as $slug) {
         get("/admin/{$slug}")->assertSuccessful();
     }
-})->group('smoke');
+});
 
 it('renders every admin resource Create page as Platform Admin', function () use ($resources) {
     actingAs($this->platformAdmin);
@@ -72,7 +72,7 @@ it('renders every admin resource Create page as Platform Admin', function () use
         }
         get("/admin/{$slug}/create")->assertSuccessful();
     }
-})->group('smoke');
+});
 
 it('denies regular users access to every admin resource', function () use ($resources) {
     actingAs($this->regularUser);
@@ -80,7 +80,7 @@ it('denies regular users access to every admin resource', function () use ($reso
     foreach (array_keys($resources) as $slug) {
         get("/admin/{$slug}")->assertForbidden();
     }
-})->group('smoke');
+});
 
 it('renders the events Edit page and hydrates the Paddle price id field', function () {
     $event = Event::factory()->create([
@@ -94,4 +94,4 @@ it('renders the events Edit page and hydrates the Paddle price id field', functi
         ->assertSuccessful()
         ->assertSee('Paddle Price ID')
         ->assertSee('pri_smoke_ticket');
-})->group('smoke');
+});

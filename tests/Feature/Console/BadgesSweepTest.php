@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\AttendanceStatus;
 use App\Enums\BadgeEventAction;
 use App\Models\BadgeDefinition;
 use App\Models\BadgeEvent;
@@ -16,6 +15,8 @@ use App\Support\Scheduling\TaskIdentity;
 use Carbon\Carbon;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 /**
@@ -56,31 +57,67 @@ function badgesSweepGmPlan(): MembershipType
 }
 
 /**
- * One resolved Attended session for the user in the given Y-m month.
- */
-function badgesSweepAttendMonth(User $user, string $month): GameParticipant
-{
-    $game = Game::factory()->create([
-        'date_time' => Carbon::parse("{$month}-15 18:00:00"),
-        'attendance_resolved_at' => Carbon::parse("{$month}-20 12:00:00"),
-    ]);
-
-    return GameParticipant::factory()->create([
-        'game_id' => $game,
-        'user_id' => $user,
-        'attendance_status' => AttendanceStatus::Attended,
-    ]);
-}
-
-/**
  * One resolved Attended session per month, ending at the current month
- * and reaching back $count months.
+ * and reaching back $count months — bulk-seeded (M073/S02/T02): one raw
+ * INSERT per table for the whole cohort instead of ~45 queries per
+ * factory-created pair (the six Game observers + two GameParticipant
+ * observers — SEO/IndexNow/landing-cache/city-cache/activity-log/
+ * dashboard side effects nothing in this suite reads — plus the default
+ * game-system pivot the badge evaluators never touch).
+ *
+ * Row parity is exact wherever it is read: every month still gets its own
+ * host user (a nested owner factory used to create one, so the debut
+ * cohort keeps its per-host shape), the same games (owner_id, session
+ * date, attendance_resolved_at and status byte-identical to the factory
+ * output; JSON columns encoded by factoryInsertRow), and the same
+ * participant rows (Approved + Attended, with the observer's approved_at
+ * stamp mirrored). Assertions and evaluator-visible state are unchanged.
  */
 function badgesSweepAttendMonths(User $user, int $count): void
 {
+    $owners = [];
+    $games = [];
+    $participants = [];
+    $now = now();
+
     for ($monthsAgo = $count - 1; $monthsAgo >= 0; $monthsAgo--) {
-        badgesSweepAttendMonth($user, now()->subMonths($monthsAgo)->format('Y-m'));
+        $month = now()->subMonths($monthsAgo)->format('Y-m');
+
+        $ownerId = (string) Str::uuid7();
+        $owners[] = factoryInsertRow(User::factory()->make(), [
+            'id' => $ownerId,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $gameId = (string) Str::uuid7();
+        $games[] = factoryInsertRow(Game::factory()->withoutGameSystems()->make([
+            'owner_id' => $ownerId,
+            'date_time' => Carbon::parse("{$month}-15 18:00:00"),
+            'attendance_resolved_at' => Carbon::parse("{$month}-20 12:00:00"),
+        ]), [
+            'id' => $gameId,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $participants[] = factoryInsertRow(GameParticipant::factory()->make([
+            'game_id' => $gameId,
+            'user_id' => $user->id,
+        ]), [
+            'id' => (string) Str::uuid7(),
+            // game_participants has no updated_at ($timestamps=false,
+            // HasParticipantDefaults stamps created_at on create) and the
+            // GameParticipantObserver::saving backstop stamps approved_at
+            // for Approved rows — both mirrored here.
+            'approved_at' => $now,
+            'created_at' => $now,
+        ]);
     }
+
+    DB::table('users')->insert($owners);
+    DB::table('games')->insert($games);
+    DB::table('game_participants')->insert($participants);
 }
 
 /**

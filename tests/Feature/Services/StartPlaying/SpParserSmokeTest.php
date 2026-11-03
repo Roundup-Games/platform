@@ -30,7 +30,7 @@ it('resolves a cache __ref pointer to its cached object', function () {
     expect($resolved)->not->toBeNull()
         ->and($resolved['title'])->toBe('Dungeons & Dragons')
         ->and($resolved['canonicalUrl'])->toBe('/games/dnd');
-})->group('smoke');
+});
 
 it('returns null for an unresolvable or empty ref', function () {
     $parser = new SpParser;
@@ -39,7 +39,7 @@ it('returns null for an unresolvable or empty ref', function () {
         ->and($parser->resolveRef([], 'SeoPage:1'))->toBeNull()
         ->and($parser->resolveRef(['SeoPage:1' => 'not-an-array'], 'SeoPage:1'))->toBeNull()
         ->and($parser->resolveRef(['x' => 1], ''))->toBeNull();
-})->group('smoke');
+});
 
 it('returns null when parsing a system that does not exist in the cache', function () {
     $parser = new SpParser;
@@ -48,7 +48,7 @@ it('returns null when parsing a system that does not exist in the cache', functi
     $result = $parser->parseSystem([], 'nonexistent-slug');
 
     expect($result)->toBeNull();
-})->group('smoke');
+});
 
 it('degrades gracefully parsing a style from an empty cache', function () {
     $parser = new SpParser;
@@ -59,7 +59,7 @@ it('degrades gracefully parsing a style from an empty cache', function () {
     $result = $parser->parseStyle([], 'narrative');
 
     expect($result)->toBeNull();
-})->group('smoke');
+});
 
 it('keeps a title of literally \'0\' instead of falling through to the slug', function () {
     $parser = new SpParser;

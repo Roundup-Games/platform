@@ -9,6 +9,9 @@ use App\Services\GmRoleService;
 use App\Support\Scheduling\TaskIdentity;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 /**
@@ -43,6 +46,65 @@ function badgesRarityAward(BadgeDefinition $definition, User $user, array $attri
         'user_id' => $user,
         'badge_definition_id' => $definition,
     ], $attributes));
+}
+
+/**
+ * Bulk-insert factory-made, non-anonymized users and return the made
+ * instances carrying their explicit UUIDv7 ids (M073/S02/T02) — pure
+ * volume for the rarity denominators: the job counts users through
+ * notAnonymized only, so the user observers/events a raw insert skips
+ * are invisible to every assertion.
+ *
+ * @return Collection<int, User>
+ */
+function badgesRarityBulkUsers(int $count): Collection
+{
+    $now = now();
+    $users = User::factory()->count($count)->make();
+    $rows = [];
+
+    foreach ($users as $user) {
+        $user->id = (string) Str::uuid7();
+        $rows[] = factoryInsertRow($user, ['created_at' => $now, 'updated_at' => $now]);
+    }
+
+    foreach (array_chunk($rows, 250) as $chunk) {
+        DB::table('users')->insert($chunk);
+    }
+
+    return $users;
+}
+
+/**
+ * Award one badge to a whole cohort in chunked raw inserts — the bulk
+ * sibling of badgesRarityAward() for pure-volume holders. Like the
+ * single-row helper this is a fixture, not the pipeline: the rarity job
+ * reads badge_user rows only, and these holds carry no badge_events
+ * expectations (the single-award tests below own the write-path
+ * coverage), so the model events a raw insert skips are invisible to
+ * what is asserted.
+ *
+ * @param  Collection<int, User>  $users
+ */
+function badgesRarityAwardBulk(BadgeDefinition $definition, Collection $users): void
+{
+    $now = now();
+    $rows = [];
+
+    foreach ($users as $user) {
+        $rows[] = factoryInsertRow(BadgeUser::factory()->make([
+            'badge_definition_id' => $definition->id,
+            'user_id' => $user->id,
+        ]), [
+            'id' => (string) Str::uuid7(),
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+    }
+
+    foreach (array_chunk($rows, 250) as $chunk) {
+        DB::table('badge_user')->insert($chunk);
+    }
 }
 
 // Parallel-suite note: `pest --parallel` shares ONE testcontainer
@@ -106,7 +168,7 @@ it('computes counts and rarity classes across the five tier boundaries in one pa
     // fixtures this test creates.
     $foreign = rarityAllUsersPool();
     $pool = (int) (ceil(max(100, ($foreign + 1) * 2.5) / 100) * 100);
-    $users = User::factory()->count($pool - $foreign)->create();
+    $users = badgesRarityBulkUsers($pool - $foreign);
     expect(rarityAllUsersPool())->toBe($pool);
 
     $expectedTiers = [
@@ -118,11 +180,10 @@ it('computes counts and rarity classes across the five tier boundaries in one pa
     ];
 
     foreach ($expectedTiers as $key => [$holderPct]) {
-        $definition = badgesRarityDefinition($key);
-
-        foreach ($users->take((int) ($holderPct / 100 * $pool)) as $user) {
-            badgesRarityAward($definition, $user);
-        }
+        badgesRarityAwardBulk(
+            badgesRarityDefinition($key),
+            $users->take((int) ($holderPct / 100 * $pool)),
+        );
     }
 
     $this->artisan('badges:rarity')->assertSuccessful();
@@ -168,7 +229,11 @@ it('scopes the game master denominator to non-anonymized GMs only', function () 
     $gmPoolBefore = rarityGmPool();
     $allPoolBefore = rarityAllUsersPool();
 
-    $players = User::factory()->count(10)->create();
+    // Bulk-seeded volume rows (M073/S02/T02): the ten plain players exist
+    // for the all-users denominator only — the GM-side fixtures below keep
+    // factory creates because role writes and the anonymization forceFill
+    // are exactly the state under test.
+    $players = badgesRarityBulkUsers(10);
 
     $gms = User::factory()->count(4)->create();
     $gms->each(fn (User $gm) => $gm->assignRole('Game Master'));

@@ -18,7 +18,7 @@ describe('GameSystemsPage', function () {
             ->assertSee(__('games.action_explore_game_systems', [], 'en'))
             // M066/S07/T02: guest-friendly framing subtitle
             ->assertSee(__('games.content_game_systems_knowledge_base_subtitle'));
-    })->group('smoke');
+    });
 
     it('shows game systems in a grid', function () {
         $system = GameSystem::factory()->create([
@@ -34,7 +34,7 @@ describe('GameSystemsPage', function () {
             ->assertSee('Gloomhaven')
             ->assertSee('8.8')
             ->assertSee('#1');
-    })->group('smoke');
+    });
 
     it('shows active session count badge', function () {
         $system = GameSystem::factory()->create([

@@ -28,7 +28,7 @@ describe('FaqPage', function () {
             ->assertSee(__('faq.heading_section_playing'))
             ->assertSee(__('faq.heading_section_hosting'))
             ->assertSee(__('faq.heading_section_trust'));
-    })->group('smoke');
+    });
 
     it('answers the audit questions across all sections', function () {
         get(route('faq'))

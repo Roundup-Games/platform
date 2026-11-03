@@ -193,4 +193,4 @@ describe('locations:drift-sweep command', function () {
             ->assertSuccessful()
             ->expectsOutputToContain('No location drift detected.');
     });
-})->group('smoke');
+});

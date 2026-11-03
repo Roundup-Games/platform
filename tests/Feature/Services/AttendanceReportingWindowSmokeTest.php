@@ -64,7 +64,7 @@ it('refuses attendance reporting before the window opens', function () {
 
     expect($result['success'])->toBeFalse()
         ->and($result['reason'])->toBe('Attendance reporting window has not opened yet');
-})->group('smoke');
+});
 
 it('accepts attendance reporting within the open window', function () {
     [$host, $player, $game] = windowCreateCompletedGame([
@@ -75,7 +75,7 @@ it('accepts attendance reporting within the open window', function () {
     $result = windowReport(app(AttendanceService::class), $game, $host, $player);
 
     expect($result['success'])->toBeTrue();
-})->group('smoke');
+});
 
 it('refuses attendance reporting after the window closes', function () {
     [$host, $player, $game] = windowCreateCompletedGame([
@@ -86,4 +86,4 @@ it('refuses attendance reporting after the window closes', function () {
 
     expect($result['success'])->toBeFalse()
         ->and($result['reason'])->toBe('Attendance reporting window has closed');
-})->group('smoke');
+});

@@ -177,7 +177,7 @@ it('resets the whole table on a material amendment and re-signs green end to end
         // The reset v1 rows stay pending as immutable audit history.
         ->and(SessionZeroConfirmation::where('session_zero_survey_version_id', $v1->id)
             ->where('status', SessionZeroConfirmation::STATUS_PENDING_REAGREEMENT)->count())->toBe(3);
-})->group('smoke');
+});
 
 it('carries every signature byte-for-byte through a minor amendment with zero roster change', function () {
     [$owner, $campaign, $charter] = amendment_smoke_published_charter();
@@ -243,4 +243,4 @@ it('carries every signature byte-for-byte through a minor amendment with zero ro
     } catch (ValidationException $e) {
         expect($e->errors()['charter'][0])->toBe(__('charter.error_already_countersigned'));
     }
-})->group('smoke');
+});

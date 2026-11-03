@@ -33,7 +33,7 @@ describe('Visibility matrix: every field × every relationship level', function 
         $visible = $this->resolver->profileFieldsVisible(null, $this->owner);
 
         expect($visible)->toBe(['location', 'campaigns']);
-    })->group('smoke');
+    });
 
     it('friend sees "everyone" + "friends" fields', function () {
         $friend = User::factory()->create();
@@ -90,7 +90,7 @@ describe('Visibility matrix: every field × every relationship level', function 
         $visible = $this->resolver->profileFieldsVisible($teammate, $this->owner);
 
         expect($visible)->toBe(['location', 'game_systems', 'campaigns', 'teams']);
-    })->group('smoke');
+    });
 });
 
 // ═══════════════════════════════════════════════════════════

@@ -44,7 +44,7 @@ describe('GmRoleService', function () {
         expect($user->gmProfile)->not->toBeNull();
         expect($user->gmProfile->is_active)->toBeTrue();
         expect($user->localSubscriptions()->active()->count())->toBe(1);
-    })->group('smoke');
+    });
 
     it('is idempotent — safe to activate twice', function () {
         $user = User::factory()->create();

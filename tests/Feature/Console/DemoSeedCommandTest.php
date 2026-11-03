@@ -7,7 +7,6 @@ use App\Models\BadgeUser;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\GameParticipant;
-use App\Models\GameSystem;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -37,29 +36,19 @@ beforeEach(function () {
     // constants are the contract). Without them the seeder fails fast with a
     // clear error — which is correct behavior, just not what these tests
     // exercise.
-    foreach (DemoSeedCommand::BOARD_GAME_SLUGS as $slug => $meta) {
-        GameSystem::firstOrCreate(
-            ['slug' => $slug],
-            ['type' => 'boardgame', 'name' => ['en' => ucfirst((string) $slug)], 'min_players' => $meta['min'], 'max_players' => $meta['max'], 'average_play_time' => $meta['dur']],
-        );
-    }
-    foreach (DemoSeedCommand::TTRPG_SLUGS as $slug => $meta) {
-        GameSystem::firstOrCreate(
-            ['slug' => $slug],
-            ['type' => 'ttrpg', 'name' => ['en' => ucfirst((string) $slug)], 'min_players' => $meta['min'], 'max_players' => $meta['max']],
-        );
-    }
+    seedDemoGameSystems();
+});
 
-    // Toy scale — the seeder is deliberately bulk-INSERT based, so this stays
-    // fast while still exercising every insert path.
+it('seeds marker-flagged demo data across the major models', function () {
+    // Full mode (no --cohort-only): the ONLY test that pays for the noise
+    // blocks (social graph, scheduled sessions, campaigns, short links) —
+    // keeping every insert path exercised in CI exactly once per run
+    // (the policy from the 2026-11-01 harness report).
     $this->artisan('demo:seed', [
         '--users' => '25',
         '--gms' => '3',
         '--subscribers' => '1',
     ])->assertSuccessful();
-});
-
-it('seeds marker-flagged demo data across the major models', function () {
     $demoUsers = User::where('email', 'like', '%@example.org')
         ->where('bio', 'like', '%[TEST]%')
         ->get();
@@ -89,6 +78,18 @@ it('seeds marker-flagged demo data across the major models', function () {
 });
 
 it('refuses to seed twice without a teardown (idempotency guard)', function () {
+    // The guard keys on marker users (@example.org + [TEST] bio) — a
+    // --cohort-only seed produces them exactly like a full seed, so the
+    // expensive noise blocks need not run twice for this assertion (the
+    // default full invocation below still proves the guard fires for the
+    // command's canonical form).
+    $this->artisan('demo:seed', [
+        '--users' => '25',
+        '--gms' => '3',
+        '--subscribers' => '1',
+        '--cohort-only' => true,
+    ])->assertSuccessful();
+
     $this->artisan('demo:seed', [
         '--users' => '25',
         '--gms' => '3',
@@ -97,6 +98,18 @@ it('refuses to seed twice without a teardown (idempotency guard)', function () {
 });
 
 it('tears down every demo row and side effect', function () {
+    // --cohort-only suffices here: every cascade surface asserted below
+    // (games, participants, events + announcements + registrations,
+    // discord guilds/organizers, badge holds) is created by the badge
+    // fixtures or the completed sessions — the noise blocks add none of
+    // the asserted rows. Full-scale coverage stays in the first test.
+    $this->artisan('demo:seed', [
+        '--users' => '25',
+        '--gms' => '3',
+        '--subscribers' => '1',
+        '--cohort-only' => true,
+    ])->assertSuccessful();
+
     $demoUserIds = User::where('email', 'like', '%@example.org')->pluck('id');
     $demoGameIds = Game::whereIn('owner_id', $demoUserIds)->pluck('id');
     $demoEventIds = DB::table('events')->whereIn('organizer_id', $demoUserIds)->pluck('id');

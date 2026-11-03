@@ -89,14 +89,14 @@ describe('ReviewPolicy', function () {
             $this->actingAs($reporter);
 
             expect(Gate::allows('report', $review))->toBeTrue();
-        })->group('smoke');
+        });
 
         test('reviewer cannot report their own review', function () {
             $review = Review::factory()->create(['reviewer_id' => $this->reviewer->id]);
             $this->actingAs($this->reviewer);
 
             expect(Gate::allows('report', $review))->toBeFalse();
-        })->group('smoke');
+        });
     });
 
     // Migrated from ReviewPolicyEligibilityTest — venue + viewEligibility are the
@@ -181,7 +181,7 @@ describe('ReviewEligibilityService', function () {
             ]);
 
             expect($this->service->canReviewSession($this->reviewer, $game))->toBeTrue();
-        })->group('smoke');
+        });
 
         test('pending participant cannot review', function () {
             $game = Game::factory()->create([
@@ -197,7 +197,7 @@ describe('ReviewEligibilityService', function () {
             ]);
 
             expect($this->service->canReviewSession($this->reviewer, $game))->toBeFalse();
-        })->group('smoke');
+        });
 
         test('rejected participant cannot review', function () {
             $game = Game::factory()->create([
@@ -213,7 +213,7 @@ describe('ReviewEligibilityService', function () {
             ]);
 
             expect($this->service->canReviewSession($this->reviewer, $game))->toBeFalse();
-        })->group('smoke');
+        });
 
         test('non-participant cannot review', function () {
             $game = Game::factory()->create([
@@ -222,7 +222,7 @@ describe('ReviewEligibilityService', function () {
             ]);
 
             expect($this->service->canReviewSession($this->reviewer, $game))->toBeFalse();
-        })->group('smoke');
+        });
 
         test('cannot review future game', function () {
             $game = Game::factory()->create([
@@ -262,7 +262,7 @@ describe('ReviewEligibilityService', function () {
             ]);
 
             expect($this->service->canReviewSession($this->reviewer, $game))->toBeFalse();
-        })->group('smoke');
+        });
     });
 
     describe('canReviewCampaign', function () {
@@ -283,7 +283,7 @@ describe('ReviewEligibilityService', function () {
             ]);
 
             expect($this->service->canReviewCampaign($this->reviewer, $campaign))->toBeTrue();
-        })->group('smoke');
+        });
 
         test('cannot review campaign with no completed sessions', function () {
             $campaign = Campaign::factory()->create(['owner_id' => $this->gmUser->id]);
@@ -321,13 +321,13 @@ describe('ReviewEligibilityService', function () {
             ]);
 
             expect($this->service->canReviewCampaign($this->reviewer, $campaign))->toBeFalse();
-        })->group('smoke');
+        });
 
         test('non-participant cannot review campaign', function () {
             $campaign = Campaign::factory()->create(['owner_id' => $this->gmUser->id]);
 
             expect($this->service->canReviewCampaign($this->reviewer, $campaign))->toBeFalse();
-        })->group('smoke');
+        });
 
         test('cannot review same campaign twice', function () {
             $campaign = Campaign::factory()->create(['owner_id' => $this->gmUser->id]);
@@ -353,7 +353,7 @@ describe('ReviewEligibilityService', function () {
             ]);
 
             expect($this->service->canReviewCampaign($this->reviewer, $campaign))->toBeFalse();
-        })->group('smoke');
+        });
     });
 
 });

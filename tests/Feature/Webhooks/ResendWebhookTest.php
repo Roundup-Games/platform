@@ -80,7 +80,7 @@ it('rejects a request with no svix-signature header', function () {
     postResendWebhook($body, $svix, dropSignature: true)->assertStatus(400);
 
     expect(EmailSuppression::count())->toBe(0);
-})->group('smoke');
+});
 
 it('rejects a request signed with the wrong secret', function () {
     $body = bouncedPayload('bounce@example.com');
@@ -89,14 +89,14 @@ it('rejects a request signed with the wrong secret', function () {
     postResendWebhook($body, $svix)->assertStatus(400);
 
     expect(EmailSuppression::count())->toBe(0);
-})->group('smoke');
+});
 
 it('rejects a request whose timestamp is outside replay tolerance', function () {
     $body = bouncedPayload('bounce@example.com');
     $svix = svixHeaders($body, $this->webhookSecret, timestamp: (string) (time() - 600)); // > 5 min
 
     postResendWebhook($body, $svix)->assertStatus(400);
-})->group('smoke');
+});
 
 // ══════════════════════════════════════════════════════
 // Bounce → suppress
@@ -115,7 +115,7 @@ it('suppresses the address on a permanent bounce and logs the event', function (
         ->and($suppression->trigger_message_id)->toBe('<111-222-333@example.com>')
         ->and($this->logRecord('mail.bounced'))->not->toBeNull()
         ->and($this->logRecord('mail.suppressed')['context']['email'])->toBe('bounce@example.com');
-})->group('smoke');
+});
 
 it('does not suppress on a non-permanent bounce type', function () {
     $body = bouncedPayload('soft@example.com', bounceType: 'Transient');
@@ -125,7 +125,7 @@ it('does not suppress on a non-permanent bounce type', function () {
 
     expect(EmailSuppression::count())->toBe(0)
         ->and($this->logRecord('mail.bounced'))->not->toBeNull(); // still logged for telemetry
-})->group('smoke');
+});
 
 // ══════════════════════════════════════════════════════
 // Complaint → suppress; Delivery → log only
@@ -143,7 +143,7 @@ it('suppresses the address on a spam complaint', function () {
 
     expect(EmailSuppression::where('email', 'spam@example.com')->value('reason'))->toBe('complaint')
         ->and($this->logRecord('mail.suppressed')['context']['reason'])->toBe('complaint');
-})->group('smoke');
+});
 
 it('logs delivery without suppressing', function () {
     $body = json_encode([
@@ -157,7 +157,7 @@ it('logs delivery without suppressing', function () {
 
     expect(EmailSuppression::count())->toBe(0)
         ->and($this->logRecord('mail.delivered')['context']['email_id'])->toBe('e2');
-})->group('smoke');
+});
 
 // ══════════════════════════════════════════════════════
 // Idempotency
@@ -173,7 +173,7 @@ it('does not duplicate a suppression when the bounce is redelivered', function (
     postResendWebhook($body, $svix2)->assertStatus(200);
 
     expect(EmailSuppression::where('email', 'dup@example.com')->count())->toBe(1);
-})->group('smoke');
+});
 
 // ══════════════════════════════════════════════════════
 // Mail-channel gating
@@ -197,7 +197,7 @@ it('drops the mail channel for a suppressed address at dispatch time', function 
 
     expect($channels)->not->toHaveKey('mail')
         ->and($channels)->toHaveKey('database'); // other channels unaffected
-})->group('smoke');
+});
 
 it('keeps the mail channel for a clean address', function () {
     $user = User::factory()->create([
@@ -210,7 +210,7 @@ it('keeps the mail channel for a clean address', function () {
     $channels = app(NotificationService::class)->resolveChannels($user, NotificationCategory::SessionReminder);
 
     expect($channels)->toHaveKey('mail');
-})->group('smoke');
+});
 
 // ══════════════════════════════════════════════════════
 // Retryable failure — suppression is the load-bearing side effect
@@ -229,7 +229,7 @@ it('returns 500 so Resend retries when a bounce suppression write fails', functi
 
     expect(EmailSuppression::count())->toBe(0)
         ->and($this->logRecord('resend.webhook_processing_failed'))->not->toBeNull();
-})->group('smoke');
+});
 
 it('still returns 200 when a telemetry-only (delivered) event fails processing', function () {
     // Telemetry events stay best-effort: a processing failure there must NOT
@@ -245,4 +245,4 @@ it('still returns 200 when a telemetry-only (delivered) event fails processing',
     $svix = svixHeaders($body, $this->webhookSecret);
 
     postResendWebhook($body, $svix)->assertStatus(200);
-})->group('smoke');
+});

@@ -72,7 +72,7 @@ it('renders the ViewTicket page without a fatal for a game_system_request ticket
 
     get("/admin/tickets/{$ticket->getRouteKey()}")
         ->assertSuccessful();
-})->group('smoke');
+});
 
 it('renders the ViewTicket page without a fatal for a content_report ticket', function () {
     actingAs($this->platformAdmin);
@@ -86,7 +86,7 @@ it('renders the ViewTicket page without a fatal for a content_report ticket', fu
 
     get("/admin/tickets/{$ticket->getRouteKey()}")
         ->assertSuccessful();
-})->group('smoke');
+});
 
 it('renders the ViewTicket page without a fatal for a review_report ticket', function () {
     actingAs($this->platformAdmin);
@@ -99,7 +99,7 @@ it('renders the ViewTicket page without a fatal for a review_report ticket', fun
 
     get("/admin/tickets/{$ticket->getRouteKey()}")
         ->assertSuccessful();
-})->group('smoke');
+});
 
 // Stage 2 delta pin: metadata guards are filled($metadata['k'] ?? null), so a
 // venue_type of literally '0' now RENDERS its entry (the old truthy check

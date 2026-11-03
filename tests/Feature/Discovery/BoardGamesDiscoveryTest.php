@@ -28,7 +28,7 @@ describe('BoardGamesDiscovery', function () {
         Livewire\Livewire::test(BoardGamesDiscovery::class)
             ->assertSee('Public Board Game')
             ->assertDontSee('Hidden Campaign');
-    });
+    })->group('smoke');
 
     it('filters by game system', function () {
         $system1 = GameSystem::factory()->create(['name' => ['en' => 'Ticket to Ride']]);
@@ -54,7 +54,7 @@ describe('BoardGamesDiscovery', function () {
             ->set('game_system_id', $system1->id)
             ->assertSee('TTR Game')
             ->assertDontSee('Wingspan Game');
-    });
+    })->group('smoke');
 
     it('shows recommendations scoped to boardgame systems for logged-in users', function () {
         $user = User::factory()->create(['profile_complete' => true]);
@@ -77,7 +77,7 @@ describe('BoardGamesDiscovery', function () {
         Livewire\Livewire::test(BoardGamesDiscovery::class)
             ->assertSee('Recommended for You')
             ->assertSee('Recommended Board Game');
-    });
+    })->group('smoke');
 
     it('recommendations exclude ttrpg systems even when favorited', function () {
         $user = User::factory()->create(['profile_complete' => true]);
@@ -97,7 +97,7 @@ describe('BoardGamesDiscovery', function () {
         // With only a ttrpg system favorited, no recommendations should appear
         Livewire\Livewire::test(BoardGamesDiscovery::class)
             ->assertDontSee('Recommended for You');
-    });
+    })->group('smoke');
 
     it('filters by experience level', function () {
         Game::factory()->create([
@@ -120,7 +120,7 @@ describe('BoardGamesDiscovery', function () {
             ->set('experience_level', 'beginner')
             ->assertSee('Beginner Game')
             ->assertDontSee('Expert Game');
-    });
+    })->group('smoke');
 
     it('filters by language', function () {
         Game::factory()->create([
@@ -143,7 +143,7 @@ describe('BoardGamesDiscovery', function () {
             ->set('language', 'en')
             ->assertSee('English Game')
             ->assertDontSee('German Game');
-    });
+    })->group('smoke');
 
     it('filters by complexity range', function () {
         Game::factory()->create([
@@ -166,7 +166,7 @@ describe('BoardGamesDiscovery', function () {
             ->set('complexity_max', '2')
             ->assertSee('Light Game')
             ->assertDontSee('Heavy Game');
-    });
+    })->group('smoke');
 
     it('recommendations only include items matching favorite boardgame systems', function () {
         $user = User::factory()->create(['profile_complete' => true]);
@@ -199,7 +199,7 @@ describe('BoardGamesDiscovery', function () {
         $recNames = collect($recommendations)->pluck('name')->toArray();
         expect($recNames)->toContain('Fav System Game');
         expect($recNames)->not->toContain('Other System Game');
-    });
+    })->group('smoke');
 
     it('recommendations exclude avoided game systems', function () {
         $user = User::factory()->create(['profile_complete' => true]);
@@ -235,7 +235,7 @@ describe('BoardGamesDiscovery', function () {
         $recNames = collect($recommendations)->pluck('name')->toArray();
         expect($recNames)->toContain('Fav Game');
         expect($recNames)->not->toContain('Avoid Game');
-    });
+    })->group('smoke');
 
     it('recommendations do not include campaigns even when system matches', function () {
         $user = User::factory()->create(['profile_complete' => true]);
@@ -267,7 +267,7 @@ describe('BoardGamesDiscovery', function () {
         $types = collect($recommendations)->pluck('discoverable_type')->toArray();
         expect($types)->not->toContain('campaign');
         expect($types)->toContain('game');
-    });
+    })->group('smoke');
 
     it('filters games by category_ids through gameSystem relationship', function () {
         $category = GameSystemCategory::create(['name' => 'Strategy']);
@@ -295,7 +295,7 @@ describe('BoardGamesDiscovery', function () {
             ->set('category_ids', [$category->id])
             ->assertSee('Categorized Game')
             ->assertDontSee('Uncategorized Game');
-    });
+    })->group('smoke');
 
     it('filters games by mechanic_ids through gameSystem relationship', function () {
         $mechanic = GameSystemMechanic::create(['name' => 'Dice Rolling']);
@@ -323,7 +323,7 @@ describe('BoardGamesDiscovery', function () {
             ->set('mechanic_ids', [$mechanic->id])
             ->assertSee('Mechanic Game')
             ->assertDontSee('No Mechanic Game');
-    });
+    })->group('smoke');
 
     it('filters by combined category_ids and mechanic_ids', function () {
         $category = GameSystemCategory::create(['name' => 'Thematic']);
@@ -356,6 +356,6 @@ describe('BoardGamesDiscovery', function () {
             ->set('mechanic_ids', [$mechanic->id])
             ->assertSee('Both Filters Game')
             ->assertDontSee('Category Only Game');
-    });
+    })->group('smoke');
 
 });

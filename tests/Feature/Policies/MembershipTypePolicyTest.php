@@ -42,7 +42,7 @@ describe('MembershipType Policy', function () {
             expect(Gate::allows('create', MembershipType::class))->toBeTrue();
             expect(Gate::allows('update', $this->activeMembership))->toBeTrue();
             expect(Gate::allows('delete', $this->activeMembership))->toBeTrue();
-        })->group('smoke');
+        });
 
         test('regular user without permission cannot create, update, or delete', function () {
             $this->actingAs($this->regularUser);

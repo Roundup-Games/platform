@@ -90,7 +90,7 @@ it('resolves attendance for a single game via the ResolveAttendance job', functi
 
     // The job marks the game resolved — the load-bearing idempotency outcome.
     expect($game->fresh()->attendance_resolved_at)->not->toBeNull();
-})->group('smoke');
+});
 
 // ── AutoCompleteGames ────────────────────────────────────────────────────
 
@@ -113,7 +113,7 @@ it('auto-completes a game whose scheduled end plus offset has passed', function 
     $fresh = $game->fresh();
     expect($fresh->status)->toBe(GameStatus::Completed)
         ->and($fresh->attendance_window_opens_at)->not->toBeNull();
-})->group('smoke');
+});
 
 it('does not auto-complete a game still within its scheduled window', function () {
     Config::set('attendance.auto_complete_offset_hours', 0);
@@ -131,7 +131,7 @@ it('does not auto-complete a game still within its scheduled window', function (
     AutoCompleteGames::dispatchSync();
 
     expect($game->fresh()->status)->toBe(GameStatus::Scheduled);
-})->group('smoke');
+});
 
 // ── AttendanceNudgeJob ───────────────────────────────────────────────────
 
@@ -160,7 +160,7 @@ it('nudges approved participants who have not filed an attendance report', funct
     AttendanceNudgeJob::dispatchSync();
 
     Notification::assertSentTo($unreportedPlayer, AttendanceNudge::class);
-})->group('smoke');
+});
 
 // ── RecordShortLinkHit ───────────────────────────────────────────────────
 
@@ -188,7 +188,7 @@ it('records a short link hit and increments the hit count', function () {
         ->and($hit->ip_address)->not->toBe('203.0.113.42') // raw IP never stored
         ->and($hit->user_agent)->toBe('Chrome')             // reduced to family
         ->and($hit->referer_domain)->toBe('example.com');   // host only
-})->group('smoke');
+});
 
 // ── RecordUserSignIn listener ────────────────────────────────────────────
 
@@ -202,4 +202,4 @@ it('stamps last_login_at when a user logs in (RecordUserSignIn listener)', funct
     event(new Login('web', $user, false));
 
     expect($user->fresh()->last_login_at)->not->toBeNull();
-})->group('smoke');
+});

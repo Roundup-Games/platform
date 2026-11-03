@@ -53,7 +53,7 @@ describe('Unfollow Action', function () {
             'related_user_id' => $target->id,
             'type' => 'follow',
         ]);
-    })->group('smoke');
+    });
 
     it('does not remove blocks', function () {
         $user = User::factory()->create();
@@ -211,7 +211,7 @@ describe('Unblock Action', function () {
             'related_user_id' => $target->id,
             'type' => 'block',
         ]);
-    })->group('smoke');
+    });
 
     it('returns false when not blocked', function () {
         $user = User::factory()->create();
@@ -290,7 +290,7 @@ describe('isFriend', function () {
 
         expect($alice->isFriend($bob))->toBeTrue();
         expect($bob->isFriend($alice))->toBeTrue();
-    })->group('smoke');
+    });
 
     it('returns false for one-way follow', function () {
         $alice = User::factory()->create();

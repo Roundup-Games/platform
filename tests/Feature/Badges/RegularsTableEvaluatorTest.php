@@ -11,6 +11,8 @@ use App\Models\User;
 use App\Services\Badges\BadgeService;
 use App\Services\Badges\RegularsTableEvaluator;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * RegularsTableEvaluator (M069 S02 T3, spec §3 Participation row): the
@@ -48,18 +50,83 @@ function regularsAttendMonth(User $user, string $month, AttendanceStatus $status
 }
 
 /**
+ * One resolved Attended session per listed Y-m month, bulk-seeded
+ * (M073/S02/T03): the whole month cohort (games + participants) seeds
+ * as two INSERTs instead of ~35 factory queries per month-pair (six
+ * Game observers + two GameParticipant observers — SEO/IndexNow/
+ * landing-cache/city-cache/activity-log/dashboard side effects nothing
+ * in this suite reads; the evaluators read only owner-free date_time/
+ * attendance_resolved_at/attendance_status columns).
+ *
+ * Row parity is exact wherever the evaluator reads: games carry
+ * byte-identical date_time + attendance_resolved_at, participants are
+ * Approved+Attended with the observer's approved_at stamp mirrored
+ * (game_participants has no updated_at) and explicit UUIDv7 ids +
+ * created_at (HasPlatformUuid never fires on a raw insert). Returns
+ * the made participant for the LAST month — callers use it as the
+ * evidence row (the latest attended session by games.date_time).
+ * Differentiated rows (unresolved sessions, non-attended statuses,
+ * per-month evidence picks) stay on regularsAttendMonth() factories —
+ * the tier-boundary DATASETS keep their exact month counts, only the
+ * row write path changed.
+ *
+ * @param  array<int, string>  $months  ascending Y-m buckets
+ */
+function regularsAttendMonthsList(User $user, array $months): GameParticipant
+{
+    $now = now();
+    $games = [];
+    $participants = [];
+    $latest = null;
+
+    foreach ($months as $month) {
+        $gameId = (string) Str::uuid7();
+        $games[] = factoryInsertRow(Game::factory()->withoutGameSystems()->make([
+            'date_time' => Carbon::parse("{$month}-15 18:00:00"),
+            'attendance_resolved_at' => Carbon::parse("{$month}-20 12:00:00"),
+        ]), [
+            'id' => $gameId,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $participantId = (string) Str::uuid7();
+        $latest = GameParticipant::factory()->make([
+            'game_id' => $gameId,
+            'user_id' => $user->id,
+        ]);
+        // The made row carries its id so the caller's evidence
+        // assertion can pin it — factoryInsertRow picks it back up
+        // from getAttributes() for the INSERT.
+        $latest->forceFill(['id' => $participantId]);
+        $participants[] = factoryInsertRow($latest, [
+            // game_participants runs $timestamps=false; the
+            // GameParticipantObserver approved_at stamp and the
+            // HasParticipantDefaults created_at stamp are mirrored.
+            'approved_at' => $now,
+            'created_at' => $now,
+        ]);
+    }
+
+    DB::table('games')->insert($games);
+    DB::table('game_participants')->insert($participants);
+
+    return $latest;
+}
+
+/**
  * One resolved Attended session per month, ending at the current month
  * and reaching back $count months. Returns the final participant row.
  */
 function regularsAttendMonths(User $user, int $count): GameParticipant
 {
-    $participant = null;
+    $months = [];
 
     for ($monthsAgo = $count - 1; $monthsAgo >= 0; $monthsAgo--) {
-        $participant = regularsAttendMonth($user, now()->subMonths($monthsAgo)->format('Y-m'));
+        $months[] = now()->subMonths($monthsAgo)->format('Y-m');
     }
 
-    return $participant;
+    return regularsAttendMonthsList($user, $months);
 }
 
 /**
@@ -119,12 +186,10 @@ it('forgives one skipped month per rolling six-month window', function () {
 
     $user = User::factory()->create();
 
-    foreach (['2026-01', '2026-02', '2026-04', '2026-05', '2026-06'] as $month) {
-        regularsAttendMonth($user, $month);
-    }
-
     // March skipped: the window's only miss, so the run Jan..Jun spans
     // six calendar months with the forgiven gap included — silver.
+    regularsAttendMonthsList($user, ['2026-01', '2026-02', '2026-04', '2026-05', '2026-06']);
+
     expect(app(RegularsTableEvaluator::class)->evaluate($user)?->tierKey)->toBe('silver');
 });
 
@@ -141,10 +206,7 @@ it('does not forgive two walked misses exactly six months apart — the trailing
 
     // Covered: January and March..July. Misses: February and August
     // (the open month) — exactly six months apart.
-    regularsAttendMonth($user, '2026-01');
-    foreach (['2026-03', '2026-04', '2026-05', '2026-06', '2026-07'] as $month) {
-        regularsAttendMonth($user, $month);
-    }
+    regularsAttendMonthsList($user, ['2026-01', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07']);
 
     expect(app(RegularsTableEvaluator::class)->evaluate($user))->toBeNull();
 });
@@ -160,10 +222,7 @@ it('forgives two walked misses seven months apart — the second has a clean hal
 
     // Covered: January and March..August. Misses: February and
     // September (the open month) — seven months apart.
-    regularsAttendMonth($user, '2026-01');
-    foreach (['2026-03', '2026-04', '2026-05', '2026-06', '2026-07', '2026-08'] as $month) {
-        regularsAttendMonth($user, $month);
-    }
+    regularsAttendMonthsList($user, ['2026-01', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07', '2026-08']);
 
     expect(app(RegularsTableEvaluator::class)->evaluate($user)?->tierKey)->toBe('silver');
 });
@@ -173,12 +232,10 @@ it('breaks the run on a second miss inside one six-month window', function () {
 
     $user = User::factory()->create();
 
-    foreach (['2026-01', '2026-02', '2026-05', '2026-06'] as $month) {
-        regularsAttendMonth($user, $month);
-    }
-
     // March burns the window's only grace, April ends the January run —
     // the fresh May..June start is two months, below every threshold.
+    regularsAttendMonthsList($user, ['2026-01', '2026-02', '2026-05', '2026-06']);
+
     expect(app(RegularsTableEvaluator::class)->evaluate($user))->toBeNull();
 });
 
@@ -190,9 +247,7 @@ it('keeps the run alive through a single trailing miss', function () {
     // January..May covered (the helper would reach into June); June —
     // the open current month — is the window's only miss, so the run
     // still spans it: six calendar months, silver.
-    for ($monthsAgo = 5; $monthsAgo >= 1; $monthsAgo--) {
-        regularsAttendMonth($user, now()->subMonths($monthsAgo)->format('Y-m'));
-    }
+    regularsAttendMonthsList($user, ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05']);
 
     expect(app(RegularsTableEvaluator::class)->evaluate($user)?->tierKey)->toBe('silver');
 });
@@ -217,9 +272,7 @@ it('never counts attendance the organizer has not resolved', function () {
 
     // Resolved January..April, ending a month short of the helper's
     // usual current-month reach so May and June stay genuinely open.
-    for ($monthsAgo = 5; $monthsAgo >= 2; $monthsAgo--) {
-        regularsAttendMonth($user, now()->subMonths($monthsAgo)->format('Y-m'));
-    }
+    regularsAttendMonthsList($user, ['2026-01', '2026-02', '2026-03', '2026-04']);
 
     foreach (['2026-05', '2026-06'] as $month) {
         regularsAttendMonth($user, $month, AttendanceStatus::Attended, resolved: false);
@@ -323,9 +376,7 @@ it('upgrades the tier in place as the streak grows', function () {
 
     $this->travel(3)->months();
 
-    foreach (['2026-07', '2026-08', '2026-09'] as $month) {
-        regularsAttendMonth($user, $month);
-    }
+    regularsAttendMonthsList($user, ['2026-07', '2026-08', '2026-09']);
 
     $evaluator->sweep();
 
@@ -384,8 +435,7 @@ it('requalifies a lapsed holder who returns to the table', function () {
     // Distinct created_at per phase: badge_events timestamps are
     // second-precision, so ties would make the sequence below ambiguous.
     $this->travel(1)->seconds();
-    regularsAttendMonth($user, '2026-07');
-    regularsAttendMonth($user, '2026-08');
+    regularsAttendMonthsList($user, ['2026-07', '2026-08']);
 
     $evaluator->sweep();
 

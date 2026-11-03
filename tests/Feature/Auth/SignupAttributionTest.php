@@ -70,7 +70,7 @@ it('persists all five signup-attribution columns on a new Discord OAuth signup',
         'signup_content_type' => 'game',
         'signup_content_slug' => 'curse-of-strahd',
     ]);
-})->group('smoke');
+});
 
 // ── (a-variant) Content context falls back to entry path when no intended URL ─
 
@@ -150,7 +150,7 @@ it('persists signup_oauth_provider=email on a new email registration', function 
     ]);
 
     $response->assertRedirect(route('onboarding.index'));
-})->group('smoke');
+});
 
 // ── (c) Existing user logging in via OAuth → all 5 columns UNCHANGED ──────
 
@@ -204,7 +204,7 @@ it('leaves the five signup-attribution columns unchanged when an existing user l
         ->and($user->first_touch_path)->toBe('/en/original-landing')
         ->and($user->signup_content_type)->toBe('campaign')
         ->and($user->signup_content_slug)->toBe('original-campaign');
-})->group('smoke');
+});
 
 // ── (c-variant) Existing user by email-match → columns UNCHANGED ──────────
 

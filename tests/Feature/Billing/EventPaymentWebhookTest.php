@@ -893,7 +893,7 @@ describe('Webhook — signed event payment fixtures (signature verification enfo
             ->and($context['paddle_event_id'])->toBe('evt_sig_confirm_1')
             ->and($context['paddle_transaction_id'])->toBe('txn_sig_confirm_1')
             ->and($context['registration_id'])->toBe($registration->id);
-    })->group('smoke');
+    });
 
     it('ignores a signed redelivery of the same Paddle event', function () {
         $user = epCreateUser('ctm_sig_redeliver');
@@ -1116,5 +1116,5 @@ describe('Concurrent registration — unique index through the Livewire action',
         expect(EventRegistration::where('event_id', $event->id)
             ->where('user_id', $user->id)
             ->count())->toBe(0);
-    })->group('smoke');
+    });
 });

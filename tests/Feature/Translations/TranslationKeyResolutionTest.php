@@ -148,4 +148,4 @@ it('resolves every translation key referenced in code and tests', function () {
     }
 
     expect($missing)->toBe([], 'Stale references to non-existent translation keys found. Delete or fix the references: '.implode('; ', $missing));
-})->group('smoke');
+});

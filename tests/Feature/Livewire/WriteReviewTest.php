@@ -90,7 +90,7 @@ describe('WriteReview — Game Session', function () {
             ->assertOk()
             ->assertSee('Write a Review')
             ->assertSet('reviewableName', $data['game']->name);
-    })->group('smoke');
+    });
 
     it('shows error for non-participant user', function () {
         $data = createEligibleGameSession();

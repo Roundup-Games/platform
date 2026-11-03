@@ -56,7 +56,7 @@ it('persists a multi-system Gathering and exposes every offered system via the p
 
     expect($reloaded->gameSystems->modelKeys())->toEqualCanonicalizing([$a, $b, $c])
         ->and($reloaded->hasMultipleSystems())->toBeTrue();
-})->group('smoke');
+});
 
 // ── 3. Single-system default unaffected ──────────────────────────────────
 

@@ -95,7 +95,7 @@ describe('Game Detail — Review Display', function () {
         $response->assertOk()
             ->assertSee('Excellent storytelling session!')
             ->assertSee($data['reviewer']->name);
-    })->group('smoke');
+    });
 
     it('shows write review link for eligible user', function () {
         $data = setupGameWithReview();
@@ -152,7 +152,7 @@ describe('Game Detail — Review Display', function () {
         $response->assertOk()
             ->assertSee('4.0')
             ->assertSee('1 review');
-    })->group('smoke');
+    });
 
     it('displays top proficiency badges on GM profile', function () {
         $data = setupGameWithReview();

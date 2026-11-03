@@ -62,7 +62,7 @@ it('creates a new user and linked account from Google OAuth', function () {
 
     $this->assertAuthenticated();
     $response->assertRedirect(route('onboarding.index'));
-})->group('smoke');
+});
 
 it('marks email as verified for OAuth registered users', function () {
     $socialiteUser = Mockery::mock(Laravel\Socialite\Two\User::class);
@@ -150,7 +150,7 @@ it('logs in existing user via linked account', function () {
     expect($account->token)->toBe('new-token');
 
     $response->assertRedirect(route('dashboard', absolute: false));
-})->group('smoke');
+});
 
 it('creates linked account when logging in existing user by email match', function () {
     $user = User::factory()->create([
@@ -539,7 +539,7 @@ it('creates a new user and linked account from Discord OAuth', function () {
 
     $this->assertAuthenticated();
     $response->assertRedirect(route('onboarding.index'));
-})->group('smoke');
+});
 
 it('logs in existing user via a Discord linked account', function () {
     $user = User::factory()->create([

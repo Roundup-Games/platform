@@ -45,7 +45,7 @@ describe('MembershipPage', function () {
         // Verify the user's GM state was actually changed
         expect($user->fresh()->isGM())->toBeTrue();
         expect($user->hasGmSubscription())->toBeTrue();
-    })->group('smoke');
+    });
 
     it('rejects duplicate GM activation', function () {
         $user = User::factory()->create();
@@ -58,7 +58,7 @@ describe('MembershipPage', function () {
             ->test(MembershipPage::class)
             ->call('initiateCheckout', $gmPlan->id)
             ->assertSee(__('billing.error_you_already_have_a_gm_subscription'));
-    })->group('smoke');
+    });
 
     it('passes gmSubscription to view when active', function () {
         $user = User::factory()->create();

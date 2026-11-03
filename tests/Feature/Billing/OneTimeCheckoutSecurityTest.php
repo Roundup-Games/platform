@@ -56,7 +56,7 @@ describe('Controller Tests', function () {
 
         $response->assertRedirect();
         $response->assertSessionHas('error', 'Invalid payment option selected.');
-    })->group('smoke');
+    });
 
     test('one-time checkout accepts matching price_id and proceeds to payment', function () {
         $user = checkoutCreateUser();
@@ -75,7 +75,7 @@ describe('Controller Tests', function () {
         $response->assertSessionMissing('error');
         // Redirected to checkout page with the event context
         $response->assertRedirectContains('checkout');
-    })->group('smoke');
+    });
 
     test('one-time checkout rejects request without event_id', function () {
         $user = checkoutCreateUser();
@@ -88,7 +88,7 @@ describe('Controller Tests', function () {
 
         // event_id is now required by validation rules
         $response->assertSessionHasErrors('event_id');
-    })->group('smoke');
+    });
 
     test('one-time checkout rejects when event has no paddle_price_id', function () {
         $user = checkoutCreateUser();
@@ -106,5 +106,5 @@ describe('Controller Tests', function () {
 
         $response->assertRedirect();
         $response->assertSessionHas('error', 'This event does not have a payment configuration.');
-    })->group('smoke');
+    });
 });

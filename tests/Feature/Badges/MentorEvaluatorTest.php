@@ -14,6 +14,8 @@ use App\Models\User;
 use App\Services\Badges\BadgeService;
 use App\Services\Badges\MentorEvaluator;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * MentorEvaluator (M069 S05 T3, spec §3 GM Craft row, D190): published
@@ -93,14 +95,84 @@ function mentorFirstSession(GMProfile $profile, User $reviewer, int $monthsAgo =
 }
 
 /**
- * Four genuine first-timers on the GM's profile — one short of the
- * bronze boundary, so a single extra qualifier is always decisive.
+ * $count genuine first-timers on the GM's profile in one bulk pass —
+ * the volume half of this suite (M073/S02/T03): every reviewer is the
+ * same interchangeable shape the per-row helpers above build (own
+ * user, own one-month-back session owned by the GM, Attended
+ * participant row, published 5/5 review on the 'game' morph), so the
+ * whole cohort seeds as four INSERTs instead of ~45 factory queries
+ * per reviewer (six Game observers + two GameParticipant observers —
+ * SEO/IndexNow/landing-cache/city-cache/activity-log/dashboard side
+ * effects nothing in this suite reads).
+ *
+ * Row parity is exact wherever the evaluator reads: games byte-identical
+ * to mentorSession()'s factory output (owner_id, one-month date_time),
+ * participants Approved+Attended with the observer's approved_at stamp
+ * mirrored (game_participants has no updated_at), reviews published
+ * rating=$rating status=$status through the GM profile with explicit
+ * UUIDv7 ids + timestamps (HasPlatformUuid never fires on a raw
+ * insert). The tier-boundary DATASETS keep their exact counts — only
+ * the row write path changed; differentiated rows (ties, later
+ * sessions, other tables, non-game morphs, explicit created_at
+ * ordering) stay on the factory helpers.
  */
-function mentorFourFirstTimers(GMProfile $profile): void
+function mentorFirstTimers(GMProfile $profile, int $count, int $rating = 5, string $status = 'published'): void
 {
-    for ($i = 0; $i < 4; $i++) {
-        mentorFirstSession($profile, User::factory()->create());
+    $now = now();
+    $gmId = (string) $profile->user_id;
+    $users = [];
+    $games = [];
+    $participants = [];
+    $reviews = [];
+
+    for ($i = 0; $i < $count; $i++) {
+        $reviewerId = (string) Str::uuid7();
+        $users[] = factoryInsertRow(User::factory()->make(), [
+            'id' => $reviewerId,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $gameId = (string) Str::uuid7();
+        $games[] = factoryInsertRow(Game::factory()->withoutGameSystems()->make([
+            'owner_id' => $gmId,
+            'date_time' => now()->subMonths(1)->setTime(18, 0),
+        ]), [
+            'id' => $gameId,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $participants[] = factoryInsertRow(GameParticipant::factory()->make([
+            'game_id' => $gameId,
+            'user_id' => $reviewerId,
+        ]), [
+            'id' => (string) Str::uuid7(),
+            // game_participants runs $timestamps=false; the
+            // GameParticipantObserver approved_at stamp and the
+            // HasParticipantDefaults created_at stamp are mirrored.
+            'approved_at' => $now,
+            'created_at' => $now,
+        ]);
+
+        $reviews[] = factoryInsertRow(Review::factory()->make([
+            'reviewer_id' => $reviewerId,
+            'gm_profile_id' => $profile->id,
+            'reviewable_type' => (new Game)->getMorphClass(),
+            'reviewable_id' => $gameId,
+            'rating' => $rating,
+            'status' => $status,
+        ]), [
+            'id' => (string) Str::uuid7(),
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
     }
+
+    DB::table('users')->insert($users);
+    DB::table('games')->insert($games);
+    DB::table('game_participants')->insert($participants);
+    DB::table('reviews')->insert($reviews);
 }
 
 /**
@@ -120,9 +192,7 @@ beforeEach(function () {
 it('pins tier thresholds to distinct qualifying reviewers', function (int $reviewers, ?string $tier) {
     [$gm, $profile] = mentorGm();
 
-    for ($i = 0; $i < $reviewers; $i++) {
-        mentorFirstSession($profile, User::factory()->create());
-    }
+    mentorFirstTimers($profile, $reviewers);
 
     $award = app(MentorEvaluator::class)->evaluate($gm);
 
@@ -146,7 +216,7 @@ it('proposes nothing for a user without a GM profile', function () {
 
 it('never counts a five-star review of a later session with the GM', function () {
     [$gm, $profile] = mentorGm();
-    mentorFourFirstTimers($profile);
+    mentorFirstTimers($profile, 4);
 
     // A regular who attended two sessions but only reviewed the second:
     // their earliest attended session is the unreviewed one — not a
@@ -162,7 +232,7 @@ it('never counts a five-star review of a later session with the GM', function ()
 
 it('never counts a reviewer who never actually attended the reviewed session', function () {
     [$gm, $profile] = mentorGm();
-    mentorFourFirstTimers($profile);
+    mentorFirstTimers($profile, 4);
 
     // A reviewer with no Attended row at all (no-show on the reviewed
     // game, nothing else either): there is no earliest attended session
@@ -178,14 +248,10 @@ it('never counts a reviewer who never actually attended the reviewed session', f
 it('never counts sub-five or unpublished reviews', function (int $rating, string $status) {
     [$gm, $profile] = mentorGm();
 
-    for ($i = 0; $i < 5; $i++) {
-        $reviewer = User::factory()->create();
-        $game = mentorSession($gm);
-        mentorAttends($game, $reviewer);
-        mentorReview($profile, $reviewer, $game, $rating, $status);
-    }
+    // Five attendees, zero qualifying reviews: no proposal. The bulk
+    // helper carries the same broken-review shape to every row.
+    mentorFirstTimers($profile, 5, $rating, $status);
 
-    // Five attendees, zero qualifying reviews: no proposal.
     expect(app(MentorEvaluator::class)->evaluate($gm))->toBeNull();
 })->with([
     'four-star reviews' => [4, 'published'],
@@ -215,7 +281,7 @@ it('never counts a perfect review that is not a game review', function () {
 
 it('counts a repeat reviewer once', function () {
     [$gm, $profile] = mentorGm();
-    mentorFourFirstTimers($profile);
+    mentorFirstTimers($profile, 4);
 
     // One reviewer, two five-star reviews — the earliest attended
     // session and their second. The reviews_reviewable_unique
@@ -237,7 +303,7 @@ it('counts a repeat reviewer once', function () {
 it('ignores sessions the reviewer played at other tables', function () {
     [$gm, $profile] = mentorGm();
     [$otherGm] = mentorGm();
-    mentorFourFirstTimers($profile);
+    mentorFirstTimers($profile, 4);
 
     // This reviewer's overall first session was at another GM's table;
     // "first session WITH THIS GM" is what counts — their fifth
@@ -251,7 +317,7 @@ it('ignores sessions the reviewer played at other tables', function () {
 
 it('resolves a same-date_time tie on game id deterministically', function () {
     [$gm, $profile] = mentorGm();
-    mentorFourFirstTimers($profile);
+    mentorFirstTimers($profile, 4);
 
     // Two sessions sharing one date_time — three months back, so the
     // fillers' one-month sessions can never collide with the tie.
@@ -307,9 +373,7 @@ it('points the award at the earliest qualifying review as evidence', function ()
 it('is a pure proposal — evaluate never writes badge state', function () {
     [$gm, $profile] = mentorGm();
 
-    for ($i = 0; $i < 5; $i++) {
-        mentorFirstSession($profile, User::factory()->create());
-    }
+    mentorFirstTimers($profile, 5);
 
     app(MentorEvaluator::class)->evaluate($gm);
 
@@ -320,9 +384,7 @@ it('is a pure proposal — evaluate never writes badge state', function () {
 it('backfills the badge from first-session reviews with no prior state', function () {
     [$gm, $profile] = mentorGm();
 
-    for ($i = 0; $i < 6; $i++) {
-        mentorFirstSession($profile, User::factory()->create());
-    }
+    mentorFirstTimers($profile, 6);
 
     app(MentorEvaluator::class)->sweep();
 
@@ -342,18 +404,14 @@ it('backfills the badge from first-session reviews with no prior state', functio
 it('upgrades the tier in place as more first-timers arrive', function () {
     [$gm, $profile] = mentorGm();
 
-    for ($i = 0; $i < 5; $i++) {
-        mentorFirstSession($profile, User::factory()->create());
-    }
+    mentorFirstTimers($profile, 5);
 
     $evaluator = app(MentorEvaluator::class);
     $evaluator->sweep();
 
     expect(mentorHold()?->tier)->toBe('bronze');
 
-    for ($i = 0; $i < 10; $i++) {
-        mentorFirstSession($profile, User::factory()->create());
-    }
+    mentorFirstTimers($profile, 10);
 
     $evaluator->sweep();
 

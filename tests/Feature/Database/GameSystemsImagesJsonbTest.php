@@ -39,5 +39,5 @@ describe('game_systems.images column type', function () {
         );
 
         expect(true)->toBeTrue();
-    })->group('smoke');
+    });
 });

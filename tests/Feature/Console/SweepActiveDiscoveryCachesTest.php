@@ -53,7 +53,7 @@ describe('SweepActiveDiscoveryCaches command', function () {
         Queue::assertPushed(UpdateUserDiscoveryCache::class, function ($job) use ($user) {
             return $job->userId === $user->id && $job->triggerType === 'sweep';
         });
-    })->group('smoke');
+    });
 
     it('skips users whose cached geohash matches current location', function () {
         Queue::fake();

@@ -22,7 +22,7 @@ describe('PlanSomething — Rendering', function () {
             ->assertSee(__('plan.content_one_time'))
             ->assertSee(__('plan.content_recurring'))
             ->assertOk();
-    })->group('smoke');
+    });
 });
 
 // ═══════════════════════════════════════════════════════════

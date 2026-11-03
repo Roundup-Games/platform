@@ -92,7 +92,7 @@ describe('CreateGame — Gathering Save', function () {
         // The representative-id bridge accessor returns a member of the offered set
         // (the cached-anchor + saving-event sync was retired in S06).
         expect($systemIds)->toContain($game->game_system_id);
-    })->group('smoke');
+    });
 });
 
 // ═══════════════════════════════════════════════════════════

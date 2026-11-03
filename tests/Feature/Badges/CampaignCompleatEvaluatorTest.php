@@ -16,6 +16,8 @@ use App\Models\User;
 use App\Services\Badges\BadgeRegistry;
 use App\Services\Badges\BadgeService;
 use App\Services\Badges\CampaignCompleatEvaluator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * CampaignCompleatEvaluator (M071/S05-T01, spec §3 GM Craft row,
@@ -73,6 +75,69 @@ function compleatRecap(Game $game, array $attributes = []): CampaignJournalEntry
 }
 
 /**
+ * $completed bulk-seeded completed sessions on the campaign, the
+ * first $covered carrying recaps — the volume half of every
+ * qualifying-campaign fixture (M073/S02/T03): each session/recap is
+ * the same interchangeable shape the per-row helpers above build
+ * (completed Game linked via campaign_id, owned by the campaign
+ * owner; kind=recap entry mirroring forCampaignSession()'s
+ * derivation — campaign_id + game_id + author = session owner), so
+ * the whole cohort seeds as two INSERTs instead of ~35 factory
+ * queries per session (six Game observers — SEO/IndexNow/landing/
+ * city/activity side effects nothing in this suite reads).
+ *
+ * Raw inserts skip Eloquent events, so the rows stamp what events
+ * would have: explicit UUIDv7 ids (HasPlatformUuid never fires without
+ * a save) plus timestamps. $recapOverrides changes the recap rows
+ * where a test's boundary lives in the entry itself (the guest-author
+ * case). Differentiated rows — session zero's explicit date_time, the
+ * scheduled seventh session, wrong-kind entries, interlude recaps —
+ * stay on the factory helpers; the tier-boundary DATASETS keep their
+ * exact counts, only the row write path changed.
+ *
+ * @param  array<string, mixed>  $recapOverrides
+ */
+function compleatBulkSessions(Campaign $campaign, int $completed, int $covered, array $recapOverrides = []): void
+{
+    $now = now();
+    $games = [];
+    $entries = [];
+
+    for ($i = 0; $i < $completed; $i++) {
+        $gameId = (string) Str::uuid7();
+        $games[] = factoryInsertRow(Game::factory()->withoutGameSystems()->make([
+            'campaign_id' => $campaign->id,
+            'owner_id' => $campaign->owner_id,
+            'status' => GameStatus::Completed->value,
+        ]), [
+            'id' => $gameId,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        if ($i < $covered) {
+            $entries[] = factoryInsertRow(CampaignJournalEntry::factory()->make(array_merge([
+                'campaign_id' => $campaign->id,
+                'game_id' => $gameId,
+                // forCampaignSession()'s author rule, mirrored: the
+                // session's owner (inherited from the campaign above).
+                'author_user_id' => $campaign->owner_id,
+            ], $recapOverrides)), [
+                'id' => (string) Str::uuid7(),
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+    }
+
+    DB::table('games')->insert($games);
+
+    if ($entries !== []) {
+        DB::table('campaign_journal_entries')->insert($entries);
+    }
+}
+
+/**
  * A completed campaign for $owner with $completed completed sessions,
  * the first $covered carrying recaps. Defaults are the bronze
  * boundary: six completed, all covered.
@@ -83,13 +148,7 @@ function compleatQualifyingCampaign(User $owner, int $completed = 6, int $covere
 {
     $campaign = compleatCampaign($owner, $attributes);
 
-    for ($i = 0; $i < $completed; $i++) {
-        $session = compleatSession($campaign);
-
-        if ($i < $covered) {
-            compleatRecap($session);
-        }
-    }
+    compleatBulkSessions($campaign, $completed, $covered);
 
     return $campaign;
 }
@@ -210,13 +269,7 @@ it('counts session zero toward the floor and its recap toward coverage', functio
     // total INCLUDING session zero's recap. The award proves both
     // inclusions: drop session zero from the floor and 5 < 6 fails;
     // drop its recap from coverage and 4 * 5 < 6 * 4 fails.
-    for ($i = 0; $i < 5; $i++) {
-        $session = compleatSession($campaign);
-
-        if ($i < 4) {
-            compleatRecap($session);
-        }
-    }
+    compleatBulkSessions($campaign, 5, 4);
 
     expect(app(CampaignCompleatEvaluator::class)->evaluate($owner)?->tierKey)->toBe('bronze');
 });
@@ -226,9 +279,7 @@ it('never qualifies an active campaign — completion status is required', funct
 
     $campaign = compleatCampaign($owner, ['status' => CampaignStatus::Active->value]);
 
-    for ($i = 0; $i < 6; $i++) {
-        compleatRecap(compleatSession($campaign));
-    }
+    compleatBulkSessions($campaign, 6, 6);
 
     expect(app(CampaignCompleatEvaluator::class)->evaluate($owner))->toBeNull();
 });
@@ -261,13 +312,7 @@ it('never counts a recap on a scheduled session', function () {
     // Six completed sessions with four covered (below the line), plus a
     // seventh SCHEDULED session carrying a recap — if that recap
     // counted, coverage would reach 5/6 and qualify. It never does.
-    for ($i = 0; $i < 6; $i++) {
-        $session = compleatSession($campaign);
-
-        if ($i < 4) {
-            compleatRecap($session);
-        }
-    }
+    compleatBulkSessions($campaign, 6, 4);
 
     compleatRecap(compleatSession($campaign, ['status' => GameStatus::Scheduled->value]));
 
@@ -278,13 +323,7 @@ it('never counts an interlude recap — game_id null never covers a session', fu
     $owner = User::factory()->create();
     $campaign = compleatCampaign($owner);
 
-    for ($i = 0; $i < 6; $i++) {
-        $session = compleatSession($campaign);
-
-        if ($i < 4) {
-            compleatRecap($session);
-        }
-    }
+    compleatBulkSessions($campaign, 6, 4);
 
     // An interlude recap on the campaign (game_id null): below the line
     // stays below the line.
@@ -307,9 +346,7 @@ it("never counts recaps authored on someone else's campaign for this owner", fun
     // author.
     $campaign = compleatCampaign($otherGm);
 
-    for ($i = 0; $i < 6; $i++) {
-        compleatRecap(compleatSession($campaign), ['author_user_id' => $owner->id]);
-    }
+    compleatBulkSessions($campaign, 6, 6, ['author_user_id' => $owner->id]);
 
     expect(app(CampaignCompleatEvaluator::class)->evaluate($owner))->toBeNull()
         ->and(app(CampaignCompleatEvaluator::class)->evaluate($otherGm)?->tierKey)->toBe('bronze');

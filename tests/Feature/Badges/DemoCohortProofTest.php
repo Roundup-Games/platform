@@ -7,7 +7,6 @@ use App\Models\BadgeEvent;
 use App\Models\BadgeUser;
 use App\Models\Game;
 use App\Models\GameParticipant;
-use App\Models\GameSystem;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -62,18 +61,7 @@ function demoCohortUserHolds(string $userId, string $key): bool
 beforeEach(function () {
     // Same provisioning contract as DemoSeedCommandTest: the seeder resolves
     // its game systems by slug from its own public constants.
-    foreach (DemoSeedCommand::BOARD_GAME_SLUGS as $slug => $meta) {
-        GameSystem::firstOrCreate(
-            ['slug' => $slug],
-            ['type' => 'boardgame', 'name' => ['en' => ucfirst((string) $slug)], 'min_players' => $meta['min'], 'max_players' => $meta['max'], 'average_play_time' => $meta['dur']],
-        );
-    }
-    foreach (DemoSeedCommand::TTRPG_SLUGS as $slug => $meta) {
-        GameSystem::firstOrCreate(
-            ['slug' => $slug],
-            ['type' => 'ttrpg', 'name' => ['en' => ucfirst((string) $slug)], 'min_players' => $meta['min'], 'max_players' => $meta['max']],
-        );
-    }
+    seedDemoGameSystems();
 
     // Fresh demo environment at toy scale, then the stateless backfill.
     // Capture logs from the sweep onward: CohortSweepEvaluator swallows
@@ -97,7 +85,20 @@ beforeEach(function () {
     $this->artisan('badges:sweep')->assertSuccessful();
 });
 
-it('produces all eight demo-contract badges through the stateless sweep backfill', function () {
+// ── Consolidated 2026-11-02 (M073/S02): these proofs all assert the SAME
+// seed+sync+sweep outcome, and the sweep is the file's dominant cost
+// (~1.7k queries per cycle, see R094). Two consolidated tests replace six
+// per-test cycles; every assertion below is preserved verbatim from its
+// original test:
+//   Test 1 ← "produces all eight demo-contract badges…", "writes the
+//             awarded audit trail…", "awards still rolling across the
+//             seeded tenure markers"
+//   Test 2 ← "keeps campaign compleat and chartered live but unheld…",
+//             "leaves the guild-linked negatives unbadged (D209)",
+//             "disqualifies the silent-cancellation organizer… (D207)"
+
+it('produces the full positive demo contract through the stateless sweep', function () {
+    // ── eight badges held (was: 'produces all eight demo-contract badges…') ──
     foreach ([
         'debut', 'first_seat', 'founding_table', 'still_rolling', 'guild_linked',
         'regulars_table', 'trusted_organizer', 'mentor',
@@ -107,9 +108,8 @@ it('produces all eight demo-contract badges through the stateless sweep backfill
         // (the 2026-11-01 CI flake was diagnosed blind).
         expect(demoCohortHoldsFor($key))->toBeGreaterThan(0, "demo cohort lost [{$key}]: zero holds after seed+sync+sweep");
     }
-});
 
-it('writes the awarded audit trail for the cohort', function () {
+    // ── audit trail (was: 'writes the awarded audit trail for the cohort') ──
     // Collect ALL unaudited keys, not the first: the flake (2026-11-01 CI,
     // 2026-11-02 gate) is a per-draw single badge losing its award, and a
     // collected failure names the badge(s) + every action seen for them —
@@ -160,9 +160,26 @@ it('writes the awarded audit trail for the cohort', function () {
     }
 
     expect($missing)->toBeEmpty('demo cohort audit gaps: '.implode(' | ', $missing));
+
+    // ── tenure tiers (was: 'awards still rolling across the seeded tenure markers') ──
+    // The three marker GMs host tables ~1950/~1200/~400 days back — the
+    // earliest table each of them owns — so each crosses at least year_1.
+    $holders = BadgeUser::query()
+        ->whereHas('badgeDefinition', fn ($query) => $query->where('key', 'still_rolling'))
+        ->whereNotNull('tier')
+        ->get();
+
+    expect($holders)->not->toBeEmpty()
+        ->and($holders->pluck('tier')->unique()->intersect(['year_1', 'year_3', 'year_5']))->not->toBeEmpty();
+
+    // Every still-rolling holder is a demo user with an owned past table.
+    foreach ($holders as $hold) {
+        expect(User::whereKey($hold->user_id)->exists())->toBeTrue();
+    }
 });
 
-it('keeps campaign compleat and chartered live but unheld in the demo cohort', function () {
+it('holds the negative demo contracts after the sweep', function () {
+    // ── live-but-unheld (was: 'keeps campaign compleat and chartered live but unheld') ──
     // campaign_compleat activated in M071/S05 (D222) and chartered in
     // M070/S04: both definitions are live, but the demo fixtures never
     // create the qualifying signal at toy scale — no journal entries
@@ -175,9 +192,8 @@ it('keeps campaign compleat and chartered live but unheld in the demo cohort', f
         ->and($chartered->is_dormant)->toBeFalse()
         ->and(demoCohortHoldsFor('chartered'))->toBe(0)
         ->and(demoCohortHoldsFor('campaign_compleat'))->toBe(0);
-});
 
-it('leaves the guild-linked negatives unbadged (D209)', function () {
+    // ── D209 (was: 'leaves the guild-linked negatives unbadged') ──
     // Too-young opt-ins: present in the fixtures, never awarded.
     $youngOrganizerIds = DB::table('discord_guild_organizers')
         ->whereNotNull('opted_in_at')
@@ -202,9 +218,8 @@ it('leaves the guild-linked negatives unbadged (D209)', function () {
     foreach ($pausedOrganizerIds as $organizerId) {
         expect(demoCohortUserHolds((string) $organizerId, 'guild_linked'))->toBeFalse();
     }
-});
 
-it('disqualifies the silent-cancellation organizer from trusted organizer (D207)', function () {
+    // ── D207 (was: 'disqualifies the silent-cancellation organizer from trusted organizer') ──
     // Organizers with a cancelled event carrying NO announcement — the
     // fixture's negative case: 3 completed events and an avg-4.5 quarter,
     // sunk by a 25% unannounced-cancellation rate.
@@ -221,22 +236,5 @@ it('disqualifies the silent-cancellation organizer from trusted organizer (D207)
 
     foreach ($silentOrganizerIds as $organizerId) {
         expect(demoCohortUserHolds((string) $organizerId, 'trusted_organizer'))->toBeFalse();
-    }
-});
-
-it('awards still rolling across the seeded tenure markers', function () {
-    // The three marker GMs host tables ~1950/~1200/~400 days back — the
-    // earliest table each of them owns — so each crosses at least year_1.
-    $holders = BadgeUser::query()
-        ->whereHas('badgeDefinition', fn ($query) => $query->where('key', 'still_rolling'))
-        ->whereNotNull('tier')
-        ->get();
-
-    expect($holders)->not->toBeEmpty()
-        ->and($holders->pluck('tier')->unique()->intersect(['year_1', 'year_3', 'year_5']))->not->toBeEmpty();
-
-    // Every still-rolling holder is a demo user with an owned past table.
-    foreach ($holders as $hold) {
-        expect(User::whereKey($hold->user_id)->exists())->toBeTrue();
     }
 });

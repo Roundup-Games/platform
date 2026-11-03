@@ -151,7 +151,7 @@ describe('CreateEvent', function () {
         // EUR inputs land in the database as integer cents
         expect($event->individual_registration_fee)->toBe(2500)
             ->and($event->early_bird_discount)->toBe(550);
-    })->group('smoke');
+    });
 
     it('rejects a non-numeric or negative registration fee', function ($badFee) {
         seedPermissions();

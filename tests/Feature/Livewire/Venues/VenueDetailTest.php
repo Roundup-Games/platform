@@ -28,7 +28,7 @@ describe('VenueDetail 404 gate', function () {
         // Address flows through <x-location-display> (Exact/fullAddress for verified commercial)
         $response->assertSee('123 Test Street');
         $response->assertSee('Berlin');
-    })->group('smoke');
+    });
 
     it('404s for an unverified location', function () {
         // Factory default: is_verified is not set (null/false), venue_type null

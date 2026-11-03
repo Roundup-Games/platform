@@ -99,7 +99,7 @@ describe('Invitation — Friend Validation', function () {
             'user_id' => $stranger->id,
             'role' => ParticipantRole::Invited->value,
         ]);
-    })->group('smoke');
+    });
 
     test('cannot invite self', function () {
         ['owner' => $owner, 'game' => $game] = inviteTestCreateGameWithOwner();
@@ -129,7 +129,7 @@ describe('Invitation — Friend Validation', function () {
             'game_id' => $game->id,
             'user_id' => $fakeUuid,
         ]);
-    })->group('smoke');
+    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -158,7 +158,7 @@ describe('Invitation — Duplicate Prevention', function () {
         expect(GameParticipant::where('game_id', $game->id)
             ->where('user_id', $friend->id)
             ->count())->toBe(1);
-    })->group('smoke');
+    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -183,7 +183,7 @@ describe('Invitation — Blocked Users', function () {
             'user_id' => $friend->id,
             'role' => ParticipantRole::Invited->value,
         ]);
-    })->group('smoke');
+    });
 
     test('user who blocked owner cannot be invited', function () {
         ['owner' => $owner, 'game' => $game] = inviteTestCreateGameWithOwner();
@@ -202,7 +202,7 @@ describe('Invitation — Blocked Users', function () {
             'user_id' => $friend->id,
             'role' => ParticipantRole::Invited->value,
         ]);
-    })->group('smoke');
+    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -231,7 +231,7 @@ describe('Invitation — Batch', function () {
             'game_id' => $game->id,
             'user_id' => $stranger->id,
         ]);
-    })->group('smoke');
+    });
 
     test('empty selection shows error', function () {
         ['owner' => $owner, 'game' => $game] = inviteTestCreateGameWithOwner();

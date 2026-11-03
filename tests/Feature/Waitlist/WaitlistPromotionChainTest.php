@@ -123,7 +123,7 @@ describe('full promotion chain', function () {
             ->where('status', ParticipantStatus::Approved->value)
             ->count();
         expect($approvedCount)->toBe($game->max_players);
-    })->group('smoke');
+    });
 });
 
 // ── Decline chains to next ──────────────────────────────

@@ -5,6 +5,9 @@ use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\CharacterStateChange;
 use App\Models\User;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\Traits\CreatesGameInstances;
 
 uses(CreatesGameInstances::class);
@@ -45,6 +48,43 @@ function charStateApprovedPlayer(Campaign $campaign): array
     ]);
 
     return [$participant->user, $participant];
+}
+
+/**
+ * Bulk-seed character_state_changes volume rows for one participant
+ * (M073/S02/T04): chunked raw INSERTs inside the test's own transaction
+ * instead of one query per factory create. Raw inserts skip model events,
+ * but CharacterStateChange has no observers — the DB-visible state is
+ * exactly the factory's columns: an explicit uuid7 id (HasPlatformUuid
+ * never fires without a save), campaign/participant from the participant
+ * (forParticipant parity), enum storage form via factoryInsertRow, and
+ * updated_at stamped to the row's own created_at. created_at values stay
+ * minute-spaced and distinct, so the (created_at, id) keyset window order
+ * is deterministic and identical to the factory-written rows.
+ *
+ * @param  array<int, array{delta: string, created_at: Carbon, change_type?: string}>  $rows
+ */
+function charStateBulkChanges(CampaignParticipant $participant, array $rows): void
+{
+    $insert = [];
+
+    foreach ($rows as $row) {
+        $insert[] = factoryInsertRow(
+            CharacterStateChange::factory()->forParticipant($participant)->make([
+                'change_type' => $row['change_type'] ?? 'note',
+                'delta' => $row['delta'],
+                'created_at' => $row['created_at'],
+            ]),
+            [
+                'id' => (string) Str::uuid7(),
+                'updated_at' => $row['created_at'],
+            ],
+        );
+    }
+
+    foreach (array_chunk($insert, 100) as $chunk) {
+        DB::table('character_state_changes')->insert($chunk);
+    }
 }
 
 // ── Reading surface: per-character timelines ────────────
@@ -116,12 +156,10 @@ test('logging a state change resets the loaded older-history markers for that ch
 
     // 15 rows: the eager window holds the latest 10, so older history
     // exists to load (5 rows, exhausted after one click).
-    for ($i = 0; $i < 15; $i++) {
-        CharacterStateChange::factory()->forParticipant($participant)->create([
-            'delta' => "HISTORY ROW {$i}",
-            'created_at' => now()->subMinutes(100 - $i),
-        ]);
-    }
+    charStateBulkChanges($participant, collect(range(0, 14))->map(fn (int $i) => [
+        'delta' => "HISTORY ROW {$i}",
+        'created_at' => now()->subMinutes(100 - $i),
+    ])->all());
 
     $component = Livewire::actingAs($owner)->test(CampaignJournal::class, ['campaign' => $campaign]);
 
@@ -262,13 +300,11 @@ test('a long character timeline renders only the latest ten changes, with on-dem
     // i=1 oldest … i=12 newest: i=3..12 are the eager window, i=1..2
     // only load on explicit request. Zero-padded markers — "MARK 01"
     // is never a substring of "MARK 10".
-    foreach (range(1, 12) as $i) {
-        CharacterStateChange::factory()->forParticipant($participant)->create([
-            'change_type' => 'note',
-            'delta' => sprintf('CHARSTATE MARK %02d', $i),
-            'created_at' => now()->subMinutes(100 - $i),
-        ]);
-    }
+    charStateBulkChanges($participant, collect(range(1, 12))->map(fn (int $i) => [
+        'change_type' => 'note',
+        'delta' => sprintf('CHARSTATE MARK %02d', $i),
+        'created_at' => now()->subMinutes(100 - $i),
+    ])->all());
 
     $component = Livewire::actingAs($player)->test(CampaignJournal::class, ['campaign' => $campaign]);
 
@@ -289,13 +325,11 @@ test('loadOlderStateChanges fails closed for a viewer outside the journal gate',
     [$owner, $campaign] = charStateCampaign();
     [$player, $participant] = charStateApprovedPlayer($campaign);
 
-    foreach (range(1, 12) as $i) {
-        CharacterStateChange::factory()->forParticipant($participant)->create([
-            'change_type' => 'note',
-            'delta' => "CHARSTATE CHANGE {$i}",
-            'created_at' => now()->subMinutes(100 - $i),
-        ]);
-    }
+    charStateBulkChanges($participant, collect(range(1, 12))->map(fn (int $i) => [
+        'change_type' => 'note',
+        'delta' => "CHARSTATE CHANGE {$i}",
+        'created_at' => now()->subMinutes(100 - $i),
+    ])->all());
 
     $stranger = User::factory()->create(['profile_complete' => true]);
 
@@ -311,13 +345,11 @@ test('loadOlderStateChanges rejects a seated participant of a DIFFERENT campaign
     [$owner, $campaign] = charStateCampaign();
     [$player, $participant] = charStateApprovedPlayer($campaign);
 
-    foreach (range(1, 12) as $i) {
-        CharacterStateChange::factory()->forParticipant($participant)->create([
-            'change_type' => 'note',
-            'delta' => "CHARSTATE CHANGE {$i}",
-            'created_at' => now()->subMinutes(100 - $i),
-        ]);
-    }
+    charStateBulkChanges($participant, collect(range(1, 12))->map(fn (int $i) => [
+        'change_type' => 'note',
+        'delta' => "CHARSTATE CHANGE {$i}",
+        'created_at' => now()->subMinutes(100 - $i),
+    ])->all());
 
     // A genuinely approved player — of another campaign: the campaign-
     // scoped participant resolution must refuse to load their history.
@@ -339,18 +371,16 @@ test('each character in a multi-participant campaign gets its own ten-change win
     // global top-10 would hand the whole window to one of them — the
     // eager-load limit() trap this test pins: the window is per
     // participant (row_number partition), never a combined query.
-    foreach (range(1, 12) as $i) {
-        CharacterStateChange::factory()->forParticipant($participantA)->create([
-            'change_type' => 'note',
-            'delta' => sprintf('CHARSTATE ALPHA %02d', $i),
-            'created_at' => now()->subMinutes(100 - $i),
-        ]);
-        CharacterStateChange::factory()->forParticipant($participantB)->create([
-            'change_type' => 'note',
-            'delta' => sprintf('CHARSTATE BRAVO %02d', $i),
-            'created_at' => now()->subMinutes(100 - $i),
-        ]);
-    }
+    charStateBulkChanges($participantA, collect(range(1, 12))->map(fn (int $i) => [
+        'change_type' => 'note',
+        'delta' => sprintf('CHARSTATE ALPHA %02d', $i),
+        'created_at' => now()->subMinutes(100 - $i),
+    ])->all());
+    charStateBulkChanges($participantB, collect(range(1, 12))->map(fn (int $i) => [
+        'change_type' => 'note',
+        'delta' => sprintf('CHARSTATE BRAVO %02d', $i),
+        'created_at' => now()->subMinutes(100 - $i),
+    ])->all());
 
     $component = Livewire::actingAs($playerA)->test(CampaignJournal::class, ['campaign' => $campaign]);
 
@@ -377,13 +407,11 @@ test('older history loads in bounded chunks until exhausted, then the affordance
     // i=1 oldest … i=40 newest: the window holds 31..40, leaving 30
     // older rows — one over the 25-row chunk, so the second click is
     // the exhaustive one.
-    foreach (range(1, 40) as $i) {
-        CharacterStateChange::factory()->forParticipant($participant)->create([
-            'change_type' => 'note',
-            'delta' => sprintf('CHARSTATE MARK %02d', $i),
-            'created_at' => now()->subMinutes(100 - $i),
-        ]);
-    }
+    charStateBulkChanges($participant, collect(range(1, 40))->map(fn (int $i) => [
+        'change_type' => 'note',
+        'delta' => sprintf('CHARSTATE MARK %02d', $i),
+        'created_at' => now()->subMinutes(100 - $i),
+    ])->all());
 
     $component = Livewire::actingAs($player)->test(CampaignJournal::class, ['campaign' => $campaign]);
 
@@ -418,12 +446,10 @@ test('loaded older history is hard-capped — the affordance retires with an hon
     [$owner, $campaign] = charStateCampaign();
     [, $participant] = charStateApprovedPlayer($campaign);
 
-    for ($i = 0; $i < 200; $i++) {
-        CharacterStateChange::factory()->forParticipant($participant)->create([
-            'delta' => "DEEP ROW {$i}",
-            'created_at' => now()->subMinutes(500 - $i),
-        ]);
-    }
+    charStateBulkChanges($participant, collect(range(0, 199))->map(fn (int $i) => [
+        'delta' => "DEEP ROW {$i}",
+        'created_at' => now()->subMinutes(500 - $i),
+    ])->all());
 
     $component = Livewire::actingAs($owner)->test(CampaignJournal::class, ['campaign' => $campaign]);
 
@@ -455,12 +481,10 @@ test("a tampered older-history id list cannot surface another campaign's state c
     [, $participant] = charStateApprovedPlayer($campaign);
 
     // More than the eager window (10) so the older-history block renders.
-    for ($i = 0; $i < 12; $i++) {
-        CharacterStateChange::factory()->forParticipant($participant)->create([
-            'delta' => "CHARSTATE OWN OLDER {$i}",
-            'created_at' => now()->subMinutes(200 - $i),
-        ]);
-    }
+    charStateBulkChanges($participant, collect(range(0, 11))->map(fn (int $i) => [
+        'delta' => "CHARSTATE OWN OLDER {$i}",
+        'created_at' => now()->subMinutes(200 - $i),
+    ])->all());
 
     ['owner' => $otherOwner, 'campaign' => $otherCampaign] = test()->createCampaignWithOwner();
     [, $otherParticipant] = charStateApprovedPlayer($otherCampaign);
@@ -481,12 +505,10 @@ test('a malformed persisted keyset cursor self-heals instead of erroring', funct
     [$owner, $campaign] = charStateCampaign();
     [, $participant] = charStateApprovedPlayer($campaign);
 
-    for ($i = 0; $i < 12; $i++) {
-        CharacterStateChange::factory()->forParticipant($participant)->create([
-            'delta' => "CHARSTATE HISTORY {$i}",
-            'created_at' => now()->subMinutes(200 - $i),
-        ]);
-    }
+    charStateBulkChanges($participant, collect(range(0, 11))->map(fn (int $i) => [
+        'delta' => "CHARSTATE HISTORY {$i}",
+        'created_at' => now()->subMinutes(200 - $i),
+    ])->all());
 
     $component = Livewire::actingAs($owner)->test(CampaignJournal::class, ['campaign' => $campaign]);
 

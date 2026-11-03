@@ -1,11 +1,15 @@
 <?php
 
+use App\Console\Dev\DemoSeedCommand;
 use App\Enums\ParticipantStatus;
 use App\Enums\VenueType;
 use App\Models\Game;
+use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
+use BackedEnum;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
@@ -233,6 +237,64 @@ function seedRoles()
     SeedSharedReferenceData::roleSyncs();
 
     app()[PermissionRegistrar::class]->forgetCachedPermissions();
+}
+
+/**
+ * Provision the game systems demo:seed resolves by slug — its own public
+ * constants are the provisioning contract. Shared by DemoCohortProofTest and
+ * DemoSeedCommandTest (defined here so --parallel workers in either file see
+ * it; the two files previously carried identical copies).
+ */
+function seedDemoGameSystems()
+{
+    foreach (DemoSeedCommand::BOARD_GAME_SLUGS as $slug => $meta) {
+        GameSystem::firstOrCreate(
+            ['slug' => $slug],
+            ['type' => 'boardgame', 'name' => ['en' => ucfirst((string) $slug)], 'min_players' => $meta['min'], 'max_players' => $meta['max'], 'average_play_time' => $meta['dur']],
+        );
+    }
+    foreach (DemoSeedCommand::TTRPG_SLUGS as $slug => $meta) {
+        GameSystem::firstOrCreate(
+            ['slug' => $slug],
+            ['type' => 'ttrpg', 'name' => ['en' => ucfirst((string) $slug)], 'min_players' => $meta['min'], 'max_players' => $meta['max']],
+        );
+    }
+}
+
+/**
+ * Convert an unsaved, factory-made model into a raw-insert row for bulk
+ * seeding (M073/S02/T02): getAttributes() with BackedEnum values flattened
+ * to their backing storage value and array/JSON-cast attributes encoded —
+ * the exact column values Eloquent would have written from the same made
+ * instance, minus everything model events do.
+ *
+ * Raw inserts skip Eloquent events, so the CALLER stamps what those events
+ * would have stamped (MEM291): pass the id (HasPlatformUuid generation
+ * never runs without a save) and any NOT NULL timestamp columns through
+ * $extra, and mirror observer side effects the rows' readers actually
+ * depend on (e.g. GameParticipantObserver's approved_at stamp on Approved
+ * rows). Rows whose model events matter to what is being asserted stay on
+ * factory create() — bulk-insert only pure volume.
+ *
+ * Defined here (not per-file) so every Pest process sees it — the badge
+ * sweep/rarity suites and the later bulk-seeding slices share it.
+ *
+ * @param  array<string, mixed>  $extra  extra columns stamped by the caller; on key collisions these win
+ * @return array<string, mixed>
+ */
+function factoryInsertRow(Model $model, array $extra = []): array
+{
+    $row = [];
+
+    foreach ($model->getAttributes() as $column => $value) {
+        $row[$column] = match (true) {
+            $value instanceof BackedEnum => $value->value,
+            is_array($value) => json_encode($value),
+            default => $value,
+        };
+    }
+
+    return $extra + $row;
 }
 
 /**

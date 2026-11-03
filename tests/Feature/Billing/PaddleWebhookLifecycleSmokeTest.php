@@ -74,7 +74,7 @@ it('provisions a new subscription via the parent Cashier handler and invokes GM-
     // syncGmRoleFromPayload is invoked after provisioning (the webhook's job);
     // the downstream GM-role state machine is covered by GmRoleServiceTest.
     // Here we assert the provisioning completed (the money-integrity path).
-})->group('smoke');
+});
 
 // ── subscription.updated ─────────────────────────────────────────────────
 
@@ -99,7 +99,7 @@ it('updates the subscription status and persists new price data on subscription.
         'paddle_id' => $subId,
         'status' => 'past_due',
     ]);
-})->group('smoke');
+});
 
 // ── subscription.canceled: revoke side-effect invocation + retention guard ─
 
@@ -144,7 +144,7 @@ it('revokes the GM role on subscription.canceled when no local GM subscription e
     // semantics (no gm_plan local sub to retain the role here).
     expect($user->fresh()->hasRole('Game Master'))->toBeFalse();
     assertDatabaseHas('subscriptions', ['paddle_id' => $subId, 'status' => 'canceled']);
-})->group('smoke');
+});
 
 it('keeps the GM role on subscription.canceled when an active local GM subscription exists', function () {
     $user = PaddleWebhooks::createUser();
@@ -179,7 +179,7 @@ it('keeps the GM role on subscription.canceled when an active local GM subscript
     // revokeGmRoleFromPayload short-circuits and the GM role is retained.
     expect($user->fresh()->hasRole('Game Master'))->toBeTrue();
     assertDatabaseHas('subscriptions', ['paddle_id' => $subId, 'status' => 'canceled']);
-})->group('smoke');
+});
 
 // ── subscription.created: first-time GM activation from a GM-plan price ──
 // (D241 pricing flip — the paid GM tier must onboard NEW Game Masters,
@@ -211,7 +211,7 @@ it('activates a first-time Game Master when the purchased price belongs to a GM 
     expect($fresh->hasRole('Game Master'))->toBeTrue('GM role granted to a first-time GM buying the GM plan')
         ->and($fresh->gmProfile)->not->toBeNull()
         ->and($fresh->gmProfile->is_active)->toBeTrue();
-})->group('smoke');
+});
 
 it('never grants the GM role when a first-time buyer purchases a player plan', function () {
     $user = PaddleWebhooks::createUser();
@@ -238,4 +238,4 @@ it('never grants the GM role when a first-time buyer purchases a player plan', f
     $fresh = $user->fresh();
     expect($fresh->hasRole('Game Master'))->toBeFalse('player purchase must never grant GM tools')
         ->and($fresh->gmProfile)->toBeNull();
-})->group('smoke');
+});

@@ -42,7 +42,7 @@ describe('ImageUpload security', function () {
         expect($data)->not->toHaveKey('name');
         expect($data)->not->toHaveKey('created_by');
         expect($data)->not->toHaveKey('is_active');
-    })->group('smoke');
+    });
 
     it('locks model_type and model_id from client-side tampering', function () {
         Storage::fake('public');
@@ -58,5 +58,5 @@ describe('ImageUpload security', function () {
 
         // Both locked properties should reject client-side updates
         $component->set('model_type', 'App\Models\Event');
-    })->throws(CannotUpdateLockedPropertyException::class)->group('smoke');
+    })->throws(CannotUpdateLockedPropertyException::class);
 });

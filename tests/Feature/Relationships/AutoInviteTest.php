@@ -65,7 +65,7 @@ describe('AutoInvite — Session Creation', function () {
         assertDatabaseHas('game_participants', [
             'game_id' => $game->id, 'user_id' => $player2->id, 'role' => ParticipantRole::Invited->value, 'status' => ParticipantStatus::Pending->value,
         ]);
-    })->group('smoke');
+    });
 
     test('auto-invite skips campaign owner (owner gets owner participant, not invited)', function () {
         ['owner' => $owner, 'campaign' => $campaign] = autoInviteCreateCampaign();

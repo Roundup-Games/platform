@@ -50,21 +50,18 @@ beforeEach(function () {
 });
 
 // ── Grant invariants ─────────────────────────────────
+//
+// Consolidated from ten junit cases into four tests. Cases that shared
+// an identical setup (a single grant call) now share one setup while
+// keeping every assertion; distinct failure modes stay distinct
+// expectations inside the refusal test, each under its own comment.
 
 describe('Co-organizer grant', function () {
-    test('grants the event-scoped Event Admin role and update access to that event only', function () {
+    test('grants the scoped role with update access to that event only, one pivot row, listed as co-organizer', function () {
+        // Old: 'grants the event-scoped Event Admin role and update access to
+        // that event only' + 'writes a single scoped pivot row and lists the
+        // target as co-organizer'.
         $granted = $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
-
-        expect($granted)->toBeTrue()
-            ->and($this->service->isCoOrganizer($this->coOrganizer, $this->event))->toBeTrue()
-            ->and($this->coOrganizer->can('update', $this->event))->toBeTrue()
-            // The scope is exactly one event: no access to another event.
-            ->and($this->service->isCoOrganizer($this->coOrganizer, $this->otherEvent))->toBeFalse()
-            ->and($this->coOrganizer->can('update', $this->otherEvent))->toBeFalse();
-    });
-
-    test('writes a single scoped pivot row and lists the target as co-organizer', function () {
-        $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
 
         $roleId = Role::where('name', 'Event Admin')->whereNull('team_id')->value('id');
 
@@ -75,13 +72,39 @@ describe('Co-organizer grant', function () {
             ->where('model_id', $this->coOrganizer->id)
             ->get();
 
-        expect($assignments)->toHaveCount(1)
+        expect($granted)->toBeTrue()
+            ->and($this->service->isCoOrganizer($this->coOrganizer, $this->event))->toBeTrue()
+            ->and($this->coOrganizer->can('update', $this->event))->toBeTrue()
+            // The scope is exactly one event: no access to another event.
+            ->and($this->service->isCoOrganizer($this->coOrganizer, $this->otherEvent))->toBeFalse()
+            ->and($this->coOrganizer->can('update', $this->otherEvent))->toBeFalse()
+            ->and($assignments)->toHaveCount(1)
             ->and($this->service->coOrganizers($this->event)->pluck('id'))
             ->toContain($this->coOrganizer->id)
             ->not->toContain($this->organizer->id);
     });
 
-    test('duplicate grant is idempotent: returns false, no second assignment, no second listing entry', function () {
+    test('audit-logs the grant and treats duplicate grants as skipped idempotent no-ops', function () {
+        // Old: 'audit-logs the grant with actor, target user, and event id' +
+        // 'duplicate grant is idempotent: returns false, no second
+        // assignment, no second listing entry' + 'audit-logs the duplicate
+        // grant as a skipped no-op'.
+        Log::shouldReceive('info')
+            ->once()
+            ->with('event.co_organizer_granted', Mockery::on(fn (array $ctx) => $ctx['actor_id'] === $this->organizer->id
+                && $ctx['target_user_id'] === $this->coOrganizer->id
+                && $ctx['event_id'] === $this->event->id
+            ));
+        Log::shouldReceive('info')
+            ->once()
+            ->with('event.co_organizer_grant_skipped_duplicate', Mockery::on(fn (array $ctx) => $ctx['target_user_id'] === $this->coOrganizer->id
+                && $ctx['event_id'] === $this->event->id
+            ));
+        // Swallow any incidental log calls.
+        Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('warning')->zeroOrMoreTimes();
+        Log::shouldReceive('error')->zeroOrMoreTimes();
+
         $first = $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
         $second = $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
 
@@ -99,25 +122,33 @@ describe('Co-organizer grant', function () {
             ->and($this->service->coOrganizers($this->event))->toHaveCount(1);
     });
 
-    test('refuses when the actor cannot update the event', function (User $actor) {
-        $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $actor);
-    })->throws(AuthorizationException::class)->with([
-        'stranger' => fn () => $this->stranger,
-        'organizer of another event' => fn () => $this->otherOrganizer,
-    ]);
+    test('refuses unauthorized grantors, self-grants, cascaded delegation, and peer revocation', function () {
+        // Old: 'refuses when the actor cannot update the event' (stranger +
+        // organizer-of-another-event dataset cases) + 'refuses when the
+        // actor is only a co-organizer: delegation does not cascade' +
+        // 'refuses granting the organizer as co-organizer' + 'refuses when a
+        // co-organizer tries to revoke a fellow co-organizer'.
 
-    test('refuses when the actor is only a co-organizer: delegation does not cascade', function () {
+        // Actors who cannot update the event cannot grant.
+        foreach ([$this->stranger, $this->otherOrganizer] as $unauthorizedActor) {
+            expect(fn () => $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $unauthorizedActor))
+                ->toThrow(AuthorizationException::class);
+        }
+
+        // Delegation does not cascade: a co-organizer cannot grant.
         $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
+        expect(fn () => $this->service->grantCoOrganizer($this->event, $this->stranger, $this->coOrganizer))
+            ->toThrow(AuthorizationException::class);
 
-        $this->service->grantCoOrganizer($this->event, $this->stranger, $this->coOrganizer);
-    })->throws(AuthorizationException::class);
+        // The organizer cannot be granted as co-organizer of their own event.
+        expect(fn () => $this->service->grantCoOrganizer($this->event, $this->organizer, $this->organizer))
+            ->toThrow(InvalidArgumentException::class);
 
-    test('refuses when a co-organizer tries to revoke a fellow co-organizer', function () {
-        $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
+        // A co-organizer cannot revoke a fellow co-organizer.
         $this->service->grantCoOrganizer($this->event, $this->stranger, $this->organizer);
-
-        $this->service->revokeCoOrganizer($this->event, $this->stranger, $this->coOrganizer);
-    })->throws(AuthorizationException::class);
+        expect(fn () => $this->service->revokeCoOrganizer($this->event, $this->stranger, $this->coOrganizer))
+            ->toThrow(AuthorizationException::class);
+    });
 
     test('allows a global admin to grant', function () {
         $granted = $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->platformAdmin);
@@ -125,52 +156,22 @@ describe('Co-organizer grant', function () {
         expect($granted)->toBeTrue()
             ->and($this->service->isCoOrganizer($this->coOrganizer, $this->event))->toBeTrue();
     });
-
-    test('refuses granting the organizer as co-organizer', function () {
-        $this->service->grantCoOrganizer($this->event, $this->organizer, $this->organizer);
-    })->throws(InvalidArgumentException::class);
-
-    test('audit-logs the grant with actor, target user, and event id', function () {
-        Log::shouldReceive('info')
-            ->once()
-            ->with('event.co_organizer_granted', Mockery::on(fn (array $ctx) => $ctx['actor_id'] === $this->organizer->id
-                && $ctx['target_user_id'] === $this->coOrganizer->id
-                && $ctx['event_id'] === $this->event->id
-            ));
-        // Swallow any incidental log calls.
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('warning')->zeroOrMoreTimes();
-        Log::shouldReceive('error')->zeroOrMoreTimes();
-
-        $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
-    });
-
-    test('audit-logs the duplicate grant as a skipped no-op', function () {
-        $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
-
-        Log::shouldReceive('info')
-            ->once()
-            ->with('event.co_organizer_grant_skipped_duplicate', Mockery::on(fn (array $ctx) => $ctx['target_user_id'] === $this->coOrganizer->id
-                && $ctx['event_id'] === $this->event->id
-            ));
-        Log::shouldReceive('info')->zeroOrMoreTimes();
-        Log::shouldReceive('warning')->zeroOrMoreTimes();
-
-        $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
-    });
 });
 
 // ── Revoke invariants ─────────────────────────────────
 
 describe('Co-organizer revoke', function () {
-    test('purges the scoped role and cuts update access immediately', function () {
+    test('purges the scoped role and cuts update access immediately while the organizer keeps access', function () {
+        // Old: 'purges the scoped role and cuts update access immediately' +
+        // 'organizer keeps update access across co-organizer churn'.
         $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
 
         $this->service->revokeCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
 
         expect($this->service->isCoOrganizer($this->coOrganizer, $this->event))->toBeFalse()
             ->and($this->coOrganizer->can('update', $this->event))->toBeFalse()
-            ->and($this->service->coOrganizers($this->event))->toBeEmpty();
+            ->and($this->service->coOrganizers($this->event))->toBeEmpty()
+            ->and($this->organizer->can('update', $this->event))->toBeTrue();
     });
 
     test('revoking a non-holder is an idempotent no-op', function () {
@@ -179,15 +180,16 @@ describe('Co-organizer revoke', function () {
         expect($this->service->coOrganizers($this->event))->toBeEmpty();
     });
 
-    test('refuses to revoke the organizer', function () {
-        $this->service->revokeCoOrganizer($this->event, $this->organizer, $this->organizer);
-    })->throws(InvalidArgumentException::class);
+    test('refuses to revoke the organizer and refuses stranger revocation', function () {
+        // Old: 'refuses to revoke the organizer' + 'refuses when the actor
+        // is a stranger'.
+        expect(fn () => $this->service->revokeCoOrganizer($this->event, $this->organizer, $this->organizer))
+            ->toThrow(InvalidArgumentException::class);
 
-    test('refuses when the actor is a stranger', function () {
         $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
-
-        $this->service->revokeCoOrganizer($this->event, $this->coOrganizer, $this->stranger);
-    })->throws(AuthorizationException::class);
+        expect(fn () => $this->service->revokeCoOrganizer($this->event, $this->coOrganizer, $this->stranger))
+            ->toThrow(AuthorizationException::class);
+    });
 
     test('audit-logs the revoke with actor, target user, and event id', function () {
         $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
@@ -203,19 +205,15 @@ describe('Co-organizer revoke', function () {
 
         $this->service->revokeCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
     });
-
-    test('organizer keeps update access across co-organizer churn', function () {
-        $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
-        $this->service->revokeCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
-
-        expect($this->organizer->can('update', $this->event))->toBeTrue();
-    });
 });
 
 // ── Listing ───────────────────────────────────────────
 
 describe('Co-organizer listing', function () {
-    test('lists co-organizers ordered by name and excludes the organizer', function () {
+    test('lists co-organizers ordered by name, excluding the organizer, scoped to the event', function () {
+        // Old: 'lists co-organizers ordered by name and excludes the
+        // organizer' + 'is scoped per event: another event sees no
+        // co-organizers'.
         $zeta = User::factory()->create(['name' => 'Zeta']);
         $alpha = User::factory()->create(['name' => 'Alpha']);
 
@@ -224,13 +222,8 @@ describe('Co-organizer listing', function () {
 
         $names = $this->service->coOrganizers($this->event)->pluck('name');
 
-        expect($names->all())->toBe(['Alpha', 'Zeta']);
-    });
-
-    test('is scoped per event: another event sees no co-organizers', function () {
-        $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
-
-        expect($this->service->coOrganizers($this->otherEvent))->toBeEmpty();
+        expect($names->all())->toBe(['Alpha', 'Zeta'])
+            ->and($this->service->coOrganizers($this->otherEvent))->toBeEmpty();
     });
 });
 
@@ -242,76 +235,84 @@ describe('Co-organizer listing', function () {
 // proving the delegation grant flows through the unchanged authorize
 // path — no route or policy changes were needed for co-organizers
 // (slice contract M063/S04).
+//
+// Consolidated from eleven dataset-fan-out cases into one test per
+// manage surface: each role cell (granted co-organizer, stranger,
+// revoked co-organizer) that used to be its own junit case is one
+// clearly-commented assertion block inside its surface's test, so the
+// per-cell intent survives one HTTP boot per cell instead of one
+// dataset rebuild per cell.
 
 describe('Manage surface access matrix (HTTP)', function () {
-    test('a co-organizer can open every manage surface after the grant', function (string $routeName) {
+    test('events.manage gates by role: granted co-organizer, other event, stranger, revoked, organizer', function () {
+        // A granted co-organizer can open the surface.
         $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
-
         actingAs($this->coOrganizer);
-        get(route($routeName, ['slug' => $this->event->slug]))->assertOk();
-    })->with([
-        'manage' => 'events.manage',
-        'registrations' => 'events.manage-registrations',
-        'announcements' => 'events.announcements',
-    ]);
+        get(route('events.manage', ['slug' => $this->event->slug]))->assertOk();
 
-    test('a stranger is forbidden on every manage surface', function (string $routeName) {
-        actingAs($this->stranger);
-        get(route($routeName, ['slug' => $this->event->slug]))->assertForbidden();
-    })->with([
-        'manage' => 'events.manage',
-        'registrations' => 'events.manage-registrations',
-        'announcements' => 'events.announcements',
-    ]);
-
-    test('a revoked co-organizer is forbidden immediately on every manage surface', function (string $routeName) {
-        $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
-        $this->service->revokeCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
-
-        actingAs($this->coOrganizer);
-        get(route($routeName, ['slug' => $this->event->slug]))->assertForbidden();
-    })->with([
-        'manage' => 'events.manage',
-        'registrations' => 'events.manage-registrations',
-        'announcements' => 'events.announcements',
-    ]);
-
-    test('a co-organizer of one event cannot manage another event', function () {
-        $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
-
-        actingAs($this->coOrganizer);
+        // A co-organizer of one event cannot manage another event.
         get(route('events.manage', ['slug' => $this->otherEvent->slug]))->assertForbidden();
-    });
 
-    test('the organizer is unaffected by co-organizer churn', function () {
-        $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
+        // A stranger is forbidden.
+        actingAs($this->stranger);
+        get(route('events.manage', ['slug' => $this->event->slug]))->assertForbidden();
+
+        // A revoked co-organizer is forbidden immediately.
         $this->service->revokeCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
+        actingAs($this->coOrganizer);
+        get(route('events.manage', ['slug' => $this->event->slug]))->assertForbidden();
 
+        // The organizer is unaffected by co-organizer churn.
         actingAs($this->organizer);
         get(route('events.manage', ['slug' => $this->event->slug]))->assertOk();
+    });
+
+    test('events.manage-registrations gates by role: granted co-organizer, stranger, revoked co-organizer', function () {
+        $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
+        actingAs($this->coOrganizer);
+        get(route('events.manage-registrations', ['slug' => $this->event->slug]))->assertOk();
+
+        actingAs($this->stranger);
+        get(route('events.manage-registrations', ['slug' => $this->event->slug]))->assertForbidden();
+
+        $this->service->revokeCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
+        actingAs($this->coOrganizer);
+        get(route('events.manage-registrations', ['slug' => $this->event->slug]))->assertForbidden();
+    });
+
+    test('events.announcements gates by role: granted co-organizer, stranger, revoked co-organizer', function () {
+        $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
+        actingAs($this->coOrganizer);
+        get(route('events.announcements', ['slug' => $this->event->slug]))->assertOk();
+
+        actingAs($this->stranger);
+        get(route('events.announcements', ['slug' => $this->event->slug]))->assertForbidden();
+
+        $this->service->revokeCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
+        actingAs($this->coOrganizer);
+        get(route('events.announcements', ['slug' => $this->event->slug]))->assertForbidden();
     });
 });
 
 // ── Manage-surface write actions (POST matrix) ───────
 
 describe('Manage surface write actions', function () {
-    test('a co-organizer can save event details', function () {
+    test('a co-organizer can use every manage-surface write action', function () {
+        // Old: 'a co-organizer can save event details' + 'a co-organizer can
+        // approve a pending registration' + 'a co-organizer can publish an
+        // announcement'.
         $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
 
         actingAs($this->coOrganizer);
+
         Livewire\Livewire::test(ManageEvent::class, ['slug' => $this->event->slug])
             ->set('venue_name', 'Venue set by co-organizer')
             ->call('save')
             ->assertHasNoErrors();
 
         expect($this->event->fresh()->venue_name)->toBe('Venue set by co-organizer');
-    });
 
-    test('a co-organizer can approve a pending registration', function () {
-        $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
         $registration = EventRegistration::factory()->create(['event_id' => $this->event->id]);
-
-        actingAs($this->coOrganizer);
         Livewire\Livewire::test(ManageRegistrations::class, ['slug' => $this->event->slug])
             ->call('approve', $registration->id);
 
@@ -319,12 +320,7 @@ describe('Manage surface write actions', function () {
             'id' => $registration->id,
             'status' => 'confirmed',
         ]);
-    });
 
-    test('a co-organizer can publish an announcement', function () {
-        $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
-
-        actingAs($this->coOrganizer);
         Livewire\Livewire::test(EventAnnouncements::class, ['slug' => $this->event->slug])
             ->set('title', 'Update from the co-organizer')
             ->set('content', 'Published through the delegated manage surface.')
@@ -338,13 +334,13 @@ describe('Manage surface write actions', function () {
             ->and($announcement->is_published)->toBeTrue();
     });
 
-    test('a stranger cannot reach the save action', function () {
+    test('strangers and revoked co-organizers cannot reach the write actions', function () {
+        // Old: 'a stranger cannot reach the save action' + 'a revoked
+        // co-organizer cannot reach the save action'.
         actingAs($this->stranger);
         Livewire\Livewire::test(ManageEvent::class, ['slug' => $this->event->slug])
             ->assertForbidden();
-    });
 
-    test('a revoked co-organizer cannot reach the save action', function () {
         $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
         $this->service->revokeCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
 
@@ -392,21 +388,18 @@ describe('Delegation authority (UI surface)', function () {
 // ── Filament scoping (any-scope leak fix, M063/S04/T03) ──
 
 describe('Filament EventResource canAccess', function () {
-    test('a global admin can access the Filament events resource', function () {
+    test('only global admins can access the Filament events resource', function () {
+        // Old: 'a global admin can access the Filament events resource' +
+        // 'a scoped-only co-organizer cannot access the Filament events
+        // resource' + 'the organizer (non-admin) and guests cannot access
+        // the Filament events resource'.
         actingAs($this->platformAdmin);
-
         expect(EventResource::canAccess())->toBeTrue();
-    });
 
-    test('a scoped-only co-organizer cannot access the Filament events resource', function () {
         $this->service->grantCoOrganizer($this->event, $this->coOrganizer, $this->organizer);
-
         actingAs($this->coOrganizer);
-
         expect(EventResource::canAccess())->toBeFalse();
-    });
 
-    test('the organizer (non-admin) and guests cannot access the Filament events resource', function () {
         actingAs($this->organizer);
         expect(EventResource::canAccess())->toBeFalse();
 

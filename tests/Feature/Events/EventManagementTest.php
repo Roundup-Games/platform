@@ -152,7 +152,7 @@ describe('Registration Window Enforcement', function () {
         actingAs($user);
         Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
-    })->group('smoke');
+    });
 
     it('blocks registration when registration_opens_at is in the future', function () {
         $user = User::factory()->create(['profile_complete' => true]);
@@ -167,7 +167,7 @@ describe('Registration Window Enforcement', function () {
         actingAs($user);
         Livewire\Livewire::test(RegisterForEvent::class, ['slug' => $event->slug])
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
-    })->group('smoke');
+    });
 
     it('allows registration when window is currently open', function () {
         $user = User::factory()->create(['profile_complete' => true]);
@@ -213,7 +213,7 @@ describe('Capacity Enforcement', function () {
             ->assertRedirect(route('events.detail', ['slug' => $event->slug]));
 
         $this->assertDatabaseCount('event_registrations', 1);
-    })->group('smoke');
+    });
 });
 
 // ── Early Bird Pricing ────────────────────────────────

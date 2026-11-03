@@ -58,7 +58,7 @@ describe('ConfirmationExpired notification', function () {
                 return $notification->entity->id === $game->id;
             }
         );
-    })->group('smoke');
+    });
 
 });
 

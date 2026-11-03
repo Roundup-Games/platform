@@ -106,8 +106,12 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
+        "perf:report": [
+            "Composer\\Config::disableProcessTimeout",
+            "bash scripts/test-perf-report.sh"
+        ],
         "smoke": [
-            "@php artisan test --group=smoke",
+            "@php artisan test --group=smoke --parallel",
             "@php scripts/check-raw-strings.php"
         ],
         "practices": [

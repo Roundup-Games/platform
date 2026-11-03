@@ -67,7 +67,7 @@ describe('Manage Event — is_featured guarded by admin check', function () {
             ->call('save');
 
         expect($event->fresh()->is_featured)->toBeFalse();
-    })->group('smoke');
+    });
 
     test('non-admin cannot unset is_featured on edit when already featured', function () {
         $organizer = featuredCreateUser();
@@ -86,7 +86,7 @@ describe('Manage Event — is_featured guarded by admin check', function () {
             ->call('save');
 
         expect($event->fresh()->is_featured)->toBeTrue();
-    })->group('smoke');
+    });
 
     test('admin can set is_featured on edit', function () {
         $admin = featuredCreateAdmin();
@@ -102,7 +102,7 @@ describe('Manage Event — is_featured guarded by admin check', function () {
             ->call('save');
 
         expect($event->fresh()->is_featured)->toBeTrue();
-    })->group('smoke');
+    });
 
     test('admin can unset is_featured on edit', function () {
         $admin = featuredCreateAdmin();
@@ -120,7 +120,7 @@ describe('Manage Event — is_featured guarded by admin check', function () {
             ->call('save');
 
         expect($event->fresh()->is_featured)->toBeFalse();
-    })->group('smoke');
+    });
 
     test('non-admin save with unchanged is_featured succeeds without warning', function () {
         $organizer = featuredCreateUser();
@@ -137,5 +137,5 @@ describe('Manage Event — is_featured guarded by admin check', function () {
 
         expect($event->fresh()->name)->toBe('Updated Event Name');
         expect($event->fresh()->is_featured)->toBeFalse();
-    })->group('smoke');
+    });
 });

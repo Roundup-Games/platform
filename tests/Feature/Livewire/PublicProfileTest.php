@@ -35,7 +35,7 @@ describe('Public Profile page loads', function () {
         Livewire::test(PublicProfile::class, ['user' => $user])
             ->assertOk()
             ->assertSee($user->name);
-    })->group('smoke');
+    });
 
     it('renders for an authenticated user viewing another profile', function () {
         $viewer = createProfileUser();
@@ -99,7 +99,7 @@ describe('Follow / Unfollow actions', function () {
             ->assertSet('isFollowing', true);
 
         expect($viewer->isFollowing($profileUser))->toBeTrue();
-    })->group('smoke');
+    });
 
     it('unfollows a user', function () {
         $viewer = createProfileUser();
@@ -113,7 +113,7 @@ describe('Follow / Unfollow actions', function () {
             ->assertSet('isFollowing', false);
 
         expect($viewer->isFollowing($profileUser))->toBeFalse();
-    })->group('smoke');
+    });
 
     it('detects friend status after mutual follow', function () {
         $viewer = createProfileUser();
@@ -171,7 +171,7 @@ describe('Block / Unblock actions', function () {
             ->assertSet('hasBlocked', true);
 
         expect($viewer->hasBlocked($profileUser))->toBeTrue();
-    })->group('smoke');
+    });
 
     it('removes follow on block', function () {
         $viewer = createProfileUser();
@@ -187,7 +187,7 @@ describe('Block / Unblock actions', function () {
             ->assertSet('isFollowing', false)
             ->assertSet('isFollowedBy', false)
             ->assertSet('isFriend', false);
-    })->group('smoke');
+    });
 
     it('unblocks a user', function () {
         $viewer = createProfileUser();
@@ -201,7 +201,7 @@ describe('Block / Unblock actions', function () {
             ->assertSet('hasBlocked', false);
 
         expect($viewer->hasBlocked($profileUser))->toBeFalse();
-    })->group('smoke');
+    });
 
     it('cannot block self', function () {
         $user = createProfileUser();
@@ -279,7 +279,7 @@ describe('Game session visibility on profile', function () {
         Livewire::actingAs($viewer)
             ->test(PublicProfile::class, ['user' => $profileUser])
             ->assertViewHas('games', fn ($games) => $games->isEmpty());
-    })->group('smoke');
+    });
 
     it('shows protected games to a friend', function () {
         $profileUser = createProfileUser();
@@ -299,7 +299,7 @@ describe('Game session visibility on profile', function () {
         Livewire::actingAs($viewer)
             ->test(PublicProfile::class, ['user' => $profileUser])
             ->assertViewHas('games', fn ($games) => $games->contains('id', $game->id));
-    })->group('smoke');
+    });
 
     it('never shows private games even to friends', function () {
         $profileUser = createProfileUser();
@@ -318,7 +318,7 @@ describe('Game session visibility on profile', function () {
         Livewire::actingAs($viewer)
             ->test(PublicProfile::class, ['user' => $profileUser])
             ->assertViewHas('games', fn ($games) => $games->isEmpty());
-    })->group('smoke');
+    });
 
     it('shows games the profile user participates in (not just owns)', function () {
         $profileUser = createProfileUser();

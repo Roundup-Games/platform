@@ -35,7 +35,7 @@ it('unsubscribes user from a notification category via signed URL', function () 
     $settings = $this->user->fresh()->notification_settings;
     expect($settings[$category]['mail'])->toBeFalse();
     expect($settings[$category]['database'])->toBeTrue();
-})->group('smoke');
+});
 
 it('preserves other category settings when unsubscribing', function () {
     $category = 'new_follower';
@@ -143,7 +143,7 @@ it('unsubscribes a user from the weekly digest via signed URL', function () {
     $response->assertRedirect(route('profile.show', ['locale' => 'en']));
     $response->assertSessionHas('status');
     expect($this->user->fresh()->weekly_digest_enabled)->toBeFalse();
-})->group('smoke');
+});
 
 it('rejects unsigned digest unsubscribe URLs with 403', function () {
     $url = url('/en/notifications/unsubscribe-digest/'.$this->user->id);
@@ -185,4 +185,4 @@ it('labels digest groups by the per-notification data.type discriminator', funct
 
     expect($rendered)->toContain('Game invitation')
         ->and($rendered)->toContain('Campaign invitation');
-})->group('smoke');
+});

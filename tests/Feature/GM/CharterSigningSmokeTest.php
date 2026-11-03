@@ -224,4 +224,4 @@ it('flows from published charter through private answers and signatures to the g
             ->and($confirmation->version->version_number)->toBe(1)
             ->and($confirmation->status)->toBe(SessionZeroConfirmation::STATUS_SIGNED);
     });
-})->group('smoke');
+});

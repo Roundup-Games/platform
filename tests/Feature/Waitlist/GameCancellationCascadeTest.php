@@ -93,7 +93,7 @@ describe('game cancellation', function () {
             ->and($wp1->fresh()->removed_by)->toBeNull();
         expect($wp2->fresh()->status)->toBe(ParticipantStatus::Rejected)
             ->and($wp2->fresh()->removed_at)->not()->toBeNull();
-    })->group('smoke');
+    });
 
     it('resolves all benched participants when game is cancelled', function () {
         $game = createGameForCancellation($this->owner, $this->gameSystem);
@@ -209,7 +209,7 @@ describe('roster cancellation cascade', function () {
         assertDatabaseHas('games', ['id' => $game->id, 'status' => 'canceled']);
         expect($waitlisted->fresh()->status)->toBe(ParticipantStatus::Rejected)
             ->and($benched->fresh()->status)->toBe(ParticipantStatus::Rejected);
-    })->group('smoke');
+    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -264,5 +264,5 @@ describe('host cancellation offence', function () {
             'reported_id' => $host->id,
             'status' => 'late_cancel',
         ])->exists())->toBeTrue();
-    })->group('smoke');
+    });
 });

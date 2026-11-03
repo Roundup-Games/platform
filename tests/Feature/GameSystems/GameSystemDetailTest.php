@@ -23,7 +23,7 @@ describe('GameSystemDetail - mount and resolution', function () {
             ->assertOk()
             ->assertSee('Wingspan')
             ->assertSee('A competitive bird-collection engine-building game');
-    })->group('smoke');
+    });
 });
 
 describe('GameSystemDetail - eager loaded relationships', function () {

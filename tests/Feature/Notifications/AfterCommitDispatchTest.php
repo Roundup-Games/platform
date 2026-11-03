@@ -30,4 +30,4 @@ it('locks in after_commit=true on every async queue connection', function () {
                 .'and UserAnonymizationService::cancelSoleHostedEntities for the in-transaction dispatch sites.'
             );
     }
-})->group('smoke');
+});

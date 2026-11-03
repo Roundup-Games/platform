@@ -466,9 +466,6 @@ class DemoSeedCommand extends Command
         if (! $this->resolveGameSystems()) {
             return self::FAILURE;
         }
-        $this->createLocations();
-        $this->createUsers();
-        $this->setupGMs();
 
         // --cohort-only (2026-11-01 harness report): the badge-cohort
         // contract needs users/GMs, locations, completed sessions (debut,
@@ -481,6 +478,16 @@ class DemoSeedCommand extends Command
         // dependent (MEM1509) — a (bool) cast re-trips uselessCast where the
         // resolution succeeds.
         $cohortOnly = filter_var($this->option('cohort-only'), FILTER_VALIDATE_BOOLEAN);
+
+        // Toy/cohort runs take only the 44 curated venues: each location is
+        // an Eloquent Location::create (the HasSEO observer adds a seo-row
+        // INSERT per location), so the 82 generic venues cost ~250 queries
+        // the badge cohort never reads (2026-11-02 harness report; games
+        // pick from the curated city pools either way). Full-scale demo
+        // environments keep all 126.
+        $this->createLocations(withGenericVenues: ! $cohortOnly);
+        $this->createUsers();
+        $this->setupGMs();
 
         if (! $cohortOnly) {
             $this->buildSocialGraph();
@@ -787,11 +794,11 @@ class DemoSeedCommand extends Command
 
     // =========================================================================
 
-    private function createLocations(): void
+    private function createLocations(bool $withGenericVenues = true): void
     {
         $this->newLine();
         $this->info('Creating locations...');
-        $allVenues = $this->allVenueData();
+        $allVenues = $this->allVenueData($withGenericVenues);
         $total = array_sum(array_map('count', $allVenues));
         $bar = $this->output->createProgressBar($total);
         $bar->start();
@@ -830,12 +837,22 @@ class DemoSeedCommand extends Command
     /**
      * @return array<string, list<array<string, mixed>>>
      */
-    private function allVenueData(): array
+    private function allVenueData(bool $withGenericVenues = true): array
     {
+        $berlin = $this->berlinVenues();
+        $hamburg = $this->hamburgVenues();
+        $munchen = $this->munchenVenues();
+
+        if ($withGenericVenues) {
+            $berlin = [...$berlin, ...$this->genericVenues('Berlin', 52.5200, 13.4050, 42, '10')];
+            $hamburg = [...$hamburg, ...$this->genericVenues('Hamburg', 53.5511, 9.9937, 20, '20')];
+            $munchen = [...$munchen, ...$this->genericVenues('München', 48.1351, 11.5820, 20, '80')];
+        }
+
         return [
-            'Berlin' => array_merge($this->berlinVenues(), $this->genericVenues('Berlin', 52.5200, 13.4050, 42, '10')),
-            'Hamburg' => array_merge($this->hamburgVenues(), $this->genericVenues('Hamburg', 53.5511, 9.9937, 20, '20')),
-            'München' => array_merge($this->munchenVenues(), $this->genericVenues('München', 48.1351, 11.5820, 20, '80')),
+            'Berlin' => $berlin,
+            'Hamburg' => $hamburg,
+            'München' => $munchen,
         ];
     }
 
@@ -848,7 +865,7 @@ class DemoSeedCommand extends Command
     }
 
     /**
-     * @return array<int, array<string, mixed>>
+     * @return list<array<string, mixed>>
      */
     private function berlinVenues(): array
     {
@@ -884,7 +901,7 @@ class DemoSeedCommand extends Command
     }
 
     /**
-     * @return array<int, array<string, mixed>>
+     * @return list<array<string, mixed>>
      */
     private function hamburgVenues(): array
     {
@@ -906,7 +923,7 @@ class DemoSeedCommand extends Command
     }
 
     /**
-     * @return array<int, array<string, mixed>>
+     * @return list<array<string, mixed>>
      */
     private function munchenVenues(): array
     {
@@ -928,7 +945,7 @@ class DemoSeedCommand extends Command
     }
 
     /**
-     * @return array<int, array<string, mixed>>
+     * @return list<array<string, mixed>>
      */
     private function genericVenues(string $city, float $cLat, float $cLng, int $count, string $plzPrefix): array
     {

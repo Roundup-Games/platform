@@ -58,7 +58,7 @@ describe('ManageRoster Authorization', function () {
     })->with([
         'captain allows' => ['captain', true],
         'stranger denied' => ['stranger', false],
-    ])->group('smoke');
+    ]);
 
 });
 
@@ -96,7 +96,7 @@ describe('ManageRoster Invite', function () {
         'captain allows' => ['captain', true],
         'coach allows' => ['coach', true],
         'player denied' => ['player', false],
-    ])->group('smoke');
+    ]);
 
     it('rejects invite for non-existent email', function () {
         ['captain' => $captain, 'team' => $team] = $this->createTeamWithCaptain();

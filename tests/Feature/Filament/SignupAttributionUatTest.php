@@ -25,9 +25,22 @@ use function Pest\Laravel\get;
 // months, and participants across all five JoinSource values on BOTH
 // game_participants and campaign_participants.
 //
-// Each test maps 1:1 to a numbered UAT step so the runbook stays in lock-step
-// with the autonomous pre-flight. Step 8 is the load-bearing raw-SQL
-// reconciliation across every widget.
+// M073/S03/T01 — consolidated from 8 per-step Pest tests into ONE flow test:
+// each old test's beforeEach rebuilt the IDENTICAL ~430-query dataset, so the
+// file paid 8× the seeding cost for the same assertions. The dataset is now
+// built ONCE (beforeEach runs exactly once for this single test) and every
+// runbook step asserts against it in sequence, each as a clearly-commented
+// `STEP n` block. Old-test → block mapping is 1:1: old 'STEP n: …' test →
+// the `STEP n` block below; every assertion is preserved verbatim.
+//
+// The steps are intentionally NOT isolated: a failure in an early STEP aborts
+// the later ones. Every STEP is read-only (nothing mutates state a later STEP
+// depends on) and the dataset is deterministic, so a later-STEP failure still
+// points at the report, not at step coupling. Do NOT reintroduce per-step
+// tests (each would rebuild the dataset) or a beforeAll DB fixture
+// (DatabaseTransactions wraps per-test; committed beforeAll state would leak
+// under --parallel). Step 8 is the load-bearing raw-SQL reconciliation across
+// every widget.
 //
 // Livewire::test(SignupAttributionReport::class) drives the REAL Filament
 // render pipeline — it mounts the page, calls the real table()/
@@ -60,7 +73,7 @@ beforeEach(function () {
     // Under `pest --parallel` the shared test DB can carry NULL-provider users
     // leaked from sibling tests, which would inflate the report's "Unknown"
     // bucket and break STEP 2's absolute counts. Snapshot the per-provider
-    // user counts BEFORE seeding (mirroring SignupAttributionReport's grouping)
+    // user counts BEFORE seeding (mirroring SignupAttribution's grouping)
     // so STEP 2 can assert the DELTA the seeder added (robust to leaked prior
     // data) rather than fragile absolute totals.
     $this->baselineProviders = [
@@ -75,9 +88,11 @@ beforeEach(function () {
         })->count(),
     ];
 
-    // Seed the production-shaped dataset once per test. The seeder is
-    // deterministic (fixed providers/domains/content/dates) so expected counts
-    // are stable and the raw-SQL reconciliation has fixed targets.
+    // Seed the production-shaped dataset ONCE for the whole flow test (the
+    // single test below — before the consolidation each STEP rebuilt it). The
+    // seeder is deterministic (fixed providers/domains/content/dates) so
+    // expected counts are stable and the raw-SQL reconciliation in STEP 8 has
+    // fixed targets.
     seedRealisticAttributionDataset();
 });
 
@@ -219,21 +234,25 @@ function seedRealisticAttributionDataset(): void
 // ── UAT runbook (mirrors 56-02-UAT.md) ───────────────
 
 describe('UAT — realistic dataset end-to-end', function () {
-    test('STEP 1: admin loads the report and all four summary sections render', function () {
+    test('UAT flow (steps 1-8): all widgets render, both filters narrow, every widget reconciles with raw SQL', function () {
         actingAs($this->platformAdmin);
 
+        // ── STEP 1: admin loads the report and all four summary sections render ──
         get('/admin/signup-attribution-report')
             ->assertSuccessful()
             ->assertSee('Signups by Provider')
             ->assertSee('Top Referer Domains')
             ->assertSee('Top Signup Content Types')
             ->assertSee('Participants by Join Source');
-    });
 
-    test('STEP 2: Signups-by-Provider widget shows all four buckets including Unknown (NULL provider)', function () {
-        actingAs($this->platformAdmin);
-
+        // One unfiltered Livewire mount shared by STEP 2-5 and STEP 8. The
+        // widget methods are pure reads (each rebuilds its GROUP BY query via
+        // getFilteredTableQuery()) and no step mutates the component's filter
+        // state between uses, so one boot is semantically identical to the
+        // five separate mounts the old per-step tests paid for.
         $report = Livewire\Livewire::test(SignupAttributionReport::class)->instance();
+
+        // ── STEP 2: Signups-by-Provider widget shows all four buckets including Unknown (NULL provider) ──
         $providers = $report->providerBreakdown();
 
         // Assert the DELTA the seeder added (current − baseline captured in
@@ -251,12 +270,8 @@ describe('UAT — realistic dataset end-to-end', function () {
             ->and($delta('Discord'))->toBe(7)
             ->and($delta('Email'))->toBe(6)
             ->and($delta('Unknown'))->toBe(3);
-    });
 
-    test('STEP 3: Top Referer Domains widget shows top 5 with NULLs excluded', function () {
-        actingAs($this->platformAdmin);
-
-        $report = Livewire\Livewire::test(SignupAttributionReport::class)->instance();
+        // ── STEP 3: Top Referer Domains widget shows top 5 with NULLs excluded ──
         $referers = $report->topRefererDomains(5);
 
         // Realistic dataset non-NULL referer totals: google.com=4, discord.com=4,
@@ -268,12 +283,8 @@ describe('UAT — realistic dataset end-to-end', function () {
             ->and($referers['facebook.com'])->toBe(2)
             ->and($referers['reddit.com'])->toBe(2)
             ->and(array_sum($referers))->toBe(15); // every non-NULL referer
-    });
 
-    test('STEP 4: Top Signup Content Types widget shows Game/Campaign/Venue with NULLs excluded', function () {
-        actingAs($this->platformAdmin);
-
-        $report = Livewire\Livewire::test(SignupAttributionReport::class)->instance();
+        // ── STEP 4: Top Signup Content Types widget shows Game/Campaign/Venue with NULLs excluded ──
         $contentTypes = $report->topSignupContentTypes(5);
 
         // Realistic dataset non-NULL content totals: game=9, venue=3, campaign=3.
@@ -281,12 +292,8 @@ describe('UAT — realistic dataset end-to-end', function () {
             ->and($contentTypes['Venue'])->toBe(3)
             ->and($contentTypes['Campaign'])->toBe(3)
             ->and(array_sum($contentTypes))->toBe(15);
-    });
 
-    test('STEP 5: Participants-by-Join-Source widget shows all five sources summed across both tables', function () {
-        actingAs($this->platformAdmin);
-
-        $report = Livewire\Livewire::test(SignupAttributionReport::class)->instance();
+        // ── STEP 5: Participants-by-Join-Source widget shows all five sources summed across both tables ──
         $joinSources = $report->joinSourceBreakdown();
 
         // Cross-table SUM: game + campaign per source.
@@ -300,33 +307,32 @@ describe('UAT — realistic dataset end-to-end', function () {
             ->and($joinSources[JoinSource::Application->label()])->toBe(3)
             ->and($joinSources[JoinSource::EmailInvite->label()])->toBe(1)
             ->and($joinSources[JoinSource::ShortLink->label()])->toBe(1);
-    });
 
-    test('STEP 6: provider filter narrows the table AND the three user-grain widgets; join-source widget is grain-isolated', function () {
-        actingAs($this->platformAdmin);
-
+        // ── STEP 6: provider filter narrows the table AND the three user-grain widgets; join-source widget is grain-isolated ──
         // Use representative records (not the full filtered set) because the
         // report paginates by design — spot-checking inclusion + exclusion
         // proves the filter narrowed correctly without coupling to page size.
         $oneGoogleUser = User::where('signup_oauth_provider', 'google')->first();
         $oneDiscordUser = User::where('signup_oauth_provider', 'discord')->first();
 
+        // Fresh mount: filterTable() mutates component state, so the filtered
+        // component cannot share the unfiltered $report above.
         $component = Livewire\Livewire::test(SignupAttributionReport::class)
             ->filterTable('signup_oauth_provider', 'google');
 
         $component->assertCanSeeTableRecords([$oneGoogleUser])
             ->assertCanNotSeeTableRecords([$oneDiscordUser]);
 
-        $report = $component->instance();
+        $filteredReport = $component->instance();
 
         // User-grain widgets follow the filter (8 google users total).
-        $providers = $report->providerBreakdown();
+        $providers = $filteredReport->providerBreakdown();
         expect($providers['Google'])->toBe(8)
             ->and($providers['Discord'])->toBe(0)
             ->and($providers['Email'])->toBe(0)
             ->and($providers)->not->toHaveKey('Unknown'); // NULL providers excluded by filter
 
-        $referers = $report->topRefererDomains(5);
+        $referers = $filteredReport->topRefererDomains(5);
         // Only google-provider users' referer domains survive:
         // google.com×4 (rows 0,1,2,3), t.co×1 (row 4), reddit.com×1 (row 7). Total = 6.
         expect($referers['google.com'])->toBe(4)
@@ -334,7 +340,7 @@ describe('UAT — realistic dataset end-to-end', function () {
             ->and($referers['reddit.com'])->toBe(1)
             ->and(array_sum($referers))->toBe(6);
 
-        $content = $report->topSignupContentTypes(5);
+        $content = $filteredReport->topSignupContentTypes(5);
         // Google-provider content: game×4 (rows 0,1,3,6), venue×1 (row 2), campaign×1 (row 4).
         expect($content['Game'])->toBe(4)
             ->and($content['Venue'])->toBe(1)
@@ -342,16 +348,14 @@ describe('UAT — realistic dataset end-to-end', function () {
             ->and(array_sum($content))->toBe(6);
 
         // Join-source widget is at participant grain — UNCHANGED by the user filter.
-        $joinSources = $report->joinSourceBreakdown();
+        $joinSources = $filteredReport->joinSourceBreakdown();
         expect($joinSources[JoinSource::FriendInvite->label()])->toBe(5)
             ->and($joinSources[JoinSource::ShortLink->label()])->toBe(1);
-    });
 
-    test('STEP 7: content-type filter and date-range filter each narrow the table', function () {
-        actingAs($this->platformAdmin);
-
-        // ── Content-type filter: game ──
+        // ── STEP 7: content-type filter and date-range filter each narrow the table ──
+        // Content-type filter: game.
         // Spot-check: one game-content user visible, one campaign-content user excluded.
+        // One fresh mount per filter — each filter is its own component state.
         $oneGameUser = User::where('signup_content_type', 'game')->first();
         $oneCampaignUser = User::where('signup_content_type', 'campaign')->first();
         Livewire\Livewire::test(SignupAttributionReport::class)
@@ -359,7 +363,7 @@ describe('UAT — realistic dataset end-to-end', function () {
             ->assertCanSeeTableRecords([$oneGameUser])
             ->assertCanNotSeeTableRecords([$oneCampaignUser]);
 
-        // ── Date-range filter: Q2 tail (May–Jun 2026) ──
+        // Date-range filter: Q2 tail (May–Jun 2026).
         // The table sorts created_at DESC with 10-per-page pagination, so the
         // newest attribution users render on page 1. A May–Jun window captures
         // those page-1 users (May 4 + Jun 3 = 7 users, all on page 1 after the
@@ -375,17 +379,12 @@ describe('UAT — realistic dataset end-to-end', function () {
             ])
             ->assertCanSeeTableRecords([$mayUser])
             ->assertCanNotSeeTableRecords([$aprilUser]);
-    });
 
-    test('STEP 8 (load-bearing): every widget reconciles against raw SELECT GROUP BY counts', function () {
+        // ── STEP 8 (load-bearing): every widget reconciles against raw SELECT GROUP BY counts ──
         // This is the load-bearing UAT assertion: every number shown to an
         // admin must match a raw SQL re-derivation. If any widget drifts from
-        // the underlying data, this test fails.
-        actingAs($this->platformAdmin);
-
-        $report = Livewire\Livewire::test(SignupAttributionReport::class)->instance();
-
-        // ── Provider widget vs raw GROUP BY ──
+        // the underlying data, this fails. Reuses the unfiltered $report from
+        // STEP 2 — same unfiltered state, no data mutations since.
         $rawProviders = DB::table('users')
             ->select('signup_oauth_provider', DB::raw('count(*) as total'))
             ->groupBy('signup_oauth_provider')
@@ -397,7 +396,7 @@ describe('UAT — realistic dataset end-to-end', function () {
             ->and($providers['Unknown'])->toBe((int) ($rawProviders[null] ?? 0))
             ->and(array_sum($providers))->toBe((int) DB::table('users')->count());
 
-        // ── Referer widget vs raw GROUP BY (NULLs excluded) ──
+        // Referer widget vs raw GROUP BY (NULLs excluded).
         $rawReferers = DB::table('users')
             ->whereNotNull('first_touch_referer_domain')
             ->where('first_touch_referer_domain', '!=', '')
@@ -412,7 +411,7 @@ describe('UAT — realistic dataset end-to-end', function () {
         $rawTop = $rawReferers->keys()->first();
         expect(array_keys($referers)[0])->toBe($rawTop);
 
-        // ── Content-type widget vs raw GROUP BY (NULLs excluded) ──
+        // Content-type widget vs raw GROUP BY (NULLs excluded).
         $rawContent = DB::table('users')
             ->whereNotNull('signup_content_type')
             ->where('signup_content_type', '!=', '')
@@ -424,7 +423,7 @@ describe('UAT — realistic dataset end-to-end', function () {
         $content = $report->topSignupContentTypes(5);
         expect(array_sum($content))->toBe((int) $rawContent->sum());
 
-        // ── Join-source widget vs raw cross-table GROUP BY ──
+        // Join-source widget vs raw cross-table GROUP BY.
         $rawGame = DB::table('game_participants')
             ->select('join_source', DB::raw('count(*) as total'))
             ->groupBy('join_source')

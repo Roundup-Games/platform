@@ -32,14 +32,14 @@ it('renders the opt-out CONFIRMATION page (not the invalid page) for a valid has
         ->assertSuccessful()
         ->assertSee(__('invite_optout.title_confirm'))   // confirm step rendered
         ->assertDontSee(__('invite_optout.title_invalid')); // not the invalid view
-})->group('smoke');
+});
 
 it('rejects an invalid hash format with a 404 (route constraint)', function () {
     // The route constrains {emailHash} to a SHA-256 hex pattern, so a malformed
     // hash never reaches the controller — it 404s. The controller's regex check
     // is defense-in-depth for when the constraint is bypassed (covered below).
     get('/en/invite-optout/not-a-real-hash')->assertNotFound();
-})->group('smoke');
+});
 
 it('confirms the opt-out over HTTP and persists the suppression idempotently', function () {
     $hash = hash('sha256', 'member@example.com');
@@ -55,7 +55,7 @@ it('confirms the opt-out over HTTP and persists the suppression idempotently', f
     // Idempotent: a second confirm does not create a duplicate row.
     post("/en/invite-optout/{$hash}")->assertSuccessful();
     expect(SuppressedInviteEmail::where('email_hash', $hash)->count())->toBe(1);
-})->group('smoke');
+});
 
 it('rejects confirmation with an invalid hash format (no suppression persisted)', function () {
     // The route constraint 404s on non-hex input, so this exercises the
@@ -66,7 +66,7 @@ it('rejects confirmation with an invalid hash format (no suppression persisted)'
     $controller->confirm($request, 'en', 'bad-hash');
 
     expect(SuppressedInviteEmail::count())->toBe(0);
-})->group('smoke');
+});
 
 it('allows re-enabling invitations by removing the suppression', function () {
     $hash = hash('sha256', 'returning@example.com');
@@ -79,4 +79,4 @@ it('allows re-enabling invitations by removing the suppression', function () {
     SuppressedInviteEmail::where('email_hash', $hash)->delete();
 
     expect(SuppressedInviteEmail::where('email_hash', $hash)->exists())->toBeFalse();
-})->group('smoke');
+});

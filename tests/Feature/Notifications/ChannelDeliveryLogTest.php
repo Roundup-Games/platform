@@ -48,7 +48,7 @@ it('logs notification.channel_delivered when a channel send succeeds', function 
         ->and($record['context']['channel'])->toBe('database')
         ->and($record['context']['notification_type'])->toBe(AccountSuspended::class)
         ->and($record['context']['notifiable_id'])->toBe($user->id);
-})->group('smoke');
+});
 
 it('logs notification.channel_failed with the channel and error when a channel send fails', function () {
     $user = User::factory()->create();
@@ -63,7 +63,7 @@ it('logs notification.channel_failed with the channel and error when a channel s
         ->and($record['context']['notification_type'])->toBe(AccountSuspended::class)
         ->and($record['context']['error'])->toBe('SMTP timeout')
         ->and($record['context']['exception'])->toBe(RuntimeException::class);
-})->group('smoke');
+});
 
 it('aliases each channel class to a short name for readable logs', function () {
     $user = User::factory()->create();
@@ -74,4 +74,4 @@ it('aliases each channel class to a short name for readable logs', function () {
     $record = $this->logRecord('notification.channel_failed');
 
     expect($record['context']['channel'])->toBe('push');
-})->group('smoke');
+});

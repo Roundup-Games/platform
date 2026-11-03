@@ -75,7 +75,7 @@ describe('GmWorkspace Access Control', function () {
             ->get(route('gm.workspace', 'en'))
             ->assertOk()
             ->assertSee(__('gws.title_gm_workspace', [], 'en'));
-    })->group('smoke');
+    });
 
     // smoke: de-locale regression (M066/S10) — /de/gm-workspace must render
     // German dates, never English AM/PM formats. Pins the full-page render
@@ -109,7 +109,7 @@ describe('GmWorkspace Access Control', function () {
         // random ids / CSRF tokens can't cause false positives.
         expect($response->getContent())
             ->not->toMatch('/\b(?:AM|PM)\b/');
-    })->group('smoke');
+    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -495,7 +495,7 @@ describe('GmWorkspace Share Link Analytics', function () {
         expect($payload)->toBeArray()
             ->and($payload[0]['linksByType'])->toBe(['Game' => 1])
             ->and($payload[1])->toBe([$link->id]);
-    })->group('smoke');
+    });
 });
 
 // ═══════════════════════════════════════════════════════════

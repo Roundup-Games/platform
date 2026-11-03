@@ -58,7 +58,7 @@ it('allows Platform Admin to access every escalated page', function () use ($pag
         expect($page::canAccess())
             ->toBeTrue("Platform Admin should be able to access {$page}");
     }
-})->group('smoke');
+});
 
 it('denies regular users access to every escalated page', function () use ($pages) {
     config(['escalated.plugins.enabled' => true]);
@@ -68,4 +68,4 @@ it('denies regular users access to every escalated page', function () use ($page
         expect($page::canAccess())
             ->toBeFalse("Regular users must not be able to access {$page}");
     }
-})->group('smoke');
+});

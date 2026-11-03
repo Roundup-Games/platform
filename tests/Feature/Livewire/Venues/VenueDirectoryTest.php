@@ -22,7 +22,7 @@ describe('VenueDirectory route + render', function () {
         get(route('venues.directory'))
             ->assertOk()
             ->assertSee(__('venues.heading_directory'));
-    })->group('smoke');
+    });
 
     it('emits the directory SEO title', function () {
         $response = get(route('venues.directory'));

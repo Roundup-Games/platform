@@ -20,7 +20,7 @@ it('creates the locations geohash trigger', function () {
     ");
 
     expect($triggers)->not->toBeEmpty('The geohash auto-trigger must exist on the locations table');
-})->group('smoke');
+});
 
 it('creates GIN indexes for full-text and JSONB search', function () {
     $ginIndexes = DB::select("
@@ -29,7 +29,7 @@ it('creates GIN indexes for full-text and JSONB search', function () {
     ");
 
     expect($ginIndexes)->not->toBeEmpty('At least one GIN index must exist for pg_trgm or JSONB search');
-})->group('smoke');
+});
 
 it('creates all expected tables from the squashed schema', function () {
     // A representative sample across all domains — not exhaustive, but catches
@@ -48,4 +48,4 @@ it('creates all expected tables from the squashed schema', function () {
         expect($schemaBuilder->hasTable($table))
             ->toBeTrue("Table '{$table}' must exist after loading the squashed schema");
     }
-})->group('smoke');
+});

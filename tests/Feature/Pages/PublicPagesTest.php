@@ -26,7 +26,7 @@ describe('HomepageSEO', function () {
             // the raw HTML instead.
             ->assertSeeText(__('pages.seo_title_home'))
             ->assertSee(e(__('pages.seo_description_home')), false);
-    })->group('smoke');
+    });
 
     it('includes Organization schema markup', function () {
         get(route('home'))
@@ -74,7 +74,7 @@ describe('ContactPage', function () {
             ->assertOk()
             ->assertSee(__('pages.content_contact_us'))
             ->assertSee(__('pages.field_send_us_a_message'));
-    })->group('smoke');
+    });
 
     it('shows the contact form fields', function () {
         get(route('contact'))

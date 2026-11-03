@@ -17,7 +17,7 @@ it('reports OK with all dependencies reachable', function () {
     get('/up')
         ->assertOk()
         ->assertSee('OK');
-});
+})->group('smoke');
 
 it('reports 503 with the failing checks when a dependency is down', function () {
     // Fail the default Redis connection deterministically. Poisoning a
@@ -36,4 +36,4 @@ it('reports 503 with the failing checks when a dependency is down', function () 
         ->and($checks['database'])->toBeTrue() // Postgres untouched
         ->and($checks['redis'])->toBeFalse()
         ->and($checks['cache'])->toBe($expectedCache);
-});
+})->group('smoke');

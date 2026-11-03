@@ -51,7 +51,7 @@ describe('Duplicate registration check — individual registrations', function (
             ->where('user_id', $userB->id)
             ->where('status', '!=', 'cancelled')
             ->exists())->toBeTrue();
-    })->group('smoke');
+    });
 
     test('duplicate check is scoped per event', function () {
         $user = regCreateUser();
@@ -133,7 +133,7 @@ describe('Active-registration unique index (race backstop)', function () {
             ->where('user_id', $user->id)
             ->whereNot('status', 'cancelled')
             ->count())->toBe(1);
-    })->group('smoke');
+    });
 
     test('partial index allows an active row alongside multiple cancelled rows', function () {
         $user = regCreateUser();

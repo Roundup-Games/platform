@@ -39,7 +39,7 @@ describe('Tool toggling', function () {
         Livewire::test(SafetyToolPicker::class)
             ->call('toggleTool', 'session-zero')
             ->assertSet('selected', ['session-zero']);
-    })->group('smoke');
+    });
 
     it('selecting multiple tools accumulates them', function () {
         Livewire::test(SafetyToolPicker::class)

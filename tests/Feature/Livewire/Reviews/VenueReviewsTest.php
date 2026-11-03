@@ -66,7 +66,7 @@ describe('VenueReviews — display', function () {
         Livewire::test(VenueReviews::class, ['location' => $venue])
             ->assertOk()
             ->assertSee(__('venues.content_no_reviews'));
-    })->group('smoke');
+    });
 
     it('renders the aggregate header and a published review in the list', function () {
         $venue = createVerifiedVenue();

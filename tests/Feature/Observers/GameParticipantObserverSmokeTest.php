@@ -41,7 +41,7 @@ it('stamps approved_at when a participant is created with Approved status and no
     ]);
 
     expect($participant->fresh()->approved_at)->not->toBeNull();
-})->group('smoke');
+});
 
 it('does not stamp approved_at for a non-Approved participant', function () {
     $host = User::factory()->create(['profile_complete' => true]);
@@ -59,7 +59,7 @@ it('does not stamp approved_at for a non-Approved participant', function () {
     ]);
 
     expect($participant->fresh()->approved_at)->toBeNull();
-})->group('smoke');
+});
 
 it('respects an explicitly-set approved_at and does not overwrite it', function () {
     $host = User::factory()->create(['profile_complete' => true]);
@@ -81,7 +81,7 @@ it('respects an explicitly-set approved_at and does not overwrite it', function 
 
     // The observer only stamps when approved_at is null — explicit value wins.
     expect($participant->fresh()->approved_at->timestamp)->toBe($explicit->timestamp);
-})->group('smoke');
+});
 
 // ── Host auto-follow on join ─────────────────────────────────────────────
 
@@ -109,7 +109,7 @@ it('auto-follows the game host when a participant joins and auto_follow_on_join 
             ->where('related_user_id', $host->id)
             ->exists()
     )->toBeTrue();
-})->group('smoke');
+});
 
 it('does not auto-follow when auto_follow_on_join is disabled', function () {
     config(['community.auto_follow_on_join' => false]);
@@ -134,7 +134,7 @@ it('does not auto-follow when auto_follow_on_join is disabled', function () {
             ->where('related_user_id', $host->id)
             ->exists()
     )->toBeFalse();
-})->group('smoke');
+});
 
 // ── Dashboard cache invalidation on join ─────────────────────────────────
 
@@ -161,4 +161,4 @@ it('invalidates the joining user dashboard cache when a participant is created',
         'role' => ParticipantRole::Owner->value,
         'status' => ParticipantStatus::Approved->value,
     ]);
-})->group('smoke');
+});

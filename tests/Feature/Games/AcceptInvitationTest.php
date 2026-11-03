@@ -50,7 +50,7 @@ describe('Game AcceptInvitation', function () {
             'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
-    })->group('smoke');
+    });
 
     test('cannot accept someone else\'s invitation', function () {
         ['owner' => $owner, 'game' => $game] = acceptTestCreateGameWithOwner();
@@ -75,7 +75,7 @@ describe('Game AcceptInvitation', function () {
             'role' => ParticipantRole::Invited->value,
             'status' => ParticipantStatus::Pending->value,
         ]);
-    })->group('smoke');
+    });
 
     test('cannot accept already-accepted invitation', function () {
         ['owner' => $owner, 'game' => $game] = acceptTestCreateGameWithOwner();
@@ -99,7 +99,7 @@ describe('Game AcceptInvitation', function () {
             'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
-    })->group('smoke');
+    });
 
     test('full game routes to waitlist on accept', function () {
         ['owner' => $owner, 'game' => $game] = acceptTestCreateGameWithOwner(['max_players' => 2]);
@@ -138,7 +138,7 @@ describe('Game AcceptInvitation', function () {
             'user_id' => $invitedUser->id,
             'status' => ParticipantStatus::Waitlisted->value,
         ]);
-    })->group('smoke');
+    });
 
     test('can accept when under capacity', function () {
         ['owner' => $owner, 'game' => $game] = acceptTestCreateGameWithOwner(['max_players' => 5]);
@@ -169,7 +169,7 @@ describe('Game AcceptInvitation', function () {
             'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
-    })->group('smoke');
+    });
 
     test('accept invitation from manage participants page', function () {
         ['owner' => $owner, 'game' => $game] = acceptTestCreateGameWithOwner();
@@ -194,7 +194,7 @@ describe('Game AcceptInvitation', function () {
             'role' => ParticipantRole::Player->value,
             'status' => ParticipantStatus::Approved->value,
         ]);
-    })->group('smoke');
+    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -223,7 +223,7 @@ describe('Game DeclineInvitation', function () {
             'id' => $participant->id,
             'status' => ParticipantStatus::Rejected->value,
         ]);
-    })->group('smoke');
+    });
 
     test('cannot decline someone else\'s invitation', function () {
         ['owner' => $owner, 'game' => $game] = acceptTestCreateGameWithOwner();
@@ -247,7 +247,7 @@ describe('Game DeclineInvitation', function () {
             'role' => ParticipantRole::Invited->value,
             'status' => ParticipantStatus::Pending->value,
         ]);
-    })->group('smoke');
+    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -270,6 +270,6 @@ describe('Game Invitation Banner', function () {
             ->test(GameDetail::class, ['id' => $game->id])
             ->assertSee('Accept Invitation')
             ->assertSee('Accept');
-    })->group('smoke');
+    });
 
 });

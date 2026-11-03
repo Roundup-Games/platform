@@ -43,7 +43,7 @@ describe('Trypass events', function () {
         expect($result->eligible)->toBeTrue()
             ->and($result->source)->toBe('trypass')
             ->and($result->reason)->toBe('trypass_game_upcoming');
-    });
+    })->group('smoke');
 
     it('passes for user with upcoming game as approved participant within 7 days', function () {
         $game = Game::factory()->create(['date_time' => now()->addDays(5)]);
@@ -59,7 +59,7 @@ describe('Trypass events', function () {
         expect($result->eligible)->toBeTrue()
             ->and($result->source)->toBe('trypass')
             ->and($result->reason)->toBe('trypass_game_upcoming');
-    });
+    })->group('smoke');
 
     it('does not trypass for game beyond 7 days', function () {
         Game::factory()->create([
@@ -71,7 +71,7 @@ describe('Trypass events', function () {
         $result = $this->service->isEligible($this->user);
 
         expect($result->source)->not->toBe('trypass');
-    });
+    })->group('smoke');
 
     it('does not trypass for past game', function () {
         Game::factory()->create([
@@ -83,7 +83,7 @@ describe('Trypass events', function () {
         $result = $this->service->isEligible($this->user);
 
         expect($result->source)->not->toBe('trypass');
-    });
+    })->group('smoke');
 
     it('passes for first game created within last 5 minutes (owner)', function () {
         Game::factory()->create([
@@ -97,7 +97,7 @@ describe('Trypass events', function () {
         expect($result->eligible)->toBeTrue()
             ->and($result->source)->toBe('trypass')
             ->and($result->reason)->toBe('trypass_first_game_created');
-    });
+    })->group('smoke');
 
     it('passes for game joined (approved participant on recently created game) within 5 minutes', function () {
         $game = Game::factory()->create([
@@ -116,7 +116,7 @@ describe('Trypass events', function () {
         expect($result->eligible)->toBeTrue()
             ->and($result->source)->toBe('trypass')
             ->and($result->reason)->toBe('trypass_game_joined');
-    });
+    })->group('smoke');
 
     it('passes for game invitation received within last 5 minutes', function () {
         $host = User::factory()->create();
@@ -137,7 +137,7 @@ describe('Trypass events', function () {
         expect($result->eligible)->toBeTrue()
             ->and($result->source)->toBe('trypass')
             ->and($result->reason)->toBe('trypass_invitation_received');
-    });
+    })->group('smoke');
 
     it('passes for first campaign created within last 5 minutes', function () {
         Campaign::factory()->create([
@@ -150,7 +150,7 @@ describe('Trypass events', function () {
         expect($result->eligible)->toBeTrue()
             ->and($result->source)->toBe('trypass')
             ->and($result->reason)->toBe('trypass_first_campaign_created');
-    });
+    })->group('smoke');
 
     it('does not trypass for second campaign created within 5 minutes', function () {
         Campaign::factory()->create([
@@ -165,7 +165,7 @@ describe('Trypass events', function () {
         $result = $this->service->isEligible($this->user);
 
         expect($result->reason)->not->toBe('trypass_first_campaign_created');
-    });
+    })->group('smoke');
 
     it('trypass overrides even when score gate would fail', function () {
         // No visit days, no game participation, no social investment — score gate would fail
@@ -187,7 +187,7 @@ describe('Trypass events', function () {
 
         expect($result->eligible)->toBeTrue()
             ->and($result->source)->toBe('trypass');
-    });
+    })->group('smoke');
 
     it('trypass is blocked when baseline fails', function () {
         $this->user->update(['profile_complete' => false]);
@@ -209,7 +209,7 @@ describe('Trypass events', function () {
 
         expect($result->eligible)->toBeFalse()
             ->and($result->reason)->toBe('baseline_missing');
-    });
+    })->group('smoke');
 });
 
 // ── Score Gate (boundary tests: 0, 1, 2 of 3 signals) ──
@@ -220,7 +220,7 @@ describe('Score gate combinations', function () {
 
         expect($result->eligible)->toBeFalse()
             ->and($result->reason)->toBe('score_too_low');
-    });
+    })->group('smoke');
 
     it('rejects with only 1 of 3 signals (visits)', function () {
         UserAppVisit::factory()->create([
@@ -236,7 +236,7 @@ describe('Score gate combinations', function () {
 
         expect($result->eligible)->toBeFalse()
             ->and($result->reason)->toBe('score_too_low');
-    });
+    })->group('smoke');
 
     it('accepts with 2 of 3 signals (visits + games)', function () {
         UserAppVisit::factory()->create([
@@ -265,7 +265,7 @@ describe('Score gate combinations', function () {
         expect($result->eligible)->toBeTrue()
             ->and($result->source)->toBe('baseline+score')
             ->and($result->reason)->toBe('engagement_threshold_met');
-    });
+    })->group('smoke');
 });
 
 // ── Session Caching ────────────────────────────────────
@@ -283,7 +283,7 @@ describe('Session caching', function () {
             ->and($cached['reason'])->toBe($result->reason)
             ->and($cached['source'])->toBe($result->source)
             ->and($cached['expires'])->toBeGreaterThan(now()->timestamp);
-    });
+    })->group('smoke');
 
     it('returns cached result on subsequent calls', function () {
         // First call — no signals → not eligible
@@ -302,7 +302,7 @@ describe('Session caching', function () {
         $result2 = $this->service->isEligible($this->user);
         expect($result2->eligible)->toBeFalse()
             ->and($result2->reason)->toBe('score_too_low');
-    });
+    })->group('smoke');
 
     it('reevaluate bypasses cache', function () {
         // First call — cached
@@ -326,7 +326,7 @@ describe('Session caching', function () {
         $result = $this->service->reevaluate($this->user);
         expect($result->eligible)->toBeTrue()
             ->and($result->source)->toBe('trypass');
-    });
+    })->group('smoke');
 
     it('expires cached result after TTL', function () {
         // First call
@@ -356,7 +356,7 @@ describe('Session caching', function () {
         $result = $this->service->isEligible($this->user);
         expect($result->eligible)->toBeTrue()
             ->and($result->source)->toBe('trypass');
-    });
+    })->group('smoke');
 });
 
 // ── Edge Cases ─────────────────────────────────────────
@@ -374,7 +374,7 @@ describe('Edge cases', function () {
         $result = $this->service->isEligible($this->user);
         // Pending participant should not trigger trypass_game_upcoming
         expect($result->reason)->not->toBe('trypass_game_upcoming');
-    });
+    })->group('smoke');
 
     it('trypass game_joined uses participant created_at, not game created_at', function () {
         // Create an OLD game (created days ago, date_time in the past so it's not "upcoming")
@@ -398,5 +398,5 @@ describe('Edge cases', function () {
         // is within the 5-minute window, even though the game itself is old
         expect($result->eligible)->toBeTrue();
         expect($result->reason)->toBe('trypass_game_joined');
-    });
+    })->group('smoke');
 });

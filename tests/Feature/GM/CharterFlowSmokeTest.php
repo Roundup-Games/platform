@@ -120,4 +120,4 @@ it('flows from campaign detail to a published charter a guest can read', functio
         ->assertOk()
         ->assertSee(__('charter.action_view_charter', [], 'en'))
         ->assertSee(__('charter.label_version_badge', ['version' => 1], 'en'));
-})->group('smoke');
+});

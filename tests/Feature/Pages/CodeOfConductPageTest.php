@@ -28,7 +28,7 @@ describe('CodeOfConductPage', function () {
             ->assertSee(__('safety.field_coc_rule_safety_tools_title'))
             ->assertSee(__('safety.field_coc_rule_attendance_title'))
             ->assertSee(__('safety.field_coc_rule_no_harassment_title'));
-    })->group('smoke');
+    });
 
     it('documents the high-level consequences ladder', function () {
         get(route('safety.code-of-conduct'))

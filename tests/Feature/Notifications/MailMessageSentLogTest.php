@@ -46,7 +46,7 @@ it('logs mail.message_sent with the message id and recipients', function () {
         ->and($record['context']['message_id'])->toBeString()->not->toBeEmpty()
         ->and($record['context']['recipients'])->toBe(['player@example.com'])
         ->and($record['context']['subject'])->toBe('Your session starts soon');
-})->group('smoke');
+});
 
 it('does not emit the failure key on a normal send', function () {
     $email = (new Email)
@@ -60,4 +60,4 @@ it('does not emit the failure key on a normal send', function () {
 
     expect($this->logRecord('mail.message_sent'))->not->toBeNull()
         ->and($this->logRecord('mail.message_sent_log_failed'))->toBeNull();
-})->group('smoke');
+});

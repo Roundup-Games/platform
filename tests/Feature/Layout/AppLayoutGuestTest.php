@@ -54,7 +54,7 @@ describe('AppLayoutGuestTest', function () {
         $this->get("/en/charter/{$charter->uuid}")
             ->assertOk()
             ->assertSee('Guest Visible Charter');
-    })->group('smoke');
+    });
 
     it('does not mount the notification bell for guests', function () {
         $charter = guestLayoutCharter();

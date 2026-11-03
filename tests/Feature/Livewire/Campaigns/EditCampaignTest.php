@@ -60,7 +60,7 @@ describe('Save Campaign Edit', function () {
             ->call('saveCampaignEdit');
 
         expect($campaign->fresh()->name)->toBe('Updated Campaign Name');
-    })->group('smoke');
+    });
 
     it('logs activity on update', function () {
         $campaign = createOwnedCampaign($this->owner, $this->gameSystem);

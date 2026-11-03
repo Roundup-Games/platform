@@ -36,14 +36,14 @@ it('lets the owner view, update, and delete their campaign', function () {
     expect(Gate::forUser($owner)->allows('view', $campaign))->toBeTrue()
         ->and(Gate::forUser($owner)->allows('update', $campaign))->toBeTrue()
         ->and(Gate::forUser($owner)->allows('delete', $campaign))->toBeTrue();
-})->group('smoke');
+});
 
 it('lets any user view a public campaign', function () {
     [$owner, $campaign] = campaignPolicyCreateOwner(Visibility::Public);
     $stranger = User::factory()->create();
 
     expect(Gate::forUser($stranger)->allows('view', $campaign))->toBeTrue();
-})->group('smoke');
+});
 
 it('denies a stranger access to a private campaign', function () {
     [$owner, $campaign] = campaignPolicyCreateOwner(Visibility::Private);
@@ -52,11 +52,11 @@ it('denies a stranger access to a private campaign', function () {
     expect(Gate::forUser($stranger)->allows('view', $campaign))->toBeFalse()
         ->and(Gate::forUser($stranger)->allows('update', $campaign))->toBeFalse()
         ->and(Gate::forUser($stranger)->allows('delete', $campaign))->toBeFalse();
-})->group('smoke');
+});
 
 it('denies a guest (null user) access to a private campaign', function () {
     [$owner, $campaign] = campaignPolicyCreateOwner(Visibility::Private);
 
     // Private campaigns require auth.
     expect(Gate::forUser(null)->allows('view', $campaign))->toBeFalse();
-})->group('smoke');
+});
