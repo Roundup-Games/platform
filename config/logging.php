@@ -1,5 +1,6 @@
 <?php
 
+use App\Logging\AlertableErrorTap;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -55,6 +56,15 @@ return [
         'stack' => [
             'driver' => 'stack',
             'channels' => explode(',', (string) env('LOG_STACK', 'daily')),
+            // Log-derived alerting backbone (observability 2026-11-03): records
+            // every stack record at WARNING or above into alertable_errors.
+            // Fail-safe by contract — the tap catches all throwables and never
+            // mutates records, so logging behaves exactly as before if the
+            // sink (DB) is the broken thing. Master switch:
+            // config('observability.tap_enabled'). The ":stack" arg feeds the
+            // alertable_errors.channel column the real channel key (Monolog
+            // logger names default to the app environment).
+            'tap' => [AlertableErrorTap::class.':stack'],
             'ignore_exceptions' => false,
         ],
 
@@ -103,6 +113,12 @@ return [
             ],
             'formatter' => env('LOG_STDERR_FORMATTER'),
             'processors' => [PsrLogMessageProcessor::class],
+            // Same alerting tap as the stack channel: the production env
+            // template ships LOG_CHANNEL=stderr (container-collected), so the
+            // backbone must ride BOTH possible default channels. A record
+            // flows through exactly one default channel per process, so the
+            // two wirings can never double-record.
+            'tap' => [AlertableErrorTap::class.':stderr'],
         ],
 
         'syslog' => [

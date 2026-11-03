@@ -230,6 +230,21 @@ Schedule::command('queue:prune-failed --hours=168')->dailyAt('04:45')->onOneServ
 Schedule::command('data:audit')->dailyAt('05:00')->onOneServer()->emailOutputOnFailure(config('mail.from.address'));
 Schedule::command('data:repair')->dailyAt('05:15')->onOneServer();
 
+// Log-derived alerting backbone (observability 2026-11-03): AlertableErrorTap
+// upserts every stack-channel record at WARNING+ into alertable_errors; these
+// two entries are its consumers. scan PAGES critical-pattern matches that
+// were never notified (24h freshness) every 5 minutes and retires stale
+// non-critical noise; digest is the daily unresolved summary. Email is the
+// primary page; emailOutputOnFailure covers a crashed scan/digest run itself.
+Schedule::command('observability:scan')
+    ->everyFiveMinutes()
+    ->onOneServer()
+    ->emailOutputOnFailure(config('mail.from.address'));
+Schedule::command('observability:digest')
+    ->dailyAt('06:30')
+    ->onOneServer()
+    ->emailOutputOnFailure(config('mail.from.address'));
+
 // Retention — prune Prunable models. Today that is scheduled_task_runs
 // (30-day run history + 24h zombie-running sweep); every future Prunable
 // model is covered by this single entry.

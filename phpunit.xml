@@ -29,6 +29,11 @@
         <!-- Disable auto-follow-on-join for the same reason. Tests that
              exercise auto-follow explicitly opt in. -->
         <env name="COMMUNITY_AUTO_FOLLOW_ON_JOIN" value="false"/>
+        <!-- Disable the log-derived alerting tap (observability) so the whole
+             suite does not write alertable_errors rows for every warning/error
+             it emits. The tap tests opt in per test via
+             config(['observability.tap_enabled' => true]). -->
+        <env name="OBSERVABILITY_TAP_ENABLED" value="false"/>
     </php>
     <testsuites>
         <testsuite name="Unit">
