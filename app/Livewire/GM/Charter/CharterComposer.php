@@ -10,6 +10,7 @@ use App\Models\SessionZeroSurvey;
 use App\Services\Charter\CharterMemberService;
 use App\Services\Charter\CharterService;
 use App\Services\Charter\CharterTemplateService;
+use App\Services\PostHogAnalytics;
 use App\Support\CharterDiff;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -62,6 +63,9 @@ class CharterComposer extends Component
     public int $step = 1;
 
     public bool $draftSaved = false;
+
+    /** Upsell impression latch — public so Livewire serializes it. */
+    public bool $charterLimitImpressionCaptured = false;
 
     /** Amendment mode (S03): true between startAmendment() and publish/cancel. */
     public bool $amending = false;
@@ -439,7 +443,20 @@ class CharterComposer extends Component
     #[Computed]
     public function atCharterLimit(): bool
     {
-        return CharterMemberService::atCharterLimit(authenticatedUser());
+        $atLimit = CharterMemberService::atCharterLimit(authenticatedUser());
+
+        // Upsell impression: once per component lifetime (the public bool
+        // is Livewire-serialized, so round-trips cannot re-fire it).
+        if ($atLimit && ! $this->charterLimitImpressionCaptured) {
+            $this->charterLimitImpressionCaptured = true;
+            app(PostHogAnalytics::class)->capture(
+                authenticatedUser(),
+                'charter.upsell_shown',
+                ['surface' => 'charter_limit'],
+            );
+        }
+
+        return $atLimit;
     }
 
     /** The free-tier concurrent active-charter cap (R084), for labels. */

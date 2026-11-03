@@ -461,6 +461,12 @@ class PreviouslyOnService
                 'publisher_id' => $publisher->id,
             ]);
 
+            app(PostHogAnalytics::class)->capture(
+                $publisher,
+                'previously_on.published',
+                ['campaign_id' => $campaign->id],
+            );
+
             return $bulletin;
         });
     }

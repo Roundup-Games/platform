@@ -5,6 +5,7 @@ namespace App\Livewire\Campaigns;
 use App\Models\Campaign;
 use App\Models\PreviouslyOnDraft;
 use App\Services\GmMembershipService;
+use App\Services\PostHogAnalytics;
 use App\Services\PreviouslyOnService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -42,6 +43,9 @@ class CampaignPreviouslyOn extends Component
 {
     #[Locked]
     public Campaign $campaign;
+
+    /** Member-gate impression latch — public so Livewire serializes it. */
+    public bool $memberGateImpressionCaptured = false;
 
     public function mount(Campaign $campaign): void
     {
@@ -91,6 +95,17 @@ class CampaignPreviouslyOn extends Component
         }
 
         if (! GmMembershipService::canUseMemberFeatures($user)) {
+            // Member-gate impression (D185): once per component lifetime
+            // (Livewire-serialized bool keeps round-trips from re-firing).
+            if (! $this->memberGateImpressionCaptured) {
+                $this->memberGateImpressionCaptured = true;
+                app(PostHogAnalytics::class)->capture(
+                    $user,
+                    'previously_on.upsell_shown',
+                    ['surface' => 'member_gate'],
+                );
+            }
+
             return 'gate';
         }
 

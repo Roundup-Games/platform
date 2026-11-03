@@ -10,6 +10,7 @@ use App\Models\SessionZeroConfirmation;
 use App\Models\SessionZeroSurvey;
 use App\Models\SessionZeroSurveyVersion;
 use App\Models\User;
+use App\Services\PostHogAnalytics;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
@@ -183,6 +184,12 @@ class CharterSigningService
             'confirmation_id' => $confirmation->id,
         ]);
 
+        app(PostHogAnalytics::class)->capture(
+            $user,
+            'charter.signed',
+            ['campaign_id' => $charter->campaign_id, 'version' => $version->version_number],
+        );
+
         return $confirmation;
     }
 
@@ -288,6 +295,12 @@ class CharterSigningService
             'user_id' => $user->id,
             'confirmation_id' => $confirmation->id,
         ]);
+
+        app(PostHogAnalytics::class)->capture(
+            $user,
+            'charter.countersigned',
+            ['campaign_id' => $charter->campaign_id, 'version' => $version->version_number],
+        );
 
         return $confirmation;
     }

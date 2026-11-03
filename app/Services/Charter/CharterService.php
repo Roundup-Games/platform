@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Notifications\CharterAmended;
 use App\Notifications\CharterPublished;
 use App\Services\NotificationService;
+use App\Services\PostHogAnalytics;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Notifications\Notification;
@@ -160,6 +161,13 @@ class CharterService
             'mode' => $mode,
             'seed_id' => $seedId,
         ]);
+
+        // Adoption funnel: which seed mode GMs actually start from.
+        app(PostHogAnalytics::class)->capture(
+            $user,
+            'charter.started',
+            ['campaign_id' => $campaign->id, 'mode' => $mode],
+        );
 
         return $charter;
     }
@@ -339,6 +347,12 @@ class CharterService
             'version' => $version->version_number,
         ]);
 
+        app(PostHogAnalytics::class)->capture(
+            $actor,
+            'charter.published',
+            ['campaign_id' => $charter->campaign_id, 'version' => $version->version_number],
+        );
+
         // D234 closure: tell approved participants it is their turn to
         // read and sign — after commit, so a queued channel can never
         // read a rolled-back charter.
@@ -388,6 +402,12 @@ class CharterService
             'uuid' => $charter->uuid,
             'campaign_id' => $charter->campaign_id,
         ]);
+
+        app(PostHogAnalytics::class)->capture(
+            $user,
+            'charter.archived',
+            ['campaign_id' => $charter->campaign_id],
+        );
     }
 
     /**
@@ -521,6 +541,16 @@ class CharterService
             'version' => $version->version_number,
             'is_material' => $version->is_material,
         ]);
+
+        app(PostHogAnalytics::class)->capture(
+            $actor,
+            'charter.amended',
+            [
+                'campaign_id' => $charter->campaign_id,
+                'version' => $version->version_number,
+                'is_material' => $version->is_material,
+            ],
+        );
 
         // D234 closure: material amendments reset every signature — the
         // notification copy says "review and re-sign"; minor ones carry

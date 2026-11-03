@@ -83,6 +83,15 @@ class OneShotEpilogueService
             'bulletin_id' => $bulletin->id,
         ]);
 
+        $owner = $game->campaign?->owner;
+        if ($owner !== null) {
+            app(PostHogAnalytics::class)->capture(
+                $owner,
+                'journal.epilogue_created',
+                ['campaign_id' => (string) $game->campaign_id],
+            );
+        }
+
         return $bulletin;
     }
 }

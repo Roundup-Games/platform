@@ -132,6 +132,12 @@ class CampaignJournalService
             'content_length' => mb_strlen($body),
         ]);
 
+        app(PostHogAnalytics::class)->capture(
+            $author,
+            'journal.entry_written',
+            ['campaign_id' => $game->campaign_id, 'kind' => 'recap'],
+        );
+
         // The post-commit tail is isolated on purpose: it runs AFTER the
         // entry committed, so a failure there must never 500 the host's
         // write action — the recap IS written, and a retry would only
@@ -209,6 +215,15 @@ class CampaignJournalService
             'content_length' => mb_strlen($body),
         ]);
 
+        $authorUser = $author->user;
+        if ($authorUser !== null) {
+            app(PostHogAnalytics::class)->capture(
+                $authorUser,
+                'journal.entry_written',
+                ['campaign_id' => $campaign->id, 'kind' => 'in_character'],
+            );
+        }
+
         return $entry;
     }
 
@@ -256,6 +271,12 @@ class CampaignJournalService
             'author_id' => $author->id,
             'content_length' => mb_strlen($body),
         ]);
+
+        app(PostHogAnalytics::class)->capture(
+            $author,
+            'journal.entry_written',
+            ['campaign_id' => $campaign->id, 'kind' => 'prep_note'],
+        );
 
         return $entry;
     }

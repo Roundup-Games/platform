@@ -6,6 +6,7 @@ use App\Dto\CharterContent;
 use App\Models\CharterTemplate;
 use App\Models\SessionZeroSurvey;
 use App\Models\User;
+use App\Services\PostHogAnalytics;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
@@ -80,6 +81,12 @@ class CharterTemplateService
             'user_id' => $user->id,
             'survey_id' => $charter->id,
         ]);
+
+        app(PostHogAnalytics::class)->capture(
+            $user,
+            'charter.template_saved',
+            ['campaign_id' => (string) $charter->campaign_id],
+        );
 
         return $template;
     }

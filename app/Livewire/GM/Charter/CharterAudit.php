@@ -7,6 +7,7 @@ use App\Models\SessionZeroSurvey;
 use App\Models\SessionZeroSurveyVersion;
 use App\Services\Charter\CharterMemberService;
 use App\Services\Charter\CharterService;
+use App\Services\PostHogAnalytics;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
@@ -65,6 +66,25 @@ class CharterAudit extends Component
 
         if ($this->charter === null) {
             abort(404);
+        }
+
+        // Impression telemetry lives in mount() (fires once per visit);
+        // render() would re-fire on every Livewire round-trip.
+        if (CharterMemberService::canUseConveniences($user)) {
+            app(PostHogAnalytics::class)->capture(
+                $user,
+                'charter.audit_exported',
+                [
+                    'campaign_id' => $this->campaign->id,
+                    'version' => $this->charter->current_version ?? 0,
+                ],
+            );
+        } else {
+            app(PostHogAnalytics::class)->capture(
+                $user,
+                'charter.upsell_shown',
+                ['surface' => 'audit_export'],
+            );
         }
     }
 
