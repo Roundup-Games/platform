@@ -111,6 +111,11 @@ return [
             'handler_with' => [
                 'stream' => 'php://stderr',
             ],
+            // Log-derived alerting backbone: production runs LOG_CHANNEL=stderr,
+            // so the tap must live here too — wired to 'stack' alone it never
+            // engages in production and alertable_errors stays empty (found
+            // 2026-11-04 while investigating the Scheduled Tasks page).
+            'tap' => [AlertableErrorTap::class],
             'formatter' => env('LOG_STDERR_FORMATTER'),
             'processors' => [PsrLogMessageProcessor::class],
             // Same alerting tap as the stack channel: the production env

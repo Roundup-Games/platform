@@ -194,3 +194,16 @@ it('records through the production wiring — the real default stack channel', f
     expect($row->message)->toBe('observability.wiring.probe')
         ->and($row->channel)->toBe('stack');
 });
+
+// 2026-11-04: production runs LOG_CHANNEL=stderr — the tap must engage on
+// the monolog stderr channel too, not just 'stack' (found live: the prod
+// backbone was inert while every gate test passed against 'stack').
+it('records through the stderr channel (production LOG_CHANNEL)', function () {
+    config(['observability.tap_enabled' => true]);
+    AlertableErrorTap::flushDedupCache();
+
+    Log::driver('stderr')->error('observability.wiring.stderr_probe');
+
+    $row = AlertableError::query()->where('message', 'observability.wiring.stderr_probe')->sole();
+    expect($row->channel)->toBe('stderr');
+});
