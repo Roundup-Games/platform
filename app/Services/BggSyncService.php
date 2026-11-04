@@ -512,7 +512,17 @@ class BggSyncService
         $models = collect();
 
         foreach ($names as $name) {
-            $models->push($modelClass::firstOrCreate(['name' => $name]));
+            // Resolve by slug, not name: BGG ships punctuation/case variants
+            // ("Game: The King is Dead" vs "Game The King Is Dead") that
+            // slug identically — a name-keyed firstOrCreate inserts a second
+            // row with a duplicate slug and dies on the unique index (23505,
+            // surfaced 2026-11-04 once the auth outage stopped masking it).
+            // Slug-resolution maps variants onto the existing row, keeping
+            // taxonomy rows stable across BGG name edits.
+            $slug = Str::slug((string) $name);
+            $models->push($slug !== ''
+                ? $modelClass::firstOrCreate(['slug' => $slug], ['name' => $name])
+                : $modelClass::firstOrCreate(['name' => $name]));
         }
 
         $relationQuery = match ($relation) {
