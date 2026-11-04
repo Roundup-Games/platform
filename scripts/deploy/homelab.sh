@@ -31,7 +31,7 @@
 #   1. Immediate flip-back (seconds, app still running): if the OLD slot
 #      container still exists (it is retired only AFTER the new one is
 #      verified publicly), its edge entry is one edit away:
-#        printf ':8199 {\n\treverse_proxy roundup-games-<old>:8080\n}\n' \
+#        printf ':8199 {\n\treverse_proxy roundup-games-<old>:8080 {\n\t\theader_up X-Forwarded-Proto https\n\t}\n}\n' \
 #          > edge/Caddyfile
 #        docker exec roundup-games-edge caddy reload --config /etc/caddy/Caddyfile
 #   2. Full rollback (any time, old container already retired):
@@ -108,7 +108,14 @@ live_slot() {  # ground truth = the upstream in the LIVE edge container's config
 other_slot() { [[ "$1" == blue ]] && echo green || echo blue; }
 
 write_edge_conf() {  # $1 = blue|green
-    printf ':8199 {\n\treverse_proxy roundup-games-%s:8080\n}\n' "$1" > "$EDGE_CONF"
+    # header_up X-Forwarded-Proto https: the public ingress is ALWAYS https
+    # (Cloudflare tunnel terminates TLS; :8199 is its internal plaintext
+    # origin), but Caddy stamps X-Forwarded-Proto with its own listener
+    # scheme (http) — without the override, Laravel trusts '*' proxies, sees
+    # an insecure request, and emits http:// URLs for Livewire endpoints and
+    # Filament's dynamically imported JS — mixed content the browser blocks
+    # instantly (2026-11-04 incident: Filament actions silently dead).
+    printf ':8199 {\n\treverse_proxy roundup-games-%s:8080 {\n\t\theader_up X-Forwarded-Proto https\n\t}\n}\n' "$1" > "$EDGE_CONF"
 }
 edge_reload() { docker exec "$EDGE" caddy reload --config /etc/caddy/Caddyfile >/dev/null; }
 
