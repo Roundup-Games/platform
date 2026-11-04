@@ -12,6 +12,15 @@ use Livewire\Livewire;
 beforeEach(function () {
     $this->centerLat = 52.5219;
     $this->centerLng = 13.4117;
+
+    // ProximityQuery's ambient slow-query log (info) fires whenever the
+    // wall-clock bar is crossed — under the parallel suite it regularly
+    // is (seen at 175ms vs the 100ms default), and the strict Log mocks
+    // below then die with NoMatchingExpectationException on a log line
+    // that is pure timing noise to these tests. Raise the bar out of
+    // ambient range — the knob ProximityQuery documents for exactly
+    // this (services.proximity.slow_ms).
+    config(['services.proximity.slow_ms' => 60000]);
 });
 
 // ═══════════════════════════════════════════════════════════
