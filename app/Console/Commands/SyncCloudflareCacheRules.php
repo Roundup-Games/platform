@@ -272,8 +272,24 @@ class SyncCloudflareCacheRules extends Command
 
         $pathExpression = '('.implode(' or ', $localeChecks).')';
 
+        // Never cache paths whose pages embed per-session state (CSRF
+        // tokens) or belong to operator surfaces — a cached login page
+        // serves every visitor one dead token and strips Set-Cookie at
+        // the edge (2026-11-04 incident). "ends_with" covers dynamic
+        // segments (e.g. /en/events/{slug}/register) within the Free
+        // plan's expression vocabulary.
+        $exclusions = [
+            'ends_with(http.request.uri.path, "/login")',
+            'ends_with(http.request.uri.path, "/register")',
+            'ends_with(http.request.uri.path, "/logout")',
+            'http.request.uri.path contains "/forgot-password"',
+            'http.request.uri.path contains "/reset-password"',
+            'http.request.uri.path contains "/verify-email"',
+        ];
+        $exclusionExpression = 'not ('.implode(' or ', $exclusions).')';
+
         // Only for anonymous visitors
-        return "{$pathExpression}"
+        return "({$pathExpression} and {$exclusionExpression})"
             .' and not http.cookie contains "roundup-games-session"'
             .' and not http.cookie contains "XSRF-TOKEN"';
     }

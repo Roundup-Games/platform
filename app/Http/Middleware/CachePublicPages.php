@@ -35,6 +35,22 @@ class CachePublicPages
         'membership',
         'onboarding.*',
         'gm.workspace',
+        // Any page that embeds a per-session CSRF token or renders an
+        // auth form. Origin-level guarantee: even if an edge rule goes
+        // rogue, these pages must never carry public cache headers — a
+        // cached login page poisons every visitor with one dead CSRF
+        // token and no Set-Cookie (2026-11-04 incident).
+        'login',
+        'register',
+        'logout',
+        'password.*',
+        'verification.*',
+        // Public event-registration form — POSTs a CSRF-guarded action.
+        'events.register',
+        // Operator surfaces (separate guard; their session cookie is not
+        // the main app's, so edge cookie-bypass rules cannot cover them).
+        'escalated.*',
+        'filament.*',
     ];
 
     public function handle(Request $request, Closure $next): Response
