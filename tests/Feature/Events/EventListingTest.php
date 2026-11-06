@@ -285,7 +285,10 @@ describe('EventListing city filter', function () {
         // Canonical is the plain listing path (transformer default)…
         $response->assertSee('<link rel="canonical" href="'.$plainPath.'">', false);
         // …and never a hub URL for an inert slug.
-        $response->assertDontSee(route('city-hubs.show', ['locale' => 'de', 'slug' => 'koeln']), false);
+        // The site-header city popover is the one sanctioned global surface
+        // for hub links (menu revamp) — these pins scope to the page body.
+        $mainContent = str($response->content())->after('<main')->toString();
+        expect($mainContent)->not->toContain(route('city-hubs.show', ['locale' => 'de', 'slug' => 'koeln']));
         expect(substr_count($response->content(), 'rel="canonical"'))->toBe(1);
     });
 

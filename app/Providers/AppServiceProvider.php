@@ -288,21 +288,19 @@ class AppServiceProvider extends ServiceProvider
             // payloads should not carry class graphs across processes
             // (unserialize fragility), and the popover only needs three
             // fields per row anyway.
-            $cities = Cache::remember(
-                'site-header:cities',
-                now()->addMinutes(10),
-                fn (): array => app(CityDirectoryService::class)
-                    ->qualifyingCities()
-                    ->sortByDesc(fn (CitySummary $city): int => $city->featured ? 1 : 0)
-                    ->take(6)
-                    ->values()
-                    ->map(fn (CitySummary $city): array => [
-                        'slug' => $city->slug,
-                        'city' => $city->city,
-                        'featured' => $city->featured,
-                    ])
-                    ->all(),
-            );
+            $composerCities = fn (): array => app(CityDirectoryService::class)
+                ->qualifyingCities()
+                ->sortByDesc(fn (CitySummary $city): int => $city->featured ? 1 : 0)
+                ->take(6)
+                ->values()
+                ->map(fn (CitySummary $city): array => [
+                    'slug' => $city->slug,
+                    'city' => $city->city,
+                    'featured' => $city->featured,
+                ])
+                ->all();
+
+            $cities = Cache::remember('site-header:cities', now()->addMinutes(10), $composerCities);
 
             $view->with('navCities', $cities);
         });

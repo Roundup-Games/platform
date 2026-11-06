@@ -168,8 +168,11 @@ describe('CityFilter inert slugs', function () {
         $response->assertSee('<link rel="canonical" href="'.$plainPath.'">', false);
         // …and alternates point at the discovery path, never at hubs.
         $response->assertSee('<link rel="alternate" hreflang="de" href="'.$plainPath.'">', false);
-        $response->assertDontSee(route('city-hubs.show', ['locale' => 'de', 'slug' => 'koeln']), false);
-        $response->assertDontSee(route('city-hubs.show', ['locale' => 'en', 'slug' => 'koeln']), false);
+        // The site-header city popover is the one sanctioned global surface
+        // for hub links (menu revamp) — these pins scope to the page body.
+        $mainContent = str($response->content())->after('<main')->toString();
+        expect($mainContent)->not->toContain(route('city-hubs.show', ['locale' => 'de', 'slug' => 'koeln']))
+            ->not->toContain(route('city-hubs.show', ['locale' => 'en', 'slug' => 'koeln']));
         expect(substr_count($response->content(), 'rel="canonical"'))->toBe(1);
     });
 
@@ -188,7 +191,10 @@ describe('CityFilter inert slugs', function () {
         $response->assertSee('Bonn Only Game')
             ->assertSee('Berlin Away Game');
         $response->assertSee('<link rel="canonical" href="'.$plainPath.'">', false);
-        $response->assertDontSee('/cities/', false);
+        // The site-header city popover is the one sanctioned global surface
+        // for hub links (menu revamp) — these pins scope to the page body.
+        $mainContent = str($response->content())->after('<main')->toString();
+        expect($mainContent)->not->toContain('/cities/');
         expect(substr_count($response->content(), 'rel="canonical"'))->toBe(1);
     });
 });

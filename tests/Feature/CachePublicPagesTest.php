@@ -16,7 +16,9 @@ describe('CachePublicPages — always-private routes', function () {
     })->with([
         ['/en/login'],
         ['/de/login'],
-        ['/en/register'],
+        // /en/register is a 301 to /en/login since the combined sign-in
+        // entrypoint — the login pin below covers the destination page.
+        // ['/en/register'],
         ['/en/forgot-password'],
     ]);
 

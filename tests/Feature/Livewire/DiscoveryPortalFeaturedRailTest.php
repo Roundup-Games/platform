@@ -79,10 +79,15 @@ describe('DiscoveryPortal featured-cities rail', function () {
         discoveryRailBerlin(); // would qualify on its own; hidden wins over featured
         City::updateOrCreate(['slug' => 'berlin'], ['city' => 'Berlin', 'featured' => true, 'hidden' => true]);
 
-        get(route('discover'))
-            ->assertOk()
-            ->assertDontSee(__('discovery.content_explore_cities'))
-            ->assertDontSee(route('city-hubs.show', ['locale' => 'en', 'slug' => 'berlin']), false);
+        $response = get(route('discover'))->assertOk();
+
+        $response->assertDontSee(__('discovery.content_explore_cities'));
+        // The site-header city popover (menu revamp) is the one
+        // sanctioned global surface for hub links and the all-hubs icon —
+        // these "rail absent" pins scope to the page body.
+        $mainContent = str($response->getContent())->after('<main')->toString();
+
+        expect($mainContent)->not->toContain(route('city-hubs.show', ['locale' => 'en', 'slug' => 'berlin']));
     });
 
     it('renders a featured city below both thresholds via force-qualification', function () {
@@ -98,10 +103,15 @@ describe('DiscoveryPortal featured-cities rail', function () {
         discoveryRailBerlin(); // qualifies via sessions, but the curated row is unfeatured
         City::updateOrCreate(['slug' => 'berlin'], ['city' => 'Berlin']);
 
-        get(route('discover'))
-            ->assertOk()
-            ->assertDontSee(__('discovery.content_explore_cities'))
-            ->assertDontSee('/en/cities/berlin');
+        $response = get(route('discover'))->assertOk();
+
+        $response->assertDontSee(__('discovery.content_explore_cities'));
+        // The site-header city popover (menu revamp) is the one
+        // sanctioned global surface for hub links and the all-hubs icon —
+        // these "rail absent" pins scope to the page body.
+        $mainContent = str($response->getContent())->after('<main')->toString();
+
+        expect($mainContent)->not->toContain('/en/cities/berlin');
     });
 
     it('omits a featured curated slug with no resolvable hub', function () {
@@ -109,20 +119,30 @@ describe('DiscoveryPortal featured-cities rail', function () {
         // locations resolves null and drops out of the rail.
         City::factory()->featured()->create(['slug' => 'bremen', 'city' => 'Bremen']);
 
-        get(route('discover'))
-            ->assertOk()
-            ->assertDontSee(__('discovery.content_explore_cities'))
-            ->assertDontSee('/en/cities/bremen');
+        $response = get(route('discover'))->assertOk();
+
+        $response->assertDontSee(__('discovery.content_explore_cities'));
+        // The site-header city popover (menu revamp) is the one
+        // sanctioned global surface for hub links and the all-hubs icon —
+        // these "rail absent" pins scope to the page body.
+        $mainContent = str($response->getContent())->after('<main')->toString();
+
+        expect($mainContent)->not->toContain('/en/cities/bremen');
     });
 
     it('renders no rail markup at all when the set is empty', function () {
-        get(route('discover'))
-            ->assertOk()
-            ->assertDontSee(__('discovery.content_explore_cities'))
-            ->assertDontSee(__('discovery.content_featured_city_hubs_teaser'))
-            // The chip icon and any hub path only render inside the rail.
-            ->assertDontSee('location_city')
-            ->assertDontSee('/cities/');
+        $response = get(route('discover'))->assertOk();
+
+        $response->assertDontSee(__('discovery.content_explore_cities'))
+            ->assertDontSee(__('discovery.content_featured_city_hubs_teaser'));
+        // The chip icon and any hub path only render inside the rail.
+        // The site-header city popover (menu revamp) is the one
+        // sanctioned global surface for hub links and the all-hubs icon —
+        // these "rail absent" pins scope to the page body.
+        $mainContent = str($response->getContent())->after('<main')->toString();
+
+        expect($mainContent)->not->toContain('location_city')
+            ->not->toContain('/cities/');
     });
 
     it('renders the heading copy per locale', function () {

@@ -121,11 +121,14 @@ describe('iCal feed — successful rendering', function () {
 
     it('emits absolute UTC DTSTART/DTEND for the stored instants (R089)', function () {
         $owner = User::factory()->create();
-        // A Berlin evening session stored as its true UTC instant:
-        // 2026-11-05 18:00 UTC (CET +1) is 19:00 Berlin wall.
+        // A Berlin evening session stored as its true UTC instant: 18:00 UTC
+        // (CET +1) is 19:00 Berlin wall. Kept future-relative — the feed
+        // excludes past games, and the original fixed date (2026-11-05)
+        // rolled into the past and broke this pin.
+        $start = Carbon::parse(now()->addDays(7)->toDateString().' 18:00:00', 'UTC');
         Game::factory()->create([
             'owner_id' => $owner->id,
-            'date_time' => Carbon::parse('2026-11-05 18:00:00', 'UTC'),
+            'date_time' => $start,
             'expected_duration' => 2,
             'name' => ['en' => 'Absolute Time Session'],
         ]);
@@ -140,8 +143,11 @@ describe('iCal feed — successful rendering', function () {
         // Absolute times (...Z): the exact stored instants — under the old
         // wall-time-under-UTC-label convention this emitted 19:00Z for a
         // session that actually starts at 18:00Z.
-        expect($body)->toContain('DTSTART:20261105T180000Z')
-            ->and($body)->toContain('DTEND:20261105T200000Z');
+        // Derive from the fixture instant, not a hardcoded date — the old
+        // absolute pin (20261105T180000Z) rolled over at midnight and broke
+        // the suite for every day after it.
+        expect($body)->toContain('DTSTART:'.$start->copy()->utc()->format('Ymd\THis\Z'))
+            ->and($body)->toContain('DTEND:'.$start->copy()->addHours(2)->utc()->format('Ymd\THis\Z'));
     });
 
     it('anchors the all-day fallback to the community calendar date (R089)', function () {
