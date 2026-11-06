@@ -84,7 +84,7 @@
                                         {{ __('billing.action_choose_your_plan') }}
                                     </a>
                                 @else
-                                    <a href="{{ route('register') }}" wire:navigate
+                                    <a href="{{ route('login') }}" wire:navigate
                                        class="block w-full text-center px-4 py-3 rounded-lg text-sm font-semibold tracking-wide transition-all active:scale-95
                                            {{ ($plan->metadata['popular'] ?? false)
                                                ? 'bg-primary text-on-primary shadow-ambient hover:brightness-110'

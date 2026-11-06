@@ -15,7 +15,7 @@
             </p>
             <div class="mt-8 flex flex-wrap justify-center gap-4">
                 @guest
-                    <a href="{{ route('register') }}" wire:navigate
+                    <a href="{{ route('login') }}" wire:navigate
                        class="inline-flex items-center px-6 py-3 bg-surface text-primary rounded-xl font-semibold hover:bg-surface-container-lowest transition-colors text-sm shadow-md">
                         <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">person_add</span>
                         {{ __('pages.field_start_hosting_it_s_free') }}

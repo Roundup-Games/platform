@@ -69,4 +69,7 @@ return [
     'seo_title_index' => 'Find Board Game Groups by City',
     'seo_description_index' => 'Browse every live city hub: upcoming public board game sessions, campaigns, and events, plus verified venues to play at — city by city.',
 
+
+    'action_all_hubs' => 'All city hubs',
+
 ];

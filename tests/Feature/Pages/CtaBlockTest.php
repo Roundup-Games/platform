@@ -41,7 +41,7 @@ describe('CtaBlock - values variant (about)', function () {
         get(route('about'))
             ->assertOk()
             ->assertSee(__('auth.content_sign_up_free'))
-            ->assertSee(route('register'));
+            ->assertSee(route('login'));
     });
 });
 
@@ -53,7 +53,7 @@ describe('CtaBlock - player variant (pledge page)', function () {
             ->assertSee(__('common.action_find_a_game_near_you'))
             ->assertSee(route('discover'))
             ->assertSee(__('profile.action_create_free_account'))
-            ->assertSee(route('register'));
+            ->assertSee(route('login'));
     });
 });
 

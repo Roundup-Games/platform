@@ -23,7 +23,7 @@
             'body' => __('campaigns.content_create_a_free_account_set'),
             'guest' => [
                 'primary' => [
-                    'href' => route('register'),
+                    'href' => route('login'),
                     'label' => __('profile.action_create_free_account'),
                     'icon' => 'person_add',
                 ],
@@ -47,7 +47,7 @@
             'body' => __('pages.content_no_subscriptions_required_no_credit'),
             'guest' => [
                 'primary' => [
-                    'href' => route('register'),
+                    'href' => route('login'),
                     'label' => __('pages.field_start_hosting_it_s_free'),
                     'icon' => 'person_add',
                 ],
@@ -80,7 +80,7 @@
                     'icon' => 'volunteer_activism',
                 ],
                 'secondary' => [
-                    'href' => route('register'),
+                    'href' => route('login'),
                     'label' => __('auth.content_sign_up_free'),
                     'icon' => 'person_add',
                 ],

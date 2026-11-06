@@ -13,8 +13,15 @@ use App\Http\Controllers\TimezoneBeaconController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
-    Route::get('register', [RegisteredUserController::class, 'create'])
-        ->name('register');
+    // Combined sign-in entrypoint (menu/auth revamp): GET /register is a
+    // named 301 to this locale's /login. The name stays 'register' so the
+    // ~12 Blade/services consumers (invitation signupUrl, CTAs) keep a
+    // resolvable URL that redirects to the single canonical page. POST
+    // /register below is unchanged — it serves the no-JS form fallback.
+    Route::get('register', fn (string $locale) => redirect()->to(
+        '/'.$locale.'/login',
+        301,
+    ))->name('register');
 
     Route::post('register', [RegisteredUserController::class, 'store'])
         ->middleware('throttle:5,1');

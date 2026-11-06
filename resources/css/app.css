@@ -491,3 +491,101 @@
         }
     }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   Site header chrome (public layout): native Popover API menus,
+   dialog drawer, scrolled bar state, theme segment sync.
+   JS wiring lives in resources/js/site-header.js.
+   ══════════════════════════════════════════════════════════════════ */
+
+.site-header.is-scrolled {
+  background: color-mix(in srgb, var(--rgb-surface) 86%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-ambient-md);
+}
+
+.site-pill[aria-expanded='true'] .chev {
+  transform: rotate(180deg);
+}
+
+/* The popover roots carry display utilities (grid) for their OPEN layout —
+   author CSS beats the UA's [popover] { display: none }, which would leave
+   closed menus rendered as visible fixed panels. This restores the closed
+   state explicitly (unlayered CSS also wins over Tailwind's layered
+   utilities). Caught in the headful clickthrough. */
+.site-popover:not(:popover-open) {
+  display: none;
+}
+
+.site-popover {
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--rgb-outline-variant) 60%, transparent);
+  border-radius: 16px;
+  background: rgb(var(--rgb-surface-container-lowest));
+  box-shadow: var(--shadow-ambient-lg);
+  color: rgb(var(--rgb-on-surface));
+
+  /* No-JS / pre-pin fallback: top-right under the bar; JS pins per trigger. */
+  position: fixed;
+  inset: auto;
+  top: 76px;
+  right: 16px;
+
+  transition:
+    opacity 110ms var(--ease, ease-out),
+    transform 110ms var(--ease, ease-out),
+    translate 110ms var(--ease, ease-out),
+    display 110ms allow-discrete,
+    overlay 110ms allow-discrete;
+}
+
+.site-popover:popover-open {
+  translate: 0 0;
+  opacity: 1;
+  transform: none;
+}
+
+@starting-style {
+  .site-popover:popover-open {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* Filled-icon helper (Material Symbols FILL axis) — mirrors the per-element
+   inline pattern used elsewhere; a class keeps popover rows consistent. */
+.ms-fill {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Drawer (native <dialog>) entry animation — plain utilities position it. */
+.site-drawer[open] {
+  animation: site-drawer-in 180ms var(--ease, ease-out);
+}
+
+.site-drawer[open]::backdrop {
+  animation: site-drawer-fade 180ms var(--ease, ease-out);
+}
+
+@keyframes site-drawer-in {
+  from {
+    transform: translateX(28px);
+    opacity: 0;
+  }
+}
+
+@keyframes site-drawer-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-popover,
+  .site-drawer[open],
+  .site-drawer[open]::backdrop {
+    animation-duration: 0.01ms;
+    transition-duration: 0.01ms;
+  }
+}

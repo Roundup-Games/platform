@@ -19,6 +19,7 @@
         {{-- Favicons --}}
         <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
         <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+        <link rel="icon" href="/favicon.ico" sizes="any">
 
         {{-- Dark mode: apply class + critical background before paint to prevent flash --}}
         <script>
@@ -59,6 +60,20 @@
              authenticated sessions; guests never fire the endpoint. --}}
         @if (auth()->check())
             <script>window.__timezoneBeacon=@js(['enabled' => true, 'url' => route('timezone.beacon')]);</script>
+        @endif
+
+        {{-- Remembered-account stamp (combined sign-in page): the method
+             comes from the last_login_method session flag (set by the
+             password login controller and every OAuth login path), so the
+             chooser reflects how this browser actually signed in — more
+             accurate than a click-time guess. site-header.js persists it
+             to localStorage (device-side only, no credentials). --}}
+        @if (auth()->check() && session('last_login_method') !== null)
+            <script>window.__roundupAuthStamp=@js([
+                'name' => auth()->user()->name,
+                'email' => auth()->user()->email,
+                'method' => session('last_login_method'),
+            ]);</script>
         @endif
 
         {{-- Scripts --}}
@@ -156,7 +171,7 @@
                         {{-- Guest mobile nav: sign-up / log-in CTAs + a path back
                              into public discovery (M066/S06/T03) so guests on
                              app-layout pages never hit a dead sidebar. --}}
-                        <a href="{{ route('register') }}" wire:navigate
+                        <a href="{{ route('login') }}" wire:navigate
                            class="flex items-center justify-center gap-2 px-4 py-3 mb-1 rounded-xl text-sm font-semibold bg-primary text-on-primary hover:bg-primary/90 transition-colors">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true">person_add</span>
                             {{ __('auth.content_sign_up') }}
@@ -279,7 +294,7 @@
                         </a>
                         @else
                         {{-- Guest nav CTAs (public pages share this layout) --}}
-                        <a href="{{ route('register') }}" wire:navigate class="flex items-center justify-center gap-2 px-4 py-3 mb-2 rounded-xl text-sm font-semibold bg-primary text-on-primary hover:bg-primary/90 transition-all duration-200 shadow-sm">
+                        <a href="{{ route('login') }}" wire:navigate class="flex items-center justify-center gap-2 px-4 py-3 mb-2 rounded-xl text-sm font-semibold bg-primary text-on-primary hover:bg-primary/90 transition-all duration-200 shadow-sm">
                             <span class="material-symbols-outlined text-lg" aria-hidden="true">person_add</span>
                             {{ __('auth.content_sign_up') }}
                         </a>
@@ -399,7 +414,7 @@
                                 <span class="material-symbols-outlined text-lg" aria-hidden="true">login</span>
                                 {{ __('auth.content_log_in') }}
                             </a>
-                            <a href="{{ route('register') }}" wire:navigate
+                            <a href="{{ route('login') }}" wire:navigate
                                class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-primary text-on-primary hover:bg-primary/90 transition-colors shadow-sm">
                                 <span class="material-symbols-outlined text-lg" aria-hidden="true">person_add</span>
                                 {{ __('auth.content_sign_up') }}

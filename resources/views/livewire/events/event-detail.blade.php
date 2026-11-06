@@ -236,7 +236,7 @@
                                         <div class="shrink-0 sm:self-center">
                                             @guest
                                                 {{-- Guests: registration-cta sign-up variant — the join flow stays behind auth --}}
-                                                <a href="{{ route('register') }}" wire:navigate
+                                                <a href="{{ route('login') }}" wire:navigate
                                                    class="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-11 px-4 py-2 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container-highest transition-colors text-sm font-medium">
                                                     <span class="material-symbols-outlined text-base" aria-hidden="true">person_add</span>
                                                     {{ __('events.content_sign_up_free_to_join_this_table') }}

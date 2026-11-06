@@ -168,7 +168,7 @@ describe('GameSystemsPage', function () {
         // sign-up framed link to /register, not a dead end at the login wall.
         get(route('game-systems'))
             ->assertOk()
-            ->assertSee(route('register'), false)
+            ->assertSee(route('login'), false)
             ->assertSee(__('games.request_cta_guest_link'))
             ->assertDontSee(route('game-systems.request'), false);
     });

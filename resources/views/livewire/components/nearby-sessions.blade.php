@@ -60,7 +60,7 @@
                             {{ __('campaigns.content_host_a_session') }}
                         </a>
                     @else
-                        <a href="{{ route('register') }}" wire:navigate
+                        <a href="{{ route('login') }}" wire:navigate
                            class="inline-flex items-center px-5 py-2.5 bg-primary text-on-primary rounded-xl font-semibold hover:bg-primary-container transition-colors text-sm">
                             <span class="material-symbols-outlined mr-2 text-lg" aria-hidden="true">person_add</span>
                             {{ __('auth.content_sign_up_to_host') }}

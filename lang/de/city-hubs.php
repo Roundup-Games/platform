@@ -71,4 +71,7 @@ return [
     'seo_title_index' => 'Stadt-Hubs für Tabletop-Spiele',
     'seo_description_index' => 'Alle aktiven Stadt-Hubs entdecken: anstehende öffentliche Brettspiel-Runden, Kampagnen und Events plus verifizierte Veranstaltungsorte — Stadt für Stadt.',
 
+
+    'action_all_hubs' => 'Alle Stadt-Hubs',
+
 ];

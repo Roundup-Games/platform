@@ -44,7 +44,7 @@ describe('ForOrganizersPage', function () {
             ->assertOk()
             ->assertSee(__('pages.field_start_hosting_it_s_free'))
             ->assertSee(__('pages.content_see_how_it_works'))
-            ->assertSee(route('register'));
+            ->assertSee(route('login'));
     });
 
     it('links the guest secondary CTA to the how-it-works page, not discovery', function () {

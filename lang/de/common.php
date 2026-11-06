@@ -435,4 +435,11 @@ return [
     'push_denied_hint' => 'Push-Benachrichtigungen sind in deinen Browser-Einstellungen blockiert. Um sie wieder zu aktivieren, aktualisiere die Benachrichtigungsberechtigungen in deinem Browser.',
     'push_enabled_on_devices' => '[1]Push-Benachrichtigungen auf :count Gerät aktiviert.|[2,*]Push-Benachrichtigungen auf :count Geräten aktiviert.',
     'aria_toggle_theme' => 'Farbschema wechseln',
+
+    // ── Site-Header (Konto-Popover + Städte-Pill + Drawer) ──────────
+    'content_appearance' => 'Erscheinungsbild',
+    'nav_project' => 'Projekt',
+    'aria_open_city_hubs' => 'Stadt-Hub wählen',
+    'aria_open_account_menu' => 'Kontomenü öffnen',
+
 ];

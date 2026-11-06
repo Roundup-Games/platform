@@ -41,4 +41,33 @@ return [
     'failed' => 'These credentials do not match our records.',
     'password' => 'The provided password is incorrect.',
     'throttle' => 'Too many login attempts. Please try again in :seconds seconds.',
+
+    // ── Combined sign-in entrypoint (identifier-first, one door for
+    //    sign-in and sign-up). Sentence case per D174. ────────────────
+    'content_welcome' => 'Welcome',
+    'content_welcome_sub' => 'Sign in or create your account — same door either way.',
+    'content_welcome_back' => 'Welcome back',
+    'content_welcome_back_sub' => 'Continue as one of your accounts, or use another one.',
+    'label_continue_as' => 'Continue as',
+    'action_use_another_account' => 'Use another account',
+    'action_continue' => 'Continue',
+    'hint_new_here' => 'New here? Your email creates the account — nothing more to decide now.',
+    'label_or_email' => 'or continue with email',
+    'content_sign_in_sub' => 'Welcome back — enter your password.',
+    'field_change' => 'Change',
+    'content_oauth_only_sub' => "This account doesn't use a password here.",
+    'hint_oauth_provider' => 'You usually sign in with :provider — continue with the button below.',
+    'action_set_password_link' => 'Email me a link to set a password',
+    'title_create_account' => 'Create your account',
+    'content_signup_sub' => "Two fields and you're at the table.",
+    'action_create_account' => 'Create account',
+    'title_check_inbox' => 'Check your inbox',
+    'content_link_sent' => 'We sent a link to :email.',
+    'label_last_used' => 'Last used',
+    'label_guest' => 'Guest',
+    'content_new_here_toggle' => 'New here? Create an account',
+    'aria_forget_account' => 'Forget this account on this device',
+    'aria_show_password' => 'Show password',
+    'aria_hide_password' => 'Hide password',
+
 ];

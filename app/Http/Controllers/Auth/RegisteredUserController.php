@@ -17,18 +17,9 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
-use Illuminate\View\View;
 
 class RegisteredUserController extends Controller
 {
-    /**
-     * Display the registration view.
-     */
-    public function create(): View
-    {
-        return view('auth.register');
-    }
-
     /**
      * Handle an incoming registration request.
      *
@@ -39,7 +30,10 @@ class RegisteredUserController extends Controller
         $request->validate([
             'name' => ['required', 'string', 'max:255', new ValidUserName],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            // No 'confirmed' rule: the combined sign-in form drops the
+            // confirm field (D00x decision) in favour of a show-password
+            // toggle; typos recover through the reset flow.
+            'password' => ['required', Rules\Password::defaults()],
         ]);
 
         $name = is_string($request->name) ? $request->name : '';

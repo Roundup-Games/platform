@@ -82,7 +82,7 @@ describe('CodeOfConductCrossLinks', function () {
     });
 
     it('binds signup to the Terms and the Code of Conduct', function () {
-        get(route('register'))
+        get(route('login'))
             ->assertOk()
             ->assertSee(__('safety.content_signup_agreement_prefix'))
             ->assertSee(route('terms'))

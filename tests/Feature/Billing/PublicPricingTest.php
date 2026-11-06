@@ -131,7 +131,7 @@ describe('PublicPricing — CTAs', function () {
         get(route('pricing'))
             ->assertOk()
             ->assertSee(__('auth.content_sign_up_free', [], 'en'))
-            ->assertSee(route('register'));
+            ->assertSee(route('login'));
     });
 
     it('links authenticated users to /membership for checkout', function () {

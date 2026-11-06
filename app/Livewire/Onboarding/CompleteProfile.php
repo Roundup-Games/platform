@@ -410,6 +410,19 @@ class CompleteProfile extends Component
             return;
         }
 
+        // Share-link intent: guests who hit the auth wall on a deep link
+        // (game/event/profile URL) carry url.intended through sign-up —
+        // RegisteredUserController and the OAuth login paths never consume
+        // it, so landing them on the original destination closes the loop
+        // the combined entrypoint opened. Join intent above still wins:
+        // it is the later, more explicit promise.
+        $intended = session()->pull('url.intended');
+        if (is_string($intended) && $intended !== '') {
+            $this->redirect($intended);
+
+            return;
+        }
+
         $this->redirect('/'.$locale.'/dashboard');
     }
 

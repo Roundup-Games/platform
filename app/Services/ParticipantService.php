@@ -371,7 +371,7 @@ class ParticipantService
                 entityLocation: $entity->linkedLocation->address ?? null,
                 inviterName: $inviter->name,
                 inviteeEmail: $normalizedEmail,
-                signupUrl: route('register', ['locale' => app()->getLocale()]),
+                signupUrl: route('login', ['locale' => app()->getLocale()]),
                 optoutUrl: route('invite.optout.show', [
                     'locale' => app()->getLocale(),
                     'emailHash' => SuppressedInviteEmail::hashEmail($normalizedEmail),

@@ -14,6 +14,7 @@
         {{-- Favicons --}}
         <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
         <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+        <link rel="icon" href="/favicon.ico" sizes="any">
 
         {{-- Dark mode: apply class + critical background before paint to prevent flash --}}
         <script>
@@ -50,12 +51,32 @@
             </div>
 
             {{-- Auth Card — surface_container_lowest bg, editorial shadow, xl+ rounded --}}
-            <div class="w-full sm:max-w-md mt-4 px-8 py-6 bg-surface-container-lowest editorial-shadow overflow-hidden sm:rounded-2xl border border-outline-variant/15">
+            <div class="w-full sm:max-w-lg mt-4 px-8 py-6 bg-surface-container-lowest editorial-shadow overflow-hidden sm:rounded-2xl border border-outline-variant/15">
                 {{ $slot }}
             </div>
 
             {{-- Footer --}}
             <p class="mt-6 text-xs text-on-surface-variant">&copy; {{ date('Y') }} {{ config('company.display_name') }}. {{ __('pages.content_all_rights_reserved') }}</p>
+
+            {{-- Locale switcher: share links are locale-prefixed, so a
+                 visitor can land on the sign-in page in the wrong language.
+                 Same segmented shape as the account popover. --}}
+            @php
+                $guestOtherLocale = app()->getLocale() === 'en' ? 'de' : 'en';
+                $guestSegments = explode('/', request()->path(), 2);
+                $guestRedirectPath = '/'.$guestOtherLocale.'/'.($guestSegments[1] ?? '');
+            @endphp
+            <div class="mt-4 inline-flex items-center gap-0.5 rounded-full border border-outline-variant/35 bg-surface-container-high p-[3px]"
+                 role="group"
+                 aria-label="{{ __('common.content_language') }}">
+                @foreach (['en' => 'EN', 'de' => 'DE'] as $guestLocaleCode => $guestLocaleLabel)
+                    <a href="{{ route('locale.switch', ['locale' => $guestLocaleCode, 'redirect' => '/'.$guestLocaleCode.'/'.($guestSegments[1] ?? '')]) }}"
+                       aria-pressed="{{ app()->getLocale() === $guestLocaleCode ? 'true' : 'false' }}"
+                       class="flex h-7 items-center rounded-full px-3 text-xs font-semibold text-on-surface-variant transition-colors hover:text-on-surface aria-pressed:bg-primary aria-pressed:text-on-primary{{ app()->getLocale() === $guestLocaleCode ? ' pointer-events-none' : '' }}">
+                        {{ $guestLocaleLabel }}
+                    </a>
+                @endforeach
+            </div>
         </div>
     </body>
 </html>

@@ -296,7 +296,7 @@
                             {{ __('venues.action_directory_cta_propose') }}
                         </a>
                     @else
-                        <a href="{{ route('register', ['locale' => app()->getLocale()]) }}" wire:navigate
+                        <a href="{{ route('login', ['locale' => app()->getLocale()]) }}" wire:navigate
                            class="inline-flex items-center gap-1.5 px-5 py-2.5 bg-primary text-on-primary rounded-xl text-sm font-medium hover:shadow-md transition-shadow">
                             <span class="material-symbols-outlined text-base" aria-hidden="true">person_add</span>
                             {{ __('venues.action_directory_cta_sign_up_propose') }}

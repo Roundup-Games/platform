@@ -122,6 +122,32 @@ it('stores gender as null when consent is not given during onboarding', function
         ->and($fresh->gender_consent)->toBeFalse();
 });
 
+it('lands the member on their share-link destination after completing onboarding', function () {
+    // Complete-profile geocodes the submitted city; keep it off the network.
+    Http::fake(['*nominatim*' => Http::response([[
+        'lat' => '52.5200',
+        'lon' => '13.4050',
+        'display_name' => 'Berlin, Germany',
+        'place_id' => 12345,
+        'address' => ['city' => 'Berlin'],
+    ]])]);
+    $user = User::factory()->create(['profile_complete' => false]);
+
+    // The auth wall parked the shared game URL here; sign-up kept it alive.
+    session(['url.intended' => '/en/games/some-shared-game']);
+
+    startAtStep2($user)
+        ->set('gender', 'female')
+        ->set('gender_consent', false)
+        ->set('pronouns', 'she/her')
+        ->call('nextStep')
+        ->call('nextStep')
+        ->call('complete')
+        ->assertRedirect('/en/games/some-shared-game');
+
+    expect(session('url.intended'))->toBeNull();
+});
+
 it('stores gender when consent is given during onboarding', function () {
     // Complete-profile geocodes the submitted city; keep it off the network.
     Http::fake(['*nominatim*' => Http::response([[

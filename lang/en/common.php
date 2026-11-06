@@ -442,4 +442,11 @@ return [
     'push_denied_hint' => 'Push notifications are blocked in your browser settings. To re-enable, update the notification permissions in your browser.',
     'push_enabled_on_devices' => '[1]Push notifications enabled on :count device.|[2,*]Push notifications enabled on :count devices.',
     'aria_toggle_theme' => 'Toggle theme',
+
+    // ── Site header (account popover + city pill + drawer) ──────────
+    'content_appearance' => 'Appearance',
+    'nav_project' => 'Project',
+    'aria_open_city_hubs' => 'Choose a city hub',
+    'aria_open_account_menu' => 'Open account menu',
+
 ];

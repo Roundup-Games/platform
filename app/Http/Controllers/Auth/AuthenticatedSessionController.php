@@ -32,6 +32,11 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // Sign-in method marker for the combined sign-in page's
+        // device-remembered account chooser (stamped client-side by the
+        // app layout — see layouts/app.blade.php).
+        $request->session()->put('last_login_method', 'password');
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

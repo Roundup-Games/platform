@@ -50,7 +50,6 @@ dataset('guest_route_hygiene_public_pages', [
     'pledge algorithms' => '/en/our-pledge/algorithms',
     'pledge roadmap' => '/en/our-pledge/roadmap',
     'login' => '/en/login',
-    'register' => '/en/register',
     'forgot password' => '/en/forgot-password',
 ]);
 
@@ -58,6 +57,10 @@ describe('GuestRouteHygiene — public pages', function () {
     it('renders every guest page 200 for an anonymous visitor', function (string $path) {
         get($path)->assertOk();
     })->with('guest_route_hygiene_public_pages');
+
+    it('permanently redirects register to the combined sign-in page', function () {
+        get('/en/register')->assertStatus(301)->assertRedirect('/en/login');
+    });
 
     it('answers 410 Gone for the unpublished pledge aliases', function (string $path) {
         // D179 honesty policy — never a redirect loop back to the hub.

@@ -165,7 +165,7 @@ describe('EventDetail tables map', function () {
 
         Livewire::test(EventDetail::class, ['slug' => $event->slug])
             ->assertSee(__('events.content_sign_up_free_to_join_this_table'))
-            ->assertSee(route('register'))
+            ->assertSee(route('login'))
             ->assertDontSee(__('events.action_join_table'));
     });
 

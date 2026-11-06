@@ -149,7 +149,7 @@
                         {{ __('notifications.action_create_game') }}
                     </a>
                 @else
-                    <a href="{{ route('register') }}" wire:navigate
+                    <a href="{{ route('login') }}" wire:navigate
                        class="inline-flex items-center gap-2 mt-6 px-6 py-2.5 bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm">
                         <span class="material-symbols-outlined text-lg" aria-hidden="true">person_add</span>
                         {{ __('auth.action_sign_up_to_get_started') }}

@@ -715,19 +715,12 @@ it('renders the Discord sign-in button above the Google button on the login page
     $response->assertSee(__('common.action_continue_with_discord'));
 });
 
-it('renders the Discord sign-up button above the Google button on the register page', function () {
-    $response = $this->get(route('register'));
-
-    $html = $response->getContent();
-    $discordPos = strpos($html, 'btn-discord');
-    $googlePos = strpos($html, 'btn-google');
-
-    expect($discordPos)->not->toBeFalse('Discord button is rendered on the register page');
-    expect($googlePos)->not->toBeFalse('Google button is rendered on the register page');
-    expect($discordPos)->toBeLessThan($googlePos, 'Discord button appears above the Google button');
-
-    $response->assertSee(route('oauth.redirect', 'discord'), false);
-    $response->assertSee(__('auth.content_sign_up_with_discord'));
+// Combined sign-in entrypoint: GET /register is a named 301 to this
+// locale's /login — the sign-up branch lives on the login page now.
+it('permanently redirects the register page to the combined sign-in page', function () {
+    $this->get(route('register'))
+        ->assertStatus(301)
+        ->assertRedirect(route('login'));
 });
 
 // ── Email-verified enforcement on OAuth email-match (M056 review follow-up) ─

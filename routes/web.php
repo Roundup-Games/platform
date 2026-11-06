@@ -15,6 +15,7 @@ Route::get('/up', function (): Response {
     );
 });
 
+use App\Http\Controllers\Auth\AuthLookupController;
 use App\Http\Controllers\Auth\OAuthController;
 use App\Http\Controllers\ClientErrorReportController;
 use App\Http\Controllers\DiscordBotInstallController;
@@ -179,6 +180,13 @@ Route::get('auth/{provider}/redirect', [OAuthController::class, 'redirect'])
 Route::get('auth/{provider}/callback', [OAuthController::class, 'callback'])
     ->middleware('throttle:10,1')
     ->name('oauth.callback');
+
+// ── Combined sign-in: identifier-first branch lookup ──
+// Locale-independent JSON (mirrors the OAuth routes' top-level placement).
+// Guest-only + tightly throttled — see AuthLookupController.
+Route::post('auth/lookup', AuthLookupController::class)
+    ->middleware(['guest', 'throttle:auth-lookup'])
+    ->name('auth.lookup');
 
 // ── Discord Bot Install (M057/T06) ────────────────────
 // Top-level (outside the locale prefix) because Discord redirects back to a

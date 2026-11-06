@@ -41,4 +41,33 @@ return [
     'failed' => 'Diese Anmeldedaten stimmen nicht mit unseren Aufzeichnungen überein.',
     'password' => 'Das angegebene Passwort ist falsch.',
     'throttle' => 'Zu viele Anmeldeversuche. Bitte versuche es in :seconds Sekunden erneut.',
+
+    // ── Kombinierter Anmelde-Einstieg (Identifier-first, eine Tür für
+    //    Anmeldung und Registrierung). Du-Form per D175. ──────────────
+    'content_welcome' => 'Willkommen',
+    'content_welcome_sub' => 'Melde dich an oder erstelle dein Konto — beides geht durch dieselbe Tür.',
+    'content_welcome_back' => 'Willkommen zurück',
+    'content_welcome_back_sub' => 'Mach weiter mit einem deiner Konten — oder nimm ein anderes.',
+    'label_continue_as' => 'Weiter als',
+    'action_use_another_account' => 'Anderes Konto verwenden',
+    'action_continue' => 'Weiter',
+    'hint_new_here' => 'Neu hier? Mit deiner E-Mail entsteht das Konto — mehr musst du jetzt nicht entscheiden.',
+    'label_or_email' => 'oder mit E-Mail fortfahren',
+    'content_sign_in_sub' => 'Willkommen zurück — gib dein Passwort ein.',
+    'field_change' => 'Ändern',
+    'content_oauth_only_sub' => 'Dieses Konto nutzt hier kein Passwort.',
+    'hint_oauth_provider' => 'Du meldest dich üblicherweise mit :provider an — fahre einfach mit der Schaltfläche fort.',
+    'action_set_password_link' => 'Schick mir einen Link zum Festlegen eines Passworts',
+    'title_create_account' => 'Konto erstellen',
+    'content_signup_sub' => 'Zwei Felder, und du bist am Tisch.',
+    'action_create_account' => 'Konto erstellen',
+    'title_check_inbox' => 'Schau in dein Postfach',
+    'content_link_sent' => 'Wir haben einen Link an :email geschickt.',
+    'label_last_used' => 'Zuletzt verwendet',
+    'label_guest' => 'Gast',
+    'content_new_here_toggle' => 'Neu hier? Konto erstellen',
+    'aria_forget_account' => 'Dieses Konto auf diesem Gerät vergessen',
+    'aria_show_password' => 'Passwort anzeigen',
+    'aria_hide_password' => 'Passwort verbergen',
+
 ];

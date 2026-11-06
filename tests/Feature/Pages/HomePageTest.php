@@ -238,7 +238,7 @@ describe('CTA Section', function () {
         get(route('home'))
             ->assertOk()
             ->assertSee(__('profile.action_create_free_account'))
-            ->assertSee(route('register'));
+            ->assertSee(route('login'));
     });
 
     it('shows the find-a-game CTA for guests', function () {

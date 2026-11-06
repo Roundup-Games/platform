@@ -20,7 +20,7 @@
             {{-- M066/S09/T03: guest framing consistency — the request page is
                  auth-gated, so guests get sign-up framing pointing at /register
                  instead of a dead end at the login wall. --}}
-            @php($requestCtaHref = auth()->check() ? route('game-systems.request') : route('register'))
+            @php($requestCtaHref = auth()->check() ? route('game-systems.request') : route('login'))
             <a href="{{ $requestCtaHref }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-primary transition-colors">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">add_circle_outline</span>
                 {{ __('games.request_cta_catalog_header') }}

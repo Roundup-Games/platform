@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\AbstractProvider;
 
 class OAuthController
 {
@@ -78,6 +79,15 @@ class OAuthController
         $scopes = config("services.{$provider}.scope", []);
         $scopes = is_array($scopes) ? array_values(array_filter($scopes, 'is_string')) : [];
 
+        // login_hint (combined sign-in page): when the visitor picks a
+        // remembered Google account, skip the IdP's own account picker.
+        // Google honors login_hint on the authorize URL; Discord does not —
+        // passing it there would be dead weight, so it stays Google-only.
+        $rawLoginHint = $request->query('login_hint');
+        $loginHint = is_string($rawLoginHint)
+            ? Str::limit(trim((string) preg_replace('/[[:cntrl:]]/', '', $rawLoginHint)), 256, '')
+            : '';
+
         $driver = Socialite::driver($provider);
         if ($scopes !== []) {
             // Socialite's contracts\Provider interface does not declare
@@ -85,6 +95,15 @@ class OAuthController
             // Google and Discord go through the OAuth2 two-step provider,
             // which exposes the fluent scopes() method.
             $driver = $driver->scopes($scopes); // @phpstan-ignore method.notFound
+        }
+
+        if ($loginHint !== '' && $provider === OAuthProvider::Google->value) {
+            // with() lives on the concrete Two provider, not the contract —
+            // the scopes() ignore above would poison downstream typing, so
+            // this branch takes its own contract-narrowed instance instead.
+            /** @var AbstractProvider $googleDriver */
+            $googleDriver = Socialite::driver($provider);
+            $driver = $googleDriver->with(['login_hint' => $loginHint]);
         }
 
         return $driver->redirect();
@@ -121,6 +140,13 @@ class OAuthController
 
         $providerUserId = $socialiteUser->getId();
         $isLinking = $request->session()->pull('oauth_linking', false);
+
+        // Normalize the IdP email to lowercase before any storage or match.
+        // The email signup path lowercases via validation, so a mixed-case
+        // OAuth row would silently dodge the email-match login path AND the
+        // combined sign-in page's lookup branch — creating duplicate
+        // accounts instead of linking them.
+        $oauthEmail = Str::lower((string) $socialiteUser->getEmail());
 
         // ── Account linking flow (logged-in user connecting a provider) ──
         if ($isLinking === true) {
@@ -177,6 +203,7 @@ class OAuthController
             }
 
             Auth::login($user);
+            $request->session()->put('last_login_method', $provider);
             Log::info('OAuth login via linked account', [
                 'provider' => $provider,
                 'user_id' => $user->id,
@@ -198,7 +225,7 @@ class OAuthController
         // payload; isEmailVerified() honours either key. An absent claim
         // defaults to verified to preserve backward compatibility with
         // legacy mocks and any provider that does not surface the flag.
-        $user = User::where('email', $socialiteUser->getEmail())->first();
+        $user = User::where('email', $oauthEmail)->first();
 
         if ($user !== null) {
             return $this->linkProviderAndLogin($user, $provider, $socialiteUser, $providerUserId, 'email-match');
@@ -210,7 +237,7 @@ class OAuthController
 
         $attributes = [
             'name' => $sanitizedName,
-            'email' => $socialiteUser->getEmail(),
+            'email' => $oauthEmail,
             'password' => null,
             'email_verified_at' => $this->isEmailVerified($socialiteUser) ? now() : null,
             'avatar_url' => $socialiteUser->getAvatar(),
@@ -239,7 +266,7 @@ class OAuthController
             // (users_slug_unique — generateUniqueSlug()'s check-then-insert
             // race with an identical display name). Distinguish by
             // re-fetching: an email race finds the row, a slug race does not.
-            $existing = User::where('email', $socialiteUser->getEmail())->first();
+            $existing = User::where('email', $oauthEmail)->first();
 
             if ($existing !== null) {
                 return $this->linkProviderAndLogin(
@@ -271,6 +298,7 @@ class OAuthController
         $this->createLinkedAccount($user, $provider, $socialiteUser, $providerUserId);
 
         Auth::login($user);
+        $request->session()->put('last_login_method', $provider);
         Log::info('OAuth registration — new user created', [
             'provider' => $provider,
             'user_id' => $user->id,
@@ -461,6 +489,7 @@ class OAuthController
         }
 
         Auth::login($user);
+        request()->session()->put('last_login_method', $provider);
         Log::info('OAuth login — '.$context.', account linked', [
             'provider' => $provider,
             'user_id' => $user->id,

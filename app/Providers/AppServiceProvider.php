@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Console\Dev\DemoSeedCommand;
 use App\Console\Dev\DemoTeardownCommand;
 use App\Console\Dev\PostHogTestEvent;
+use App\Dto\CitySummary;
 use App\Events\MembershipActivated;
 use App\Listeners\DropDemoDomainMail;
 use App\Listeners\LogMailMessageSent;
@@ -51,6 +52,7 @@ use App\Policies\GameBulletinPolicy;
 use App\SEO\BreadcrumbBuilder;
 use App\SEO\SeoText;
 use App\Services\AttendanceService;
+use App\Services\CityDirectoryService;
 use App\Services\Discord\DiscordWebhookClient;
 use App\Services\EscalatedBladeRenderer;
 use App\Services\ICal\ICalFeedRenderer;
@@ -106,8 +108,10 @@ use Illuminate\Notifications\Events\NotificationFailed;
 use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -271,6 +275,36 @@ class AppServiceProvider extends ServiceProvider
             $view->with('pwaEligible', $user !== null
                 ? app(PwaEligibilityService::class)->isEligible($user)->eligible
                 : false);
+        });
+
+        // Site-header city pill data (menu revamp): the qualifying-hub list
+        // the popover renders. qualifyingCities() resolves each hub through
+        // its own 15-min cache; the header renders on every public page, so
+        // the whole list rides one short shared cache entry instead of N
+        // per-request cache hits. Empty list (fresh install) is fine — the
+        // popover still offers the city-hubs index link.
+        View::composer(['components.site-header', 'components.site-header.city-menu'], function ($view): void {
+            // Cache a scalar projection, never the DTO objects: shared cache
+            // payloads should not carry class graphs across processes
+            // (unserialize fragility), and the popover only needs three
+            // fields per row anyway.
+            $cities = Cache::remember(
+                'site-header:cities',
+                now()->addMinutes(10),
+                fn (): array => app(CityDirectoryService::class)
+                    ->qualifyingCities()
+                    ->sortByDesc(fn (CitySummary $city): int => $city->featured ? 1 : 0)
+                    ->take(6)
+                    ->values()
+                    ->map(fn (CitySummary $city): array => [
+                        'slug' => $city->slug,
+                        'city' => $city->city,
+                        'featured' => $city->featured,
+                    ])
+                    ->all(),
+            );
+
+            $view->with('navCities', $cities);
         });
 
         // Admin panel supplement stylesheet.
@@ -520,6 +554,23 @@ class AppServiceProvider extends ServiceProvider
         // not turn page loads into a write storm. Generous per-user ceiling.
         RateLimiter::for('timezone-beacon', function (Request $request) {
             return Limit::perMinute(10)->by($request->user()->id ?? $request->ip());
+        });
+
+        // Auth-lookup limiter (combined sign-in page) — the identifier-first
+        // branch endpoint answers whether an email is known. That answer is
+        // account-existence data, so the budget is deliberately tight and
+        // keyed by IP+email (10/min) with a lower per-IP ceiling (30/min)
+        // for spread probes. Enumeration exposure equals the register form's
+        // unique:users validation (accepted D00x decision); this keeps it
+        // non-harvestable.
+        RateLimiter::for('auth-lookup', function (Request $request) {
+            $rawEmail = $request->input('email', '');
+            $email = is_string($rawEmail) ? $rawEmail : '';
+
+            return [
+                Limit::perMinute(10)->by('lookup:'.sha1(($request->ip() ?? 'unknown').'|'.strtolower($email))),
+                Limit::perMinute(30)->by('lookup-ip:'.$request->ip()),
+            ];
         });
 
         // Client runtime-error beacon limiter — the error beacon is
