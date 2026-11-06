@@ -20,7 +20,12 @@
 # ═══════════════════════════════════════════════════════════════════════
 # USAGE
 # ═══════════════════════════════════════════════════════════════════════
-#   bash scripts/deploy/homelab.sh                 deploy current HEAD
+#   git push homelab main                           PRIMARY PATH — the
+#                                                  post-receive hook runs
+#                                                  this script automatically
+#                                                  (scripts/deploy/post-receive)
+#   bash scripts/deploy/homelab.sh                 deploy current HEAD (manual/
+#                                                  recovery path)
 #   bash scripts/deploy/homelab.sh --rollback      redeploy the previous
 #                                                  image and flip to it
 #   bash scripts/deploy/homelab.sh --rollback sha-<short>

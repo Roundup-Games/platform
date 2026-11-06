@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Push-to-deploy: runs scripts/deploy/homelab.sh after every push to main.
+#
+# Installed at <repo>/.git/hooks/post-receive on the homelab. The repo uses
+# receive.denyCurrentBranch=updateInstead, which refreshes the working tree
+# BEFORE post-receive runs — so the script deploys exactly the pushed HEAD.
+# Canonical copy lives here in the repo; reinstall after cloning with:
+#   cp scripts/deploy/post-receive .git/hooks/post-receive && chmod +x .git/hooks/post-receive
+#
+# Concurrency: deploys serialize on flock (waits up to 15 min). Rapid
+# successive pushes queue; the newest HEAD deploys last. The lockfile lives
+# in /tmp (RAM-backed on unRAID) so a reboot clears it instead of wedging
+# future deploys.
+set -euo pipefail
+
+# $0 = .git/hooks/post-receive (hooks run with cwd = worktree root)
+cd "$(dirname "$0")/../.."
+unset GIT_DIR GIT_WORK_TREE
+
+main_pushed=0
+while read -r _old _new _ref; do
+    [[ "${_ref}" == refs/heads/main ]] && main_pushed=1
+done
+[[ "${main_pushed}" == 1 ]] || exit 0
+
+mkdir -p deploy-logs
+LOG="deploy-logs/push-$(date +%Y%m%d-%H%M%S).log"
+{
+    if flock -w 900 9; then
+        echo "[$(date -u +%FT%TZ)] push-to-deploy starting: HEAD=$(git rev-parse --short HEAD)"
+        if bash scripts/deploy/homelab.sh; then
+            echo "[$(date -u +%FT%TZ)] push-to-deploy complete"
+        else
+            echo "[$(date -u +%FT%TZ)] push-to-deploy FAILED — see log above and deploy-logs/slots.json"
+            echo "rollback: bash scripts/deploy/homelab.sh --rollback"
+        fi
+    else
+        echo "[$(date -u +%FT%TZ)] deploy lock busy >15 min — NOT deployed."
+        echo "run scripts/deploy/homelab.sh manually once the in-flight deploy finishes."
+    fi
+} 9>/tmp/roundup-deploy.lock >>"${LOG}" 2>&1 &
+
+echo "push-to-deploy started -> ${LOG}"
