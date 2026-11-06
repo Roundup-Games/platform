@@ -56,6 +56,29 @@ it('maps slug-variant taxonomy names onto the existing row instead of colliding'
         ->and(GameSystem::where('bgg_id', 98812)->first()->families)->toHaveCount(1);
 });
 
+it('skips non-string taxonomy names instead of casting garbage rows', function () {
+    // syncTaxonomy's docblock is array<string, mixed> and the values ride
+    // straight from BGG payload parsing — an int/null/nested entry must be
+    // skipped, not (string)-cast into a bogus '42'/'Array' slug row.
+    $gameSystem = GameSystem::create([
+        'bgg_id' => 98812,
+        'name' => 'Game The King Is Dead',
+    ]);
+
+    $method = new ReflectionMethod(BggSyncService::class, 'syncTaxonomy');
+    $method->setAccessible(true);
+    $method->invoke(
+        app(BggSyncService::class),
+        $gameSystem,
+        'families',
+        GameSystemFamily::class,
+        ['Game: The King is Dead', 42, null, ['nested' => 'array']],
+    );
+
+    expect(GameSystemFamily::count())->toBe(1)
+        ->and(GameSystemFamily::sole()->name)->toBe('Game: The King is Dead');
+});
+
 it('still creates a taxonomy row on first sight', function () {
     expect(GameSystemFamily::count())->toBe(0);
 

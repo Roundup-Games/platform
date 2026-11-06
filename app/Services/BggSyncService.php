@@ -512,6 +512,9 @@ class BggSyncService
         $models = collect();
 
         foreach ($names as $name) {
+            if (! is_string($name)) {
+                continue;
+            }
             // Resolve by slug, not name: BGG ships punctuation/case variants
             // ("Game: The King is Dead" vs "Game The King Is Dead") that
             // slug identically — a name-keyed firstOrCreate inserts a second
@@ -519,7 +522,7 @@ class BggSyncService
             // surfaced 2026-11-04 once the auth outage stopped masking it).
             // Slug-resolution maps variants onto the existing row, keeping
             // taxonomy rows stable across BGG name edits.
-            $slug = Str::slug((string) $name);
+            $slug = Str::slug($name);
             $models->push($slug !== ''
                 ? $modelClass::firstOrCreate(['slug' => $slug], ['name' => $name])
                 : $modelClass::firstOrCreate(['name' => $name]));
