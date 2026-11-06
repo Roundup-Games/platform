@@ -62,9 +62,11 @@ return [
         'edit', 'edit_note', 'draw', 'delete', 'delete_forever', 'description',
         'download', 'upload', 'cloud_upload', 'cloud_done', 'cloud_off',
         'save', 'publish', 'visibility', 'visibility_off',
-        'assignment', 'notes', 'menu_book', 'school', 'psychology',
+        'notes', 'menu_book', 'school', 'psychology',
         'theater_comedy', 'mood', 'diversity_3', 'auto_awesome',
         'check', 'check_circle', 'checklist', 'done_all',
+        // Combined sign-in page: chooser method mark (kept next to its kin)
+        'sync_alt', 'password',
         'add', 'add_circle', 'add_circle_outline', 'add_business',
         'remove', 'push_pin', 'progress_activity',
 
@@ -74,9 +76,8 @@ return [
 
         // Settings & prefs
         'settings', 'cookie', 'language', 'translate', 'dark_mode', 'light_mode',
-        'routine', 'palette', 'contract', 'contract_edit', 'title',
-        'domain', 'business', 'computer', 'shopping_cart', 'payments',
-        'install_mobile', 'ios_share', 'home', 'info', 'help',
+        'routine', 'contract', 'domain', 'business', 'computer', 'shopping_cart', 'payments',
+        'install_mobile', 'ios_share', 'info', 'help',
         'monitoring', 'recommend', 'date_range', 'autorenew',
         'volunteer_activism', 'how_to_reg',
 
@@ -92,7 +93,7 @@ return [
         'pause_circle', 'search_off', 'inbox', 'code', 'dashboard',
 
         // Pledge & algorithms pages
-        'account_balance', 'distance', 'insights',
+        'distance', 'insights',
         'function',   // single-arrow function icon (f866)
         'lightbulb', 'account_tree', 'grid_on',
         'how_to_vote', 'timer', 'support_agent', 'table_rows', // algorithms: attendance + disclosure sections
@@ -119,7 +120,7 @@ return [
         // workspace attention panel and charter cards), charter section
         // art, discovery filters, dashboards, and long-standing gaps.
         'archive', 'celebration', 'confirmation_number', 'curtains',
-        'difference', 'edit_document', 'event_repeat', 'fact_check',
+        'difference', 'edit_document', 'fact_check',
         'festival', 'front_hand', 'handshake', 'history_edu',
         'home_work', 'hourglass_top', 'ink_eraser', 'ink_pen',
         'inventory_2', 'location_city', 'more_horiz',

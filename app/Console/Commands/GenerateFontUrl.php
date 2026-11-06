@@ -95,6 +95,21 @@ class GenerateFontUrl extends Command
         $this->scanDirectory(app_path(), '/\.php$/', $arrayPattern, $icons);
         $this->scanDirectory(config_path(), '/\.php$/', $arrayPattern, $icons);
 
+        // 5b. Icon names via PHP 8 named arguments (icon: 'name') — DTO and
+        //     registry construction (BadgeRegistry, ActionCenterService).
+        //     Caught drift 2026-11-06: foundation/timelapse rendered from the
+        //     badge registry but were invisible to this scan.
+        $namedArgPattern = "/\bicon:\s*'([a-z_0-9]+)'/";
+        $this->scanDirectory(app_path(), '/\.php$/', $namedArgPattern, $icons);
+
+        // 5c. Fallback ligatures in Blade PHP blocks ($icon = ... ?? 'name').
+        //     Caught drift 2026-11-06: the newcomer onboarding 'circle'
+        //     fallback lived only in a @php assignment.
+        // Single-quoted: a double-quoted "\$icon" would lose its backslash
+        // ($ becomes a regex anchor) and the pattern could never match.
+        $fallbackPattern = '/\$icon[^;\n]*\?\?\s*\'([a-z_0-9]+)\'/';
+        $this->scanDirectory(resource_path('views'), '/\.blade\.php$/', $fallbackPattern, $icons);
+
         // 6. Icon names in JS files
         $jsPattern = '/material-symbols-outlined[^>]*>\s*([a-z_0-9]+)\s*</';
         $this->scanDirectory(resource_path('js'), '/\.(js|ts)$/', $jsPattern, $icons);
