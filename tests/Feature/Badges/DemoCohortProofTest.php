@@ -99,15 +99,43 @@ beforeEach(function () {
 
 it('produces the full positive demo contract through the stateless sweep', function () {
     // ── eight badges held (was: 'produces all eight demo-contract badges…') ──
+    // Collect ALL zero-hold keys, never abort at the first: the diagnostic
+    // detail below is the diagnosis (the 2026-11-01 CI flake was blind
+    // because a bare toBeGreaterThan(0) abort per key; the 2026-11-06 CI
+    // failure aborted BEFORE this block could ever run — fixed by ordering).
+    $lost = [];
     foreach ([
         'debut', 'first_seat', 'founding_table', 'still_rolling', 'guild_linked',
         'regulars_table', 'trusted_organizer', 'mentor',
     ] as $key) {
-        // Named-key message: the contract covers eight badges, and a bare
-        // toBeGreaterThan(0) failure never says WHICH badge lost its cohort
-        // (the 2026-11-01 CI flake was diagnosed blind).
-        expect(demoCohortHoldsFor($key))->toBeGreaterThan(0, "demo cohort lost [{$key}]: zero holds after seed+sync+sweep");
+        $holds = demoCohortHoldsFor($key);
+        if ($holds > 0) {
+            continue;
+        }
+
+        $detail = '';
+        if ($key === 'regulars_table') {
+            $rgameIds = Game::query()->where('name->en', 'like', '%Regulars Night%')->pluck('id');
+            $detail = ' MONTHS:';
+            foreach (GameParticipant::query()->whereIn('game_id', $rgameIds)->pluck('user_id')->unique() as $uid) {
+                $months = GameParticipant::query()
+                    ->verifiedAttendance()
+                    ->where('game_participants.user_id', $uid)
+                    ->pluck('games.date_time')
+                    ->map(fn ($d) => Carbon::parse($d)->setTimezone(community_timezone())->format('Y-m'))
+                    ->unique()->sort()->values()->implode(',');
+                $detail .= " u=[{$months}]";
+            }
+        }
+        $sweepErrors = collect($this->logRecords())
+            ->filter(fn (array $r) => ($r['context']['badge'] ?? null) === $key || str_contains($r['message'], 'badges.sweep'))
+            ->map(fn (array $r) => $r['message'].' '.json_encode($r['context']))
+            ->implode(' || ');
+
+        $lost[] = "{$key} (holds=0){$detail} SWEEP_ERRORS=[{$sweepErrors}]";
     }
+
+    expect($lost)->toBeEmpty('demo cohort lost: '.implode(' | ', $lost));
 
     // ── audit trail (was: 'writes the awarded audit trail for the cohort') ──
     // Collect ALL unaudited keys, not the first: the flake (2026-11-01 CI,

@@ -2807,16 +2807,30 @@ class DemoSeedCommand extends Command
             }
         }
 
-        // ── Regulars' Table: the pair's three covered months ──
-        // Calendar-month anchors (the 5th of each of the last three FULL
+        // ── Regulars' Table: the pair's six covered months ──
+        // Calendar-month anchors (the 5th of each of the last six FULL
         // months), NOT fixed day offsets: now-110/70/30 spacing produced
         // non-consecutive covered months on some days-of-month (e.g. Nov 2:
         // Jul, [gap Aug], Sep, Oct) — bronze's consecutive-month walker then
         // needed noise-month luck and the cohort flaked (2026-11-01 CI,
         // 2026-11-02 gate). Month arithmetic is consecutive by construction.
+        //
+        // SIX anchors, not three (2026-11-06 CI flake): the walker forgives
+        // the open current month's miss only when its trailing 6-month
+        // window holds NO other recorded miss — and createCompletedSessions
+        // can hand the pair random coverage with gaps inside that window
+        // (draw: June covered, July gap → July + the open November are two
+        // misses in November's window → run dead → zero holds). Covering
+        // the ENTIRE grace window (months 6..1) makes that impossible by
+        // construction: no month of the window can be a miss, whatever the
+        // random draw does. Side effect: the pair lands silver (6-month
+        // streak), not bronze — the demo contract pins holds > 0, not the
+        // tier. Random coverage BEFORE month-6 is harmless: the miss desert
+        // it creates only kills the earlier run; the walker restarts at the
+        // first covered anchor and the window itself stays clean.
         $pairPlayer = $this->playerIds[0];
 
-        foreach ([3, 2, 1] as $i => $monthsBack) {
+        foreach ([6, 5, 4, 3, 2, 1] as $i => $monthsBack) {
             $date = Carbon::now()->startOfMonth()->subMonths($monthsBack)->addDays(4)->setTime(18, 0);
             $gameId = (string) Str::uuid7();
 
