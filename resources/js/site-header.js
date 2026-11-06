@@ -207,13 +207,14 @@ function wireSiteHeader() {
     /* Sync the shared theme segments with the stored preference (the
        pre-paint script already applied the class; this only aligns the
        buttons' aria-pressed state). */
-    var storedTheme;
-    try {
-        storedTheme = localStorage.getItem('theme') || 'system';
-    } catch (error) {
-        storedTheme = 'system';
-    }
-    applyTheme(storedTheme, false);
+    applyTheme(storedThemeMode(), false);
+
+    /* OS-level theme flips while a page is open (system mode). */
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+        if (storedThemeMode() === 'system') {
+            applyTheme('system', false);
+        }
+    });
 
     onScroll();
 }
@@ -224,10 +225,27 @@ if (document.readyState === 'loading') {
     wireSiteHeader();
 }
 
+function storedThemeMode() {
+    try {
+        return localStorage.getItem('theme') || 'system';
+    } catch (error) {
+        return 'system';
+    }
+}
+
 document.addEventListener('livewire:navigated', function () {
     /* wire:navigate replaces the DOM but keeps module state — re-run the
        drawer binding for the fresh <dialog> and re-stamp if present. */
     var drawer = document.getElementById('site-drawer');
+    /* The swap also syncs <html>'s attributes from the fetched page, which
+       renders no class attribute — the pre-paint script's `dark` class is
+       dropped on every navigation (theme fell back to light mid-session;
+       system-mode users hit it hardest since nothing re-derived it).
+       Re-apply from the stored preference in the same tick, before paint.
+       This also re-aligns the fresh header's theme segments (their
+       server-rendered aria-pressed would otherwise be stale until a
+       toggle). */
+    applyTheme(storedThemeMode(), false);
     if (drawer && !drawer.dataset.wired) {
         drawer.dataset.wired = '1';
         drawer.addEventListener('click', onDrawerClick);
