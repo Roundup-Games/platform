@@ -48,11 +48,12 @@ while true; do
         continue
     fi
 
-    # Liveness settle window: for the first 5 minutes after init completes,
+    # Liveness settle window: for the first ~5 minutes after init completes,
     # the run grid may still show only pre-boot rows, so liveness is not
     # probed (and cannot strike) yet. The window ends once the init marker
-    # itself is older than 5 minutes (find -mmin +5 matches files modified
-    # more than 5 minutes ago) — by then a live scheduler has had ~5
+    # is more than 5 whole minutes old: GNU find truncates age to whole
+    # minutes, so -mmin +5 first matches at ~6 minutes — erring on the
+    # safe (longer-settle) side; by then a live scheduler has had ~5+
     # every-minute ticks to write fresh rows.
     if [ "$settled" -eq 0 ]; then
         if [ -n "$(find /tmp/laravel-init-complete -mmin +5 2>/dev/null)" ]; then

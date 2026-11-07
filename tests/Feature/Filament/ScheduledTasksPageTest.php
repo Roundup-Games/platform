@@ -236,3 +236,31 @@ it('keeps a missed occurrence outside outage windows a plain regression', functi
         // means THIS row was annotated).
         ->assertDontSee('self-clears at next occurrence');
 });
+
+it('shows an ongoing-silence indicator when the run grid has gone quiet', function () {
+    // Windows only contain silences that ENDED, so a live one needs its
+    // own signal: the newest tick is 15 minutes old, no completed window
+    // exists, and the panel must still say the scheduler is silent now.
+    $this->travelTo(now()->startOfHour());
+
+    ScheduledTaskRun::factory()->startedAt(now()->copy()->subMinutes(15))->create([
+        'task_key' => 'attendance:resolve',
+    ]);
+
+    pageRenders()
+        ->assertOk()
+        ->assertSee('Recent scheduler outages')
+        ->assertSee('ongoing');
+});
+
+it('keeps the outages panel hidden while the grid is ticking', function () {
+    $this->travelTo(now()->startOfHour());
+
+    ScheduledTaskRun::factory()->startedAt(now()->copy()->subMinute())->create([
+        'task_key' => 'attendance:resolve',
+    ]);
+
+    pageRenders()
+        ->assertOk()
+        ->assertDontSee('Recent scheduler outages');
+});

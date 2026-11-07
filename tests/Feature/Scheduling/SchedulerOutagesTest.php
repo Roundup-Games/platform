@@ -243,3 +243,35 @@ it('looks back only 7 days — older silence is outside the window horizon', fun
 
     expect(SchedulerOutages::windows())->toBe([]);
 });
+
+it('reports an ongoing silence when the newest tick is past the gap threshold', function () {
+    $this->travelTo(now()->startOfHour());
+
+    // Ticks 4 minutes apart (no window), then nothing for 16 minutes:
+    // the silence has started but not ended — windows() is blind to it,
+    // ongoingSince() must not be.
+    ScheduledTaskRun::factory()->startedAt(now()->copy()->subMinutes(20))->create();
+    ScheduledTaskRun::factory()->startedAt(now()->copy()->subMinutes(16))->create();
+
+    expect(SchedulerOutages::windows())->toBe([])
+        ->and(SchedulerOutages::ongoingSince()?->equalTo(now()->copy()->subMinutes(16)))->toBeTrue();
+});
+
+it('reports no ongoing silence while the grid is fresh', function () {
+    $this->travelTo(now()->startOfHour());
+
+    ScheduledTaskRun::factory()->startedAt(now()->copy()->subMinute())->create();
+
+    expect(SchedulerOutages::ongoingSince())->toBeNull();
+});
+
+it('reports no ongoing silence on an empty grid', function () {
+    expect(ScheduledTaskRun::query()->count())->toBe(0)
+        ->and(SchedulerOutages::ongoingSince())->toBeNull();
+});
+
+it('degrades ongoing-silence detection to null when the run grid cannot be read', function () {
+    Schema::drop('scheduled_task_runs');
+
+    expect(SchedulerOutages::ongoingSince())->toBeNull();
+});

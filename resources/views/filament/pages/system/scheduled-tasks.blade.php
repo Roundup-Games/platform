@@ -161,7 +161,7 @@
             </table>
         </div>
 
-        @if(!empty($outages))
+        @if(!empty($outages) || $ongoing_since !== null)
             <x-filament::section icon="heroicon-o-server-stack" icon-color="warning">
                 <x-slot name="heading">Recent scheduler outages (7 days)</x-slot>
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
@@ -169,6 +169,15 @@
                     outage casualties, not regressions; the missed rows above say which.
                 </p>
                 <ul class="list-disc pl-5 space-y-1 text-sm text-gray-700 dark:text-gray-300">
+                    @if($ongoing_since !== null)
+                        <li>
+                            <span class="font-mono text-xs">{{ $ongoing_since->format('M j, H:i') }} → now</span>
+                            <span class="ml-2 inline-flex items-center rounded-full bg-danger-100 dark:bg-danger-900/30 px-2 py-0.5 text-xs font-medium text-danger-700 dark:text-danger-300">ongoing · {{ $ongoing_duration }}</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                                silence in progress — rows missed during it read as plain regressions until ticks resume, then annotate themselves
+                            </span>
+                        </li>
+                    @endif
                     @foreach($outages as $outage)
                         <li>
                             <span class="font-mono text-xs">{{ $outage['start']->format('M j, H:i') }} → {{ $outage['end']->format('M j, H:i') }}</span>

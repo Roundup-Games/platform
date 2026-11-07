@@ -126,6 +126,43 @@ final class SchedulerOutages
     }
 
     /**
+     * When the CURRENT silence started, if one is in progress.
+     *
+     * windows() can only ever contain silences that ENDED — both bounds
+     * are ticks — so an outage underway right now is invisible to the
+     * panel and to missed-row annotations until the grid ticks again
+     * (typically minutes: the worker watchdog restarts a dead scheduler,
+     * and the resumed tick completes the window). This companion reads
+     * the newest tick directly so the page can say "ongoing" instead of
+     * letting fresh casualties read as regressions.
+     *
+     * Same non-claims as schedule:liveness: an unreadable grid and an
+     * empty one return null — an in-progress claim needs evidence.
+     */
+    public static function ongoingSince(): ?Carbon
+    {
+        try {
+            $newest = ScheduledTaskRun::query()->max('started_at');
+        } catch (Throwable $e) {
+            Log::warning('schedule.outages.unavailable', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        if (! is_string($newest)) {
+            return null;
+        }
+
+        $lastTick = Carbon::parse($newest)->startOfMinute();
+
+        return $lastTick->diffInMinutes(now()) >= self::MIN_GAP_MINUTES
+            ? $lastTick
+            : null;
+    }
+
+    /**
      * Scalar cache shape: ISO-8601 strings survive any store's
      * serialization round-trip (allowed_classes=false strips objects;
      * strings pass untouched).

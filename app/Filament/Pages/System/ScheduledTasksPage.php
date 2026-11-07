@@ -36,6 +36,12 @@ class ScheduledTasksPage extends Page
         $recordingSince = ScheduleHealth::recordingSince();
         $tasks = $this->getTasks($recordingSince);
 
+        // In-progress silence: windows() only ever contains ENDED
+        // silences (both bounds are ticks), so without this companion the
+        // page is mute about an outage happening right now — its missed
+        // rows read as fresh regressions until the grid ticks again.
+        $ongoingSince = SchedulerOutages::ongoingSince();
+
         return [
             'tasks' => $tasks,
             'health' => ScheduleHealth::summary(),
@@ -48,6 +54,10 @@ class ScheduledTasksPage extends Page
                 fn (array $window): array => $window + ['duration' => $this->formatOutageDuration($window)],
                 array_slice(SchedulerOutages::windows(), 0, 5),
             ),
+            'ongoing_since' => $ongoingSince,
+            'ongoing_duration' => $ongoingSince !== null
+                ? $this->formatOutageDuration(['start' => $ongoingSince, 'end' => now()])
+                : null,
         ];
     }
 
@@ -77,6 +87,8 @@ class ScheduledTasksPage extends Page
      *     last_run_ago: string|null,
      *     last_run_duration: string|null,
      *     health: ScheduledTaskHealth,
+     *     missed_due_at: Carbon|null,
+     *     outage_window: array{start: Carbon, end: Carbon}|null,
      * }>
      */
     public function getTasks(?Carbon $recordingSince = null): array
