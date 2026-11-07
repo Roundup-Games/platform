@@ -152,11 +152,21 @@ describe('iCal feed — successful rendering', function () {
 
     it('anchors the all-day fallback to the community calendar date (R089)', function () {
         $owner = User::factory()->create();
-        // 2026-11-05 23:30 UTC is already 2026-11-06 00:30 in Berlin — the
-        // all-day fallback must carry the Berlin date, not the UTC date.
+        // 23:30 UTC is already the next day in the community zone (Berlin,
+        // UTC+1 in November) — the all-day fallback must carry the community
+        // date, not the UTC date. Anchored relative to today: the feed
+        // renders from the community's start-of-day forward, so the original
+        // fixed pin (2026-11-05 23:30 UTC) aged out of the feed window once
+        // Berlin's today moved past it and broke the suite — the same fuse
+        // the absolute-time sibling pin had (defused in 30f2e468). Any
+        // positive community offset crosses midnight from 23:30 UTC, so the
+        // edge holds on every run date, DST or not.
+        $start = now()->utc()->addDays(7)->setTime(23, 30);
+        $communityDate = $start->copy()->setTimezone(community_timezone())->format('Ymd');
+
         Game::factory()->create([
             'owner_id' => $owner->id,
-            'date_time' => Carbon::parse('2026-11-05 23:30:00', 'UTC'),
+            'date_time' => $start,
             'expected_duration' => 0,
             'name' => ['en' => 'All Day Edge Session'],
         ]);
@@ -168,8 +178,8 @@ describe('iCal feed — successful rendering', function () {
 
         $body = $this->get("/calendar/{$link->code}")->getContent();
 
-        expect($body)->toContain('VALUE=DATE:20261106')
-            ->and($body)->not->toContain('VALUE=DATE:20261105');
+        expect($body)->toContain('VALUE=DATE:'.$communityDate)
+            ->and($body)->not->toContain('VALUE=DATE:'.$start->copy()->setTimezone('UTC')->format('Ymd'));
     });
 
     it('emits STATUS:CANCELLED for a canceled game', function () {
