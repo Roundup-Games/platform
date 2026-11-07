@@ -32,6 +32,24 @@ if [[ "$branch" == "HEAD" ]]; then
     branch="detached"
 fi
 
+# Skip-on-identical-tree for homelab pushes (M075): homelab is the deploy
+# remote (K012) and every homelab push follows an origin push of the same
+# tree that just passed this exact gate — re-running the ~6-13 min suite on
+# a byte-identical tree is pure redundant gating (~45 min measured
+# 2026-11-07). When this homelab push is exactly the tree origin/main
+# already gated green, skip the suite and let the push through: origin
+# pushes always gate, and a homelab push of a tree origin/main has not
+# seen gates as before. An unresolvable ref (fresh clone, no origin/main)
+# never compares equal — a failing rev-parse echoes its argument instead
+# of a SHA — so the guard cannot misfire; || true keeps a failing
+# rev-parse from tripping set -e.
+head_sha="$(git rev-parse HEAD 2>/dev/null || true)"
+origin_main_sha="$(git rev-parse origin/main 2>/dev/null || true)"
+if [[ "$remote" == "homelab" && -n "$origin_main_sha" && "$head_sha" == "$origin_main_sha" ]]; then
+    printf "\n${CYN}⏭️ Pre-push skip: %s push of %s is the identical tree already gated on origin/main — full suite skipped.${RST}\n\n" "$remote" "$branch"
+    exit 0
+fi
+
 printf "\n${CYN}🧪 Pre-push: full test suite (CI Tests-job mirror) on %s → %s${RST}\n" "$branch" "$remote"
 printf "    This takes a while — the same minutes CI would spend finding it for you.\n\n"
 
