@@ -22,14 +22,17 @@
 # Note schedule:liveness itself never strikes on an empty grid or a DB
 # read error — states a restart cannot heal.
 #
-# Optional external dead-man's switch: set PHARE_WORKER_HEARTBEAT_URL to
-# a Phare heartbeat check URL and every settled, healthy cycle pings it
-# once (success-only — any probe failure or a dead box stops the pings, so
-# the external check alerts on container, Horizon, scheduler, or host
-# death).
-# Unset URL = silent no-op. Deliberately distinct from the backup
+# Optional external dead-man's switch: set WORKER_HEARTBEAT_URL to any
+# push-heartbeat ping URL (healthchecks.io &c. — provider-agnostic plain
+# curl) and every settled, healthy cycle pings it once (success-only — any
+# probe failure or a dead box stops the pings, so the external check
+# alerts on container, Horizon, scheduler, or host death). Check settings:
+# period 1 minute, grace >= 15 minutes — a deploy worker roll is silent
+# for up to ~14 (image pull + boot + settle window).
+# Unset URL = silent no-op. Deliberately NOT shared with the backup
 # container's PHARE_CRON_PING_URL: one shared check would let either side
-# mask the other's death.
+# mask the other's death. (Named PHARE_WORKER_HEARTBEAT_URL in M074;
+# renamed 2026-11-07 — Phare has no push/heartbeat monitors.)
 
 cd /var/www/html
 
@@ -101,8 +104,8 @@ while true; do
     # the fresh container would otherwise ping again for ~5 minutes per
     # cycle — a permanently wedged scheduler would flap ping/silence
     # (~6m/~3m) forever and could stay under a generous alert threshold.
-    if [ "$settled" -eq 1 ] && [ "$healthy" -eq 1 ] && [ -n "${PHARE_WORKER_HEARTBEAT_URL:-}" ] && command -v curl >/dev/null 2>&1; then
-        curl -fsS --max-time 10 -o /dev/null "$PHARE_WORKER_HEARTBEAT_URL" \
+    if [ "$settled" -eq 1 ] && [ "$healthy" -eq 1 ] && [ -n "${WORKER_HEARTBEAT_URL:-}" ] && command -v curl >/dev/null 2>&1; then
+        curl -fsS --max-time 10 -o /dev/null "$WORKER_HEARTBEAT_URL" \
             || echo "worker-watchdog: heartbeat ping failed (non-fatal)"
     fi
 done
