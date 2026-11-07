@@ -218,7 +218,7 @@ class DiscordDigestRendererTest extends TestCase
 
         $embeds = $payload->toArray()['embeds'];
         $this->assertCount(1, $embeds);
-        $this->assertSame('No public events scheduled', $embeds[0]['title']);
+        $this->assertSame(__('discord.content_digest_empty_title', [], 'en'), $embeds[0]['title']);
         $this->assertSame(DiscordDigestRenderer::COLOR_EMPTY, $embeds[0]['color']);
         $this->assertStringContainsString('next two weeks', $embeds[0]['description']);
     }
@@ -299,7 +299,7 @@ class DiscordDigestRendererTest extends TestCase
         $embeds = $this->renderer->render($games, $this->context())->toArray()['embeds'];
 
         $lastEmbed = end($embeds);
-        $this->assertSame('More events ahead', $lastEmbed['title']);
+        $this->assertSame(__('discord.content_digest_more_ahead', [], 'en'), $lastEmbed['title']);
         $this->assertStringContainsString('see roundup for the full', $lastEmbed['description']);
     }
 
@@ -522,7 +522,7 @@ class DiscordDigestRendererTest extends TestCase
         $payload = $this->renderer->render(collect([]), $this->context(locale: 'de'));
         $embed = $payload->toArray()['embeds'][0];
 
-        $this->assertStringContainsString('Keine öffentlichen Events', $embed['title'], 'empty-state title is German');
+        $this->assertStringContainsString(__('discord.content_digest_empty_title', [], 'de'), $embed['title'], 'empty-state title is German');
         $this->assertStringContainsString('keine öffentlichen roundup-Spiele', $embed['description']);
         $this->assertStringContainsString('tabletop über Community-Grenzen', $embed['footer']['text']);
     }
@@ -533,7 +533,7 @@ class DiscordDigestRendererTest extends TestCase
         $payload = $this->renderer->render(collect([]), $this->context(locale: 'en'));
         $embed = $payload->toArray()['embeds'][0];
 
-        $this->assertStringContainsString('No public events scheduled', $embed['title']);
+        $this->assertStringContainsString(__('discord.content_digest_empty_title', [], 'en'), $embed['title']);
         $this->assertStringContainsString('cross-community tabletop', $embed['footer']['text']);
     }
 
@@ -546,7 +546,7 @@ class DiscordDigestRendererTest extends TestCase
         $payload = $this->renderer->render(collect([]), $this->context());
         $embed = $payload->toArray()['embeds'][0];
 
-        $this->assertStringContainsString('No public events scheduled', $embed['title'], 'falls back to fallback_locale (en)');
+        $this->assertStringContainsString(__('discord.content_digest_empty_title', [], 'en'), $embed['title'], 'falls back to fallback_locale (en)');
     }
 
     #[Test]
