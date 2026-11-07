@@ -20,7 +20,7 @@ final readonly class EstablishedDashboard
      * @param  ?array<string, mixed>  $clearSummary  Null when there are pending action items.
      * @param  array<string, mixed>  $scheduleGroups  Owned by DashboardScheduleService.
      * @param  ?array<string, mixed>  $hostAgainBridge  Dashboard section: host_again.
-     * @param  array<string, mixed>  $nearbyNoteworthy  Owned by DashboardDiscoveryService.
+     * @param  array<int, mixed>  $nearbyNoteworthy  Owned by DashboardDiscoveryService.
      * @param  array<int, array<string, mixed>>  $milestoneCards  Dashboard section: milestone_cards.
      * @param  array<int, array{label: string, url: string, style: string, icon: string}>  $establishedQuickActions
      */
@@ -33,7 +33,7 @@ final readonly class EstablishedDashboard
         public ?array $clearSummary,
         public array $scheduleGroups,
         public ?array $hostAgainBridge,
-        /** @var array<string, mixed> */
+        /** @var array<int, mixed> */
         public array $nearbyNoteworthy,
         public array $milestoneCards,
         public array $establishedQuickActions,

@@ -102,22 +102,26 @@ class GameActivityFeedService
     /**
      * Get user IDs that the viewer follows or is friends with.
      *
-     * @return array<string, mixed>
+     * @return list<string>
      */
     protected function getSocialCircleUserIds(User $viewer): array
     {
         // Users the viewer follows (outgoing follows)
-        return $viewer->followings()
+        /** @var list<string> $circleIds */
+        $circleIds = $viewer->followings()
             ->pluck('related_user_id')
+            ->filter(fn (mixed $id) => is_string($id))
             ->unique()
             ->values()
             ->toArray();
+
+        return $circleIds;
     }
 
     /**
      * Games created by social circle members.
      *
-     * @param  array<string, mixed>  $socialCircleIds
+     * @param  list<string>  $socialCircleIds
      */
     protected function getGamesCreated(array $socialCircleIds, User $viewer): Collection // @phpstan-ignore missingType.generics
     {
@@ -141,7 +145,7 @@ class GameActivityFeedService
     /**
      * Games where social circle members joined as players.
      *
-     * @param  array<string, mixed>  $socialCircleIds
+     * @param  list<string>  $socialCircleIds
      */
     protected function getPlayersJoined(array $socialCircleIds, User $viewer): Collection // @phpstan-ignore missingType.generics
     {
@@ -193,7 +197,7 @@ class GameActivityFeedService
     /**
      * Games by social circle members that were recently completed.
      *
-     * @param  array<string, mixed>  $socialCircleIds
+     * @param  list<string>  $socialCircleIds
      */
     protected function getGamesCompleted(array $socialCircleIds, User $viewer): Collection // @phpstan-ignore missingType.generics
     {
@@ -218,7 +222,7 @@ class GameActivityFeedService
     /**
      * Games where social circle members wrote a post-session recap.
      *
-     * @param  array<string, mixed>  $socialCircleIds
+     * @param  list<string>  $socialCircleIds
      */
     protected function getSessionRecaps(array $socialCircleIds, User $viewer): Collection // @phpstan-ignore missingType.generics
     {
@@ -244,7 +248,7 @@ class GameActivityFeedService
     /**
      * Campaigns created by social circle members.
      *
-     * @param  array<string, mixed>  $socialCircleIds
+     * @param  list<string>  $socialCircleIds
      */
     protected function getCampaignsCreated(array $socialCircleIds, User $viewer): Collection // @phpstan-ignore missingType.generics
     {
@@ -268,7 +272,7 @@ class GameActivityFeedService
     /**
      * Campaigns where social circle members joined as players.
      *
-     * @param  array<string, mixed>  $socialCircleIds
+     * @param  list<string>  $socialCircleIds
      */
     protected function getCampaignPlayersJoined(array $socialCircleIds, User $viewer): Collection // @phpstan-ignore missingType.generics
     {
@@ -310,7 +314,7 @@ class GameActivityFeedService
     /**
      * Campaigns by social circle members that were completed.
      *
-     * @param  array<string, mixed>  $socialCircleIds
+     * @param  list<string>  $socialCircleIds
      */
     protected function getCampaignsCompleted(array $socialCircleIds, User $viewer): Collection // @phpstan-ignore missingType.generics
     {
@@ -335,7 +339,7 @@ class GameActivityFeedService
     /**
      * Sessions (games) scheduled for campaigns owned by social circle members.
      *
-     * @param  array<string, mixed>  $socialCircleIds
+     * @param  list<string>  $socialCircleIds
      */
     protected function getSessionsScheduled(array $socialCircleIds, User $viewer): Collection // @phpstan-ignore missingType.generics
     {

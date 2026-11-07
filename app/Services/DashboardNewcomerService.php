@@ -46,6 +46,7 @@ class DashboardNewcomerService
         $hasLocation = $location !== null && $location->latitude !== null && $location->longitude !== null;
 
         // Top 3 preferred game system names
+        /** @var list<string> $preferredSystems */
         $preferredSystems = $user->gameSystemPreferences()
             ->take(3)
             ->pluck('game_systems.name')
@@ -483,7 +484,7 @@ class DashboardNewcomerService
      *
      * Returns one of several keys that map to localized welcome messages.
      *
-     * @param  array<string, mixed>  $preferredSystems
+     * @param  list<string>  $preferredSystems
      */
     private function resolveWelcomeMessageKey(bool $hasLocation, array $preferredSystems, int $matchingGamesCount): string
     {

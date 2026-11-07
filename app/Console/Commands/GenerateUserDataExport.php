@@ -207,7 +207,7 @@ class GenerateUserDataExport extends Command
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<int, mixed>
      */
     protected function gatherLinkedAccounts(User $user): array
     {
@@ -375,7 +375,7 @@ class GenerateUserDataExport extends Command
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<int, mixed>
      */
     protected function gatherTeams(User $user): array
     {
@@ -475,7 +475,7 @@ class GenerateUserDataExport extends Command
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<int, mixed>
      */
     protected function gatherPushSubscriptions(User $user): array
     {
@@ -494,7 +494,7 @@ class GenerateUserDataExport extends Command
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<int, mixed>
      */
     protected function gatherSocialLinks(User $user): array
     {

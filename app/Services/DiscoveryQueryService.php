@@ -1075,8 +1075,11 @@ class DiscoveryQueryService
             ->values()
             ->toArray();
 
+        /** @var list<string> $favoriteIds */
         $favoriteIds = $pluckIds($favorites);
+        /** @var list<string> $impliedIds */
         $impliedIds = $pluckIds($implied);
+        /** @var list<string> $avoidedIds */
         $avoidedIds = $pluckIds($avoided);
         $favoriteVibes = is_array($resolvedVibes['favorites'] ?? null) ? $resolvedVibes['favorites'] : [];
 

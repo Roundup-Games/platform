@@ -46,7 +46,7 @@ class DashboardDiscoveryService
      * Each game: id, name, system_badge, date_time, relative_time,
      * spots_available, distance_km, relevance_tags (array of tag keys).
      *
-     * @return array<string, mixed>
+     * @return array<int, mixed>
      */
     public function getNearbyNoteworthy(User $user, string $geohash4): array
     {
@@ -106,7 +106,7 @@ class DashboardDiscoveryService
     /**
      * Compute nearby noteworthy games from scratch.
      *
-     * @return array<string, mixed>
+     * @return array<int, mixed>
      */
     private function computeNearbyNoteworthy(User $user, string $geohash4): array
     {
