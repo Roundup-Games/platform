@@ -261,3 +261,71 @@ jobs:
       - name: Run tests (serial DDL tail)
         # tests/Feature/Migrations only — see the parallel step's note.
         run: vendor/bin/pest --ci --group=ddl-serial
+
+  smoke:
+    name: Smoke (canon + raw strings)
+    runs-on: ubuntu-latest
+
+    # No database service container: tests/bootstrap.php starts an ephemeral
+    # testcontainers Postgres and migrates it — same rationale as the test
+    # job; the smoke group boots through the same pest bootstrap path.
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          tools: composer:v2
+          extensions: pdo_pgsql
+          # Same opcache/JIT block as the test job: smoke workers are
+          # short-lived pest processes too, so the boot win is from opcache.
+          ini-values: |
+            opcache.enable=1
+            opcache.enable_cli=1
+            opcache.jit=tracing
+            opcache.jit_buffer_size=64M
+            zend.assertions=-1
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          # Node 24, pinned across CI/Dockerfile/.nvmrc/package.json engines —
+          # see the test job's note.
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install PHP dependencies
+        uses: ramsey/composer-install@v3
+        with:
+          # Locked + classmap-authoritative, same as the test job: smoke must
+          # run against the exact committed composer.lock tree.
+          dependency-versions: locked
+          composer-options: --classmap-authoritative
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        # Most of the smoke-group files make HTTP requests that render Blade
+        # views containing @vite(); public/build is gitignored, so without a
+        # built manifest every one of them throws
+        # ViteManifestNotFoundException (the test job carries this step for
+        # exactly that reason). Icon subsetting auto-skips without the Python
+        # toolchain; the Vite manifest is still produced.
+        run: npm run build
+
+      - name: Copy environment file
+        run: cp .env.example .env
+
+      - name: Generate application key
+        # Pest boots the app for the smoke HTTP requests (i18n job precedent).
+        run: php artisan key:generate
+
+      - name: Run smoke battery
+        # composer run smoke = `artisan test --group=smoke --parallel` +
+        # `scripts/check-raw-strings.php` (K004). Until now this battery only
+        # ran at gated slice/milestone closeout (MEM1202) — CI now proves it
+        # at PR time. The JS unit tests stay in the test job: npm test is not
+        # smoke's concern.
+        run: composer run smoke
