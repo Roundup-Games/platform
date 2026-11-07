@@ -44,7 +44,7 @@ return [
     'content_sessions' => 'Sessions',
     'content_count_sessions' => '{1} :count session|[2,*] :count sessions',
     'content_sessions_this_week' => '{1} Session this week|[2,*] Sessions this week',
-    'content_share_your_location_and_browse' => 'Share your location and browse game sessions, campaigns, and events happening in your area. Filter by game type, date, or skill level — whatever fits your life.',
+    'content_share_your_location_and_browse' => 'Share your location and browse games, campaigns, and events happening in your area. Filter by game type, date, or skill level — whatever fits your life.',
     'content_show_me_sessions_near_me' => 'Show me sessions near me',
     'content_start_a_recurring_campaign_sessions' => 'Start a recurring campaign — sessions will be created from your schedule.',
     'content_transparent_sessions' => 'Transparent sessions',
@@ -134,7 +134,7 @@ return [
     'flash_you_left_the_campaign' => 'You have left the campaign.',
     // Type-selection step (mirrors CreateGame's card picker)
     'content_what_are_you_setting_up' => 'What are you setting up?',
-    'content_pick_the_type_for_your_recurring_event' => 'Pick the type for your recurring event. You can change it anytime.',
+    'content_pick_the_type_for_your_recurring_event' => 'Pick the type for your campaign. You can change it anytime.',
     'label_per_session_short' => '/session',
     'placeholder_session_description' => 'Describe this session…',
     'placeholder_session_location' => 'Venue name, address, or meeting details',

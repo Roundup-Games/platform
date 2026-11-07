@@ -101,7 +101,7 @@
     {{-- ── Content ──────────────────────────────────────────── --}}
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 bg-surface space-y-6">
 
-        <x-language-mismatch-banner :entity-language="$campaign->language" />
+        <x-language-mismatch-banner :entity-language="$campaign->language" entity="campaign" />
 
         @if(session()->has('success'))
             <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 3000)" x-show="show"
@@ -149,7 +149,7 @@
                     <span class="material-symbols-outlined text-2xl text-primary mt-0.5" aria-hidden="true">mail</span>
                     <div class="flex-1">
                         <h2 class="text-lg font-heading font-bold text-on-surface">{{ __('common.action_accept_invitation') }}</h2>
-                        <p class="mt-1 text-sm text-on-surface-variant">{{ __('people.content_you_have_been_invited') }}</p>
+                        <p class="mt-1 text-sm text-on-surface-variant">{{ __('people.content_invited_to_campaign') }}</p>
                         <div class="mt-4 flex gap-3">
                             <button wire:click="acceptInvitation('{{ $userInvitation->id }}')"
                                 class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-lg shadow-ambient hover:opacity-90 transition-opacity">

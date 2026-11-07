@@ -15,7 +15,7 @@ return [
     'content_be_the_first_to_create_a_team' => 'Be the first to create a team!',
     'content_captain' => 'Captain',
     'content_count_members' => '{1} :count member|[2,*] :count members',
-    'content_find_or_create_a_team' => '**Find or create a team** — Team up with other players for events and campaigns.',
+    'content_find_or_create_a_team' => '**Find or create a team** — Team up with other players for games, campaigns, and events.',
     'content_invite_member' => 'Invite Member',
     'content_invite_player' => 'Invite Player',
     'content_member_removed_from_team' => 'Member removed from team.',

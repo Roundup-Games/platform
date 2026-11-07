@@ -117,7 +117,7 @@
         @endif
 
         {{-- Language mismatch banner --}}
-        <x-language-mismatch-banner :entity-language="$event->language" />
+        <x-language-mismatch-banner :entity-language="$event->language" entity="event" />
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 

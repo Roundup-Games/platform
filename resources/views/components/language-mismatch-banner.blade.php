@@ -1,5 +1,6 @@
 @props([
     'entityLanguage',
+    'entity' => 'game',
 ])
 
 @php
@@ -19,7 +20,7 @@ $show = $entityLanguage && $entityLanguage !== $uiLocale;
     >
         <span class="material-symbols-outlined text-primary text-xl shrink-0" aria-hidden="true">translate</span>
         <p class="text-sm flex-1">
-            {{ __('common.content_language_mismatch_banner', ['language' => \App\Enums\ContentLanguage::from($entityLanguage)->label()]) }}
+            {{ __('common.content_language_mismatch_'.$entity, ['language' => \App\Enums\ContentLanguage::from($entityLanguage)->label()]) }}
         </p>
         <button
             type="button"

@@ -26,7 +26,7 @@
     {{-- Content --}}
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 bg-surface space-y-6">
 
-        <x-language-mismatch-banner :entity-language="$game->language" />
+        <x-language-mismatch-banner :entity-language="$game->language" entity="game" />
 
         @if(session()->has('success'))
             <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show"

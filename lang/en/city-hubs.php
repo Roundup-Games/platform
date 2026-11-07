@@ -23,7 +23,7 @@ return [
 
     'heading_city_hubs_index' => 'Tabletop gaming by city',
 
-    'content_index_intro' => 'City hubs bundle a local scene\'s public activity into one page: upcoming game sessions, campaigns, and events, plus the verified venues to play at. Hubs go live automatically once a city has enough upcoming public activity or verified venues — the directory grows as local scenes do.',
+    'content_index_intro' => 'City hubs bundle a local scene\'s public activity into one page: upcoming games, campaigns, and events, plus the verified venues to play at. Hubs go live automatically once a city has enough upcoming public activity or verified venues — the directory grows as local scenes do.',
 
     'label_featured' => 'Featured',
 
@@ -35,7 +35,7 @@ return [
 
     'heading_city_hub' => 'Tabletop gaming in :city',
 
-    'content_intro' => 'Upcoming public game sessions, campaigns, and events in and around :city — plus verified venues to play at.',
+    'content_intro' => 'Upcoming public games, campaigns, and events in and around :city — plus verified venues to play at.',
 
     'label_upcoming_sessions_count' => ':count upcoming public sessions',
 

@@ -131,7 +131,7 @@ return [
     'action_view_city_hub' => 'View the :city city hub',
     // SEO
     'seo_title_discover' => 'Discover Tabletop Games & Sessions Near You',
-    'seo_description_discover' => 'Find tabletop game sessions and RPG campaigns hosted by people near you. Browse board game nights, adventures, and events in your area.',
+    'seo_description_discover' => 'Find tabletop games and RPG campaigns hosted by people near you. Browse board game nights, adventures, and events in your area.',
     'seo_title_browse_games' => 'Browse Games',
     'seo_title_browse_campaigns' => 'Browse Campaigns',
     'seo_title_browse_all' => 'Browse Games & Campaigns',

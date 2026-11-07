@@ -42,7 +42,7 @@ return [
     'field_linked_accounts' => 'Linked Accounts',
     'field_update_settings_for_name' => 'Update settings for :name',
     'flash_profile_updated_successfully' => 'Profile updated successfully.',
-    'action_select_the_games_you_enjoy_and_those' => 'Select the games you enjoy and those you\'d prefer to avoid — we\'ll use this to recommend sessions and events.',
+    'action_select_the_games_you_enjoy_and_those' => 'Select the games you enjoy and those you\'d prefer to avoid — we\'ll use this to recommend games and events.',
     'action_tell_us_which_play_styles_you_enjoy' => 'Tell us which play styles you enjoy and which you\'d rather avoid.',
     'content_avoid_preferences_take_priority_over_favorites' => 'Avoid preferences take priority over favorites when there\'s a conflict.',
     'content_language_location' => 'Language & Location',

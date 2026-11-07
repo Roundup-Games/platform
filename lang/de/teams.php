@@ -15,7 +15,7 @@ return [
     'content_be_the_first_to_create_a_team' => 'Sei der Erste, der ein Team erstellt!',
     'content_captain' => 'Kapitän',
     'content_count_members' => '{1} :count Mitglied|[2,*] :count Mitglieder',
-    'content_find_or_create_a_team' => '**Finde oder gründe ein Team** — Schließe dich mit anderen Spielern für Events und Kampagnen zusammen.',
+    'content_find_or_create_a_team' => '**Finde oder gründe ein Team** — Schließe dich mit anderen Spielern für Runden, Kampagnen und Events zusammen.',
     'content_invite_member' => 'Mitglied einladen',
     'content_invite_player' => 'Spieler einladen',
     'content_member_removed_from_team' => 'Mitglied aus dem Team entfernt.',
