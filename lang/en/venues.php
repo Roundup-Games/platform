@@ -102,5 +102,5 @@ return [
     'heading_directory_footer_cta' => 'Know a place that should be here?',
     'content_directory_footer_cta' => 'Propose a venue and help more players find a seat at the table.',
     'heading_directory_portal_card' => 'Browse venues',
-    'content_directory_portal_card' => 'Find cafés, game stores, and community spaces hosting public sessions near you.',
+    'content_directory_portal_card' => 'Find cafés, game stores, and community spaces hosting public games near you.',
 ];

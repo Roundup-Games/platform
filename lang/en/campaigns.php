@@ -45,7 +45,7 @@ return [
     'content_count_sessions' => '{1} :count session|[2,*] :count sessions',
     'content_sessions_this_week' => '{1} Game this week|[2,*] Games this week',
     'content_share_your_location_and_browse' => 'Share your location and browse games, campaigns, and events happening in your area. Filter by game type, date, or skill level — whatever fits your life.',
-    'content_show_me_sessions_near_me' => 'Show me sessions near me',
+    'content_show_me_sessions_near_me' => 'Show me games near me',
     'content_start_a_recurring_campaign_sessions' => 'Start a recurring campaign — sessions will be created from your schedule.',
     'content_transparent_sessions' => 'Transparent sessions',
     'content_weekly' => 'Weekly',
