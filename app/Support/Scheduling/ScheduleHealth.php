@@ -34,6 +34,15 @@ use Throwable;
 final class ScheduleHealth
 {
     /**
+     * Minutes of grace before a due occurrence is judged "missed": the
+     * race between "due this minute" and "scheduler tick not yet fired"
+     * must never flag a healthy schedule on page load. Shared by
+     * classify() and lastDueOccurrence() so the page annotates the SAME
+     * occurrence the classification judged.
+     */
+    private const GRACE_MINUTES = 2;
+
+    /**
      * The summary cache key. Bump the version suffix whenever the
      * cached array's shape changes, so a pre-deploy entry can never be
      * read back as the new shape.
@@ -190,6 +199,27 @@ final class ScheduleHealth
     }
 
     /**
+     * The most recent due occurrence a task's run history is judged
+     * against — classify()'s grace-walked previous run date, exposed for
+     * consumers that need to know WHICH occurrence was missed (the
+     * Scheduled Tasks page checks whether it fell inside a detected
+     * scheduler outage window: SchedulerOutages::covers()).
+     *
+     * Sub-grace cadences (every-minute automations) walk 2-3 steps back;
+     * everything else at most one — see the grace-walk note in classify().
+     */
+    public static function lastDueOccurrence(CronExpression $cron, Carbon $now): Carbon
+    {
+        $previousDue = Carbon::instance($cron->getPreviousRunDate($now->toDateTime(), 0, true));
+
+        while ($previousDue->copy()->addMinutes(self::GRACE_MINUTES)->gt($now)) {
+            $previousDue = Carbon::instance($cron->getPreviousRunDate($previousDue, 0, false));
+        }
+
+        return $previousDue;
+    }
+
+    /**
      * Classify one task's health against its run history.
      *
      * A 2-minute grace window absorbs the race between "due this minute"
@@ -207,17 +237,7 @@ final class ScheduleHealth
         ?Carbon $lastRunAt,
         ?Carbon $recordingSince,
     ): ScheduledTaskHealth {
-        $previousDue = Carbon::instance($cron->getPreviousRunDate($now->toDateTime(), 0, true));
-
-        // Grace walk: only occurrences at least 2 minutes old are judged,
-        // so the race between "due this minute" and "scheduler tick not
-        // yet fired" never flags. allowCurrentDate means $previousDue may
-        // be "now" itself on matching minutes, so walk back one occurrence
-        // at a time (sub-grace cadences take 2-3 steps, every other
-        // cadence at most one).
-        while ($previousDue->copy()->addMinutes(2)->gt($now)) {
-            $previousDue = Carbon::instance($cron->getPreviousRunDate($previousDue, 0, false));
-        }
+        $previousDue = self::lastDueOccurrence($cron, $now);
 
         if ($lastRunAt !== null) {
             return $lastRunAt->lt($previousDue)

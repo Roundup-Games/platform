@@ -40,6 +40,12 @@ class BggSyncService
      */
     private const SYNC_HOLD_MARGIN_SECONDS = 150;
 
+    /**
+     * How many per-item error lines are persisted into
+     * BggSyncLog.error_message when a slice ends with failures (M074).
+     */
+    private const MAX_PERSISTED_ITEM_ERRORS = 5;
+
     private BggClient $client;
 
     private BggXmlParser $parser;
@@ -229,11 +235,17 @@ class BggSyncService
                 ? array_values(array_filter($bggIds, fn (int $id): bool => ! isset($accountedIds[$id])))
                 : [];
 
+            // Per-item failure summary (M074): the Nov 2 weekly-sync
+            // failure left error_message EMPTY — the item errors lived
+            // only in container output destroyed at the next deploy.
+            // Persist the first few so a red weekly row is root-causeable
+            // from the BGG Sync Log admin resource alone.
             $log->update([
                 'status' => 'success',
                 'bgg_ids' => $processed,
                 'items_synced' => $synced,
                 'items_failed' => $failed,
+                'error_message' => $failed > 0 ? self::summarizeItemErrors($errors) : null,
                 'completed_at' => now(),
             ]);
 
@@ -265,6 +277,28 @@ class BggSyncService
 
             throw $e;
         }
+    }
+
+    /**
+     * Compact, persisted form of a slice's per-item errors: first
+     * MAX_PERSISTED_ITEM_ERRORS lines (each already
+     * "Failed to upsert bgg_id=N: <message>"), one per line, with an
+     * overflow count line when truncated. TEXT column, so no hard
+     * length clamp is needed — only the count of lines is bounded.
+     *
+     * @param  list<string>  $errors
+     */
+    private static function summarizeItemErrors(array $errors): string
+    {
+        $shown = array_slice($errors, 0, self::MAX_PERSISTED_ITEM_ERRORS);
+
+        $summary = implode("\n", $shown);
+
+        if (count($errors) > count($shown)) {
+            $summary .= sprintf("\n(+ %d more)", count($errors) - count($shown));
+        }
+
+        return $summary;
     }
 
     /**

@@ -3,6 +3,7 @@
 use App\Filament\Pages\System\ScheduledTasksPage;
 use App\Models\ScheduledTaskRun;
 use App\Models\User;
+use App\Support\Scheduling\SchedulerOutages;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Features\SupportTesting\Testable;
@@ -17,6 +18,9 @@ use function Pest\Laravel\get;
 // the dashboard widget and in Horizon itself).
 beforeEach(function () {
     seedRoles();
+
+    Cache::forget('admin:schedule-health.v2');
+    SchedulerOutages::flush();
 
     $this->platformAdmin = User::factory()->create();
     $this->platformAdmin->assignRole('Platform Admin');
@@ -154,4 +158,81 @@ it('flags a past-due task with no recorded runs as never-ran missed', function (
     pageRenders()
         ->assertOk()
         ->assertSee('Never ran — past due');
+});
+
+it('annotates a missed occurrence that fell inside a detected scheduler outage', function () {
+    // The Nov 1 shape: horizon:snapshot (*/5) last ran an hour ago, so its
+    // :05 occurrence is missed — and the grid was SILENT across :05 (ticks
+    // at :57 and :06, a 9-minute outage window covering :05). The row must
+    // say "during scheduler outage", not read as a fresh regression.
+    $this->travelTo(now()->startOfHour()->setMinute(7));
+
+    ScheduledTaskRun::factory()->startedAt(now()->subHour())->create([
+        'task_key' => 'horizon:snapshot',
+    ]);
+    ScheduledTaskRun::factory()->startedAt(now()->copy()->subMinutes(10))->create([
+        'task_key' => 'attendance:resolve',
+    ]);
+    ScheduledTaskRun::factory()->startedAt(now()->copy()->subMinute())->create([
+        'task_key' => 'attendance:resolve',
+    ]);
+
+    pageRenders()
+        ->assertOk()
+        ->assertSee('Missed occurrence')
+        ->assertSee('during scheduler outage')
+        ->assertSee('self-clears at next occurrence')
+        ->assertSee('Recent scheduler outages');
+});
+
+it('annotates a never-ran missed task whose due occurrence fell inside an outage', function () {
+    // Same Nov 1 shape as the row-with-history test, but horizon:snapshot
+    // has NO rows at all: its :05 occurrence is missed via the past-due
+    // branch ("Never ran — past due"). The outage annotation must render
+    // for that shape too — outage_window is computed for every Missed row
+    // and must not be silently dropped because the row has no history.
+    $this->travelTo(now()->startOfHour()->setMinute(7));
+
+    ScheduledTaskRun::factory()->startedAt(now()->subHour())->create([
+        'task_key' => 'attendance:resolve',
+    ]);
+    ScheduledTaskRun::factory()->startedAt(now()->copy()->subMinutes(10))->create([
+        'task_key' => 'attendance:resolve',
+    ]);
+    ScheduledTaskRun::factory()->startedAt(now()->copy()->subMinute())->create([
+        'task_key' => 'attendance:resolve',
+    ]);
+
+    pageRenders()
+        ->assertOk()
+        ->assertSee('Never ran — past due')
+        // Row-only annotation string — the banner mentions outages
+        // generically, so only this string proves the never-ran row
+        // itself carries the annotation.
+        ->assertSee('self-clears at next occurrence');
+});
+
+it('keeps a missed occurrence outside outage windows a plain regression', function () {
+    // Same missed :05 occurrence, but the grid ticked every minute through
+    // it (other tasks ran at :05) — the scheduler was ALIVE and snapshot
+    // still missed: a real regression, no outage annotation, no panel.
+    $this->travelTo(now()->startOfHour()->setMinute(7));
+
+    ScheduledTaskRun::factory()->startedAt(now()->subHour())->create([
+        'task_key' => 'horizon:snapshot',
+    ]);
+    foreach (range(10, 1) as $minutesAgo) {
+        ScheduledTaskRun::factory()->startedAt(now()->copy()->subMinutes($minutesAgo))->create([
+            'task_key' => 'attendance:resolve',
+        ]);
+    }
+
+    pageRenders()
+        ->assertOk()
+        ->assertSee('Missed occurrence')
+        // Row-only annotation strings (the attention banner mentions
+        // "during scheduler outage" generically, and the recent-outages
+        // panel legitimately renders for the hour-ago grid gap — neither
+        // means THIS row was annotated).
+        ->assertDontSee('self-clears at next occurrence');
 });

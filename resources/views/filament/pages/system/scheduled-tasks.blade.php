@@ -17,7 +17,9 @@
                             <strong>{{ $health['missed'] }} task{{ $health['missed'] === 1 ? '' : 's' }}</strong> missed
                             {{ $health['missed'] === 1 ? 'its' : 'their' }} most recent due time — a due occurrence passed with no recorded run.
                             Causes: scheduler downtime, the entry erroring before dispatch, or a stuck <code>withoutOverlapping</code> lock.
-                            Check the "Missed occurrence" rows below and the worker container's health.
+                            Check the "Missed occurrence" rows below — rows marked <em>"during scheduler outage"</em> fell inside a detected
+                            outage window (see the panel under the table) and self-clear at their next occurrence; the rest are regressions
+                            worth investigating now.
                         </li>
                     @endif
                     @if($health['failed_last'] > 0)
@@ -89,11 +91,27 @@
                                                 Missed occurrence
                                             </span>
                                         @endif
+                                        @if($task['health'] === \App\Enums\ScheduledTaskHealth::Missed && $task['outage_window'])
+                                            <span class="text-xs text-warning-700 dark:text-warning-300">
+                                                during scheduler outage
+                                                {{ $task['outage_window']['start']->format('M j, H:i') }} → {{ $task['outage_window']['end']->format('M j, H:i') }}
+                                                — self-clears at next occurrence {{ $task['next_run']?->format('M j, H:i') }}
+                                            </span>
+                                        @endif
                                     </div>
                                 @elseif($task['health'] === \App\Enums\ScheduledTaskHealth::Missed)
-                                    <span class="inline-flex items-center rounded-full bg-danger-100 dark:bg-danger-900/30 px-2 py-0.5 text-xs font-medium text-danger-700 dark:text-danger-300">
-                                        Never ran — past due
-                                    </span>
+                                    <div class="flex flex-col gap-0.5">
+                                        <span class="inline-flex items-center rounded-full bg-danger-100 dark:bg-danger-900/30 px-2 py-0.5 text-xs font-medium text-danger-700 dark:text-danger-300">
+                                            Never ran — past due
+                                        </span>
+                                        @if($task['outage_window'])
+                                            <span class="text-xs text-warning-700 dark:text-warning-300">
+                                                during scheduler outage
+                                                {{ $task['outage_window']['start']->format('M j, H:i') }} → {{ $task['outage_window']['end']->format('M j, H:i') }}
+                                                — self-clears at next occurrence {{ $task['next_run']?->format('M j, H:i') }}
+                                            </span>
+                                        @endif
+                                    </div>
                                 @elseif($task['health'] === \App\Enums\ScheduledTaskHealth::AwaitingFirstRun)
                                     <span class="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-900/30 px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-400">
                                         Awaiting first run
@@ -142,6 +160,24 @@
                 </tbody>
             </table>
         </div>
+
+        @if(!empty($outages))
+            <x-filament::section icon="heroicon-o-server-stack" icon-color="warning">
+                <x-slot name="heading">Recent scheduler outages (7 days)</x-slot>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    Windows where the recorded run grid went silent — no task ticked. Due occurrences inside a window are
+                    outage casualties, not regressions; the missed rows above say which.
+                </p>
+                <ul class="list-disc pl-5 space-y-1 text-sm text-gray-700 dark:text-gray-300">
+                    @foreach($outages as $outage)
+                        <li>
+                            <span class="font-mono text-xs">{{ $outage['start']->format('M j, H:i') }} → {{ $outage['end']->format('M j, H:i') }}</span>
+                            <span class="ml-2 inline-flex items-center rounded-full bg-warning-100 dark:bg-warning-900/30 px-2 py-0.5 text-xs font-medium text-warning-700 dark:text-warning-300">{{ $outage['duration'] }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+            </x-filament::section>
+        @endif
 
         <div class="mt-4 flex items-center justify-between">
             <a href="{{ url('/horizon') }}" target="_blank"

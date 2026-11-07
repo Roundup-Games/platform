@@ -6,6 +6,7 @@ use App\Enums\ScheduledTaskHealth;
 use App\Models\ScheduledTaskRun;
 use App\Support\Scheduling\ScheduleHealth;
 use App\Support\Scheduling\ScheduleInventory;
+use App\Support\Scheduling\SchedulerOutages;
 use App\Support\Scheduling\TaskIdentity;
 use Carbon\Carbon;
 use Cron\CronExpression;
@@ -40,6 +41,13 @@ class ScheduledTasksPage extends Page
             'health' => ScheduleHealth::summary(),
             'recording_since' => $recordingSince,
             'total_tasks' => count($tasks),
+            // Recent scheduler outages for the panel — derived from the
+            // same cached window list the missed-row annotations use,
+            // duration pre-formatted so the view stays logic-free.
+            'outages' => array_map(
+                fn (array $window): array => $window + ['duration' => $this->formatOutageDuration($window)],
+                array_slice(SchedulerOutages::windows(), 0, 5),
+            ),
         ];
     }
 
@@ -117,6 +125,17 @@ class ScheduledTasksPage extends Page
                 // never runs, so "missed" is also the honest classification.
                 $cron = new CronExpression($event->expression);
 
+                $health = ScheduleHealth::classify($cron, $now, $lastRun?->started_at, $recordingSince);
+
+                // Outage annotation (M074): WHICH occurrence was missed,
+                // and whether it fell inside a detected scheduler outage
+                // window — the difference between a known casualty that
+                // self-clears at the next occurrence and a fresh regression
+                // demanding investigation.
+                $missedDueAt = $health === ScheduledTaskHealth::Missed
+                    ? ScheduleHealth::lastDueOccurrence($cron, $now)
+                    : null;
+
                 $tasks[] = [
                     'command' => $command,
                     'description' => $event->description ?? null,
@@ -129,7 +148,9 @@ class ScheduledTasksPage extends Page
                     'last_run_color' => $lastRun?->status->badgeColor(),
                     'last_run_ago' => $lastRun?->started_at->diffForHumans(),
                     'last_run_duration' => $this->formatDuration($lastRun?->runtime_ms),
-                    'health' => ScheduleHealth::classify($cron, $now, $lastRun?->started_at, $recordingSince),
+                    'health' => $health,
+                    'missed_due_at' => $missedDueAt,
+                    'outage_window' => $missedDueAt !== null ? SchedulerOutages::covers($missedDueAt) : null,
                 ];
             } catch (\Throwable $e) {
                 $description = $event->description ?? '';
@@ -154,6 +175,8 @@ class ScheduledTasksPage extends Page
                     'last_run_ago' => $lastRun?->started_at->diffForHumans(),
                     'last_run_duration' => $this->formatDuration($lastRun?->runtime_ms),
                     'health' => ScheduledTaskHealth::Missed,
+                    'missed_due_at' => null,
+                    'outage_window' => null,
                 ];
             }
         }
@@ -183,5 +206,23 @@ class ScheduledTasksPage extends Page
         $minutes = (int) floor($seconds / 60);
 
         return sprintf('%dm %ds', $minutes, (int) round($seconds - $minutes * 60));
+    }
+
+    /**
+     * Human outage length for the recent-outages panel: hours with one
+     * decimal for long silences (the 15.7h overnight shape), plain
+     * minutes for short ones.
+     *
+     * @param  array{start: Carbon, end: Carbon}  $window
+     */
+    private function formatOutageDuration(array $window): string
+    {
+        $minutes = $window['start']->diffInMinutes($window['end']);
+
+        if ($minutes < 60) {
+            return ((int) $minutes).'m';
+        }
+
+        return round($minutes / 60, 1).'h';
     }
 }

@@ -865,3 +865,110 @@ it('does not mark a different-name slug collision as a duplicate', function () {
     expect($colliding->slug)->toBe('carcassonne-222')
         ->and($colliding->canonical_game_system_id)->toBeNull();
 });
+
+// ── Per-item failure persistence (M074): a red weekly-sync row must be ────
+// ── root-causeable from BggSyncLog alone — the Nov 2 failure's item errors
+// ── lived only in container output destroyed at the next deploy. ──────────
+
+function collidingItemXml(int $bggId, string $name): string
+{
+    $safe = htmlspecialchars($name, ENT_XML1 | ENT_COMPAT, 'UTF-8');
+
+    return <<<XML
+    <item type="boardgame" id="{$bggId}">
+      <name type="primary" value="{$safe}"/>
+      <description>Collision fixture.</description>
+      <yearpublished value="2020"/>
+      <minplayers value="2"/>
+      <maxplayers value="4"/>
+      <maxplaytime value="60"/>
+      <minage value="10"/>
+      <statistics><ratings>
+        <average value="7.00"/>
+        <bayesaverage value="6.50"/>
+        <usersrated value="100"/>
+        <averageweight value="2.50"/>
+        <ranks><rank type="subtype" id="1" name="boardgame" value="50"/></ranks>
+      </ratings></statistics>
+    </item>
+    XML;
+}
+
+it('persists a per-item failure summary when a slice ends with failed items', function () {
+    // Non-reconcilable slug collision (the resolveSlug docblock's own
+    // throwing case): 'collision-test' is owned by another bgg_id AND the
+    // disambiguated 'collision-test-12345' is owned too — updateOrCreate
+    // hits the unique constraint and the per-item catch records it.
+    GameSystem::factory()->create(['bgg_id' => 1, 'name' => ['en' => 'Squatter A'], 'slug' => 'collision-test']);
+    GameSystem::factory()->create(['bgg_id' => 2, 'name' => ['en' => 'Squatter B'], 'slug' => 'collision-test-12345']);
+
+    Http::fake([
+        'boardgamegeek.com/*' => Http::response(
+            '<items>'.collidingItemXml(12345, 'Collision Test').'</items>',
+            200,
+            ['Content-Type' => 'application/xml'],
+        ),
+    ]);
+
+    $service = createService();
+    $result = $service->syncGameSystems([12345]);
+
+    expect($result->failed)->toBe(1);
+
+    $log = BggSyncLog::first();
+    expect($log->items_failed)->toBe(1)
+        ->and($log->error_message)->toContain('Failed to upsert bgg_id=12345');
+});
+
+it('caps the persisted summary at five lines with an overflow count', function () {
+    // Six non-reconcilable collisions → six per-item errors → the summary
+    // persists the first five plus "(+ 1 more)".
+    foreach (range(1, 6) as $i) {
+        $name = "Collision {$i}";
+        $slug = "collision-{$i}";
+
+        GameSystem::factory()->create(['bgg_id' => 900 + $i, 'name' => ['en' => "Squatter {$i} A"], 'slug' => $slug]);
+        GameSystem::factory()->create(['bgg_id' => 910 + $i, 'name' => ['en' => "Squatter {$i} B"], 'slug' => $slug.'-'.(70000 + $i)]);
+    }
+
+    $items = implode('', array_map(
+        fn (int $i): string => collidingItemXml(70000 + $i, "Collision {$i}"),
+        range(1, 6),
+    ));
+
+    Http::fake([
+        'boardgamegeek.com/*' => Http::response("<items>{$items}</items>", 200, ['Content-Type' => 'application/xml']),
+    ]);
+
+    $service = createService();
+    $result = $service->syncGameSystems(array_map(fn (int $i): int => 70000 + $i, range(1, 6)));
+
+    expect($result->failed)->toBe(6);
+
+    $log = BggSyncLog::first();
+    expect($log->items_failed)->toBe(6)
+        // The overflow line must be joined by a REAL newline, and the
+        // persisted summary must contain no literal backslash-n —
+        // single-quoted '\n' has shipped before. These two pins catch
+        // that regression regardless of what the underlying exception
+        // messages contain (they are themselves multi-line).
+        ->and($log->error_message)->toContain("\n(+ 1 more)")
+        ->and($log->error_message)->not->toContain('\\n')
+        ->and($log->error_message)->toContain('Failed to upsert bgg_id=70001')
+        ->and($log->error_message)->toContain('Failed to upsert bgg_id=70005')
+        ->and($log->error_message)->not->toContain('Failed to upsert bgg_id=70006');
+});
+
+it('keeps error_message empty when a slice completes clean', function () {
+    Http::fake([
+        'boardgamegeek.com/*' => Http::response($this->gloomhavenXml, 200, ['Content-Type' => 'application/xml']),
+    ]);
+
+    $service = createService();
+    $service->syncGameSystems([174430]);
+
+    $log = BggSyncLog::first();
+    expect($log->status)->toBe('success')
+        ->and($log->items_failed)->toBe(0)
+        ->and($log->error_message)->toBeNull();
+});

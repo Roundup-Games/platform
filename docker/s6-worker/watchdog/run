@@ -5,35 +5,103 @@
 # but never when it is merely UNHEALTHY — the 2026-10-23 overnight incident
 # (Horizon wedged, healthcheck unhealthy for hours, 02:00 tasks missed,
 # nothing self-recovered). s6 restarts services that die, not services
-# that hang; this watchdog is the liveness bridge: it runs the SAME probe
-# as the healthcheck (horizon:status) and, after three consecutive
-# failures past the init window, terminates PID 1 — Docker revives the
-# worker with clean state. Scheduler-work health (missed occurrences) is
-# the scheduled schedule:health-check command's job, alerting through the
-# observability surface instead.
+# that hang; this watchdog is the liveness bridge. It probes BOTH health
+# planes and, after three consecutive strikes on either one past the init
+# window, terminates PID 1 — Docker revives the worker with clean state:
+#
+#   horizon:status     queue health (Horizon processing)
+#   schedule:liveness  scheduler-tick health (M074)
+#
+# The scheduler probe closes the Oct 31 19:28 → Nov 1 11:09 blind spot:
+# Horizon stayed green while schedule:work was dead for ~15.7h, and the
+# scheduled schedule:health-check gate cannot run on a dead scheduler
+# (chicken-and-egg). Liveness strikes wait for a 5-minute post-init
+# settle window first: right after any boot the newest run-grid row
+# legitimately predates the boot (the box itself was down), so a healthy
+# container must never be struck for rows it had no chance to write yet.
+# Note schedule:liveness itself never strikes on an empty grid or a DB
+# read error — states a restart cannot heal.
+#
+# Optional external dead-man's switch: set PHARE_WORKER_HEARTBEAT_URL to
+# a Phare heartbeat check URL and every settled, healthy cycle pings it
+# once (success-only — any probe failure or a dead box stops the pings, so
+# the external check alerts on container, Horizon, scheduler, or host
+# death).
+# Unset URL = silent no-op. Deliberately distinct from the backup
+# container's PHARE_CRON_PING_URL: one shared check would let either side
+# mask the other's death.
 
 cd /var/www/html
 
-strikes=0
+horizon_strikes=0
+liveness_strikes=0
+settled=0
+
 while true; do
     sleep 60
 
     # Still booting (or init marker lost after a restart): not a strike.
-    [ -f /tmp/laravel-init-complete ] || { strikes=0; continue; }
-
-    if php artisan horizon:status 2>/dev/null | grep -qi running; then
-        strikes=0
+    if [ ! -f /tmp/laravel-init-complete ]; then
+        horizon_strikes=0
+        liveness_strikes=0
+        settled=0
         continue
     fi
 
-    strikes=$((strikes + 1))
-    echo "worker-watchdog: horizon not running (strike ${strikes}/3)"
+    # Liveness settle window: for the first 5 minutes after init completes,
+    # the run grid may still show only pre-boot rows, so liveness is not
+    # probed (and cannot strike) yet. The window ends once the init marker
+    # itself is older than 5 minutes (find -mmin +5 matches files modified
+    # more than 5 minutes ago) — by then a live scheduler has had ~5
+    # every-minute ticks to write fresh rows.
+    if [ "$settled" -eq 0 ]; then
+        if [ -n "$(find /tmp/laravel-init-complete -mmin +5 2>/dev/null)" ]; then
+            settled=1
+        else
+            liveness_strikes=0
+        fi
+    fi
 
-    if [ "$strikes" -ge 3 ]; then
+    healthy=1
+
+    if php artisan horizon:status 2>/dev/null | grep -qi running; then
+        horizon_strikes=0
+    else
+        horizon_strikes=$((horizon_strikes + 1))
+        healthy=0
+        echo "worker-watchdog: horizon not running (strike ${horizon_strikes}/3)"
+    fi
+
+    if [ "$settled" -eq 1 ]; then
+        if liveness_output="$(php artisan schedule:liveness 2>&1)"; then
+            liveness_strikes=0
+        else
+            liveness_strikes=$((liveness_strikes + 1))
+            healthy=0
+            # Include the probe's verdict — container logs are the only
+            # place this evidence survives (the Oct 31 post-mortem had
+            # nothing but a stale grid to reason from).
+            echo "worker-watchdog: scheduler not ticking (strike ${liveness_strikes}/3) — ${liveness_output}"
+        fi
+    fi
+
+    if [ "$horizon_strikes" -ge 3 ] || [ "$liveness_strikes" -ge 3 ]; then
         echo "worker-watchdog: three strikes — terminating the container for a clean restart"
         kill -TERM 1
         # Give s6 a moment to tear down; loop guards against a missed signal.
         sleep 30
         kill -KILL 1
+    fi
+
+    # Success-only external heartbeat: pings strictly while healthy, so a
+    # sick or dead worker stops pinging and the external check alerts.
+    # Requires settled=1 too: during the post-boot settle window the
+    # scheduler is not yet being proven alive, and after a watchdog kill
+    # the fresh container would otherwise ping again for ~5 minutes per
+    # cycle — a permanently wedged scheduler would flap ping/silence
+    # (~6m/~3m) forever and could stay under a generous alert threshold.
+    if [ "$settled" -eq 1 ] && [ "$healthy" -eq 1 ] && [ -n "${PHARE_WORKER_HEARTBEAT_URL:-}" ] && command -v curl >/dev/null 2>&1; then
+        curl -fsS --max-time 10 -o /dev/null "$PHARE_WORKER_HEARTBEAT_URL" \
+            || echo "worker-watchdog: heartbeat ping failed (non-fatal)"
     fi
 done

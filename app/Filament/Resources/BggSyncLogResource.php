@@ -56,6 +56,10 @@ class BggSyncLogResource extends Resource
                     ->sortable(),
                 TextColumn::make('error_message')
                     ->limit(50)
+                    // The per-item failure summary (M074) is multi-line and
+                    // long — the truncated cell says "something failed"; the
+                    // tooltip carries the full root-cause text.
+                    ->tooltip(fn (BggSyncLog $record): ?string => $record->error_message)
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('started_at')
                     ->dateTime()
