@@ -18,7 +18,7 @@ return [
     'content_campaigns' => 'Kampagnen',
     'content_campaign_sessions' => 'Kampagnen-Runden',
     'content_create_a_free_account_set' => 'Erstelle einen kostenlosen Account, setze deine Präferenzen und entdecke Runden in deiner Nähe diese Woche.',
-    'content_discovery_session_meta' => 'Entdecken & Session-Metadaten',
+    'content_discovery_session_meta' => 'Entdecken & Metadaten',
     'content_every_public_session_is_visible' => 'Jede öffentliche Runde ist für die Community sichtbar. Du kannst sehen, wer ausrichtet, wer teilnimmt und was gespielt wird, bevor du dich verpflichtest.',
     'content_everything_you_need_to_run_great_sessions' => 'Alles, was du für großartige Runden brauchst',
     'content_from_epic_campaigns_to_quick' => 'Von epischen Kampagnen bis zu schnellen One-Shots — entdecke Geschichten, die erzählt werden wollen, und Welten, die darauf warten, erkundet zu werden.',

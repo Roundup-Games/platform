@@ -42,9 +42,9 @@ return [
     'content_no_game_systems_found' => 'No game systems found.',
     'content_optional_useful_for_game_night_coordination' => 'Optional — useful for game night coordination.',
     'content_pick_your_game_set_the' => 'Pick your game, set the date and location, choose how many players you want. It takes about thirty seconds — faster than shuffling a deck.',
-    'content_schedule_a_new_game_session_for_players_to_join' => 'Schedule a new game session for players to join.',
-    'content_share_your_location_to_discover' => 'Share your location to discover game sessions and campaigns in your area.',
-    'content_share_your_location_to_see' => 'Share your location to see game sessions and campaigns happening this week in your area.',
+    'content_schedule_a_new_game_session_for_players_to_join' => 'Schedule a new game for players to join.',
+    'content_share_your_location_to_discover' => 'Share your location to discover games and campaigns in your area.',
+    'content_share_your_location_to_see' => 'Share your location to see games and campaigns happening this week in your area.',
     'content_start_a_campaign_organize_a' => '**Start a campaign** — Organize a recurring game with your group.',
     'content_step_outside_your_comfort_zone' => 'Step outside your comfort zone. Try a new system, join a different group, or fall in love with a game you\'d never heard of.',
     'content_this_is_a_protected_game' => 'This is a connections-only game. Your application will be reviewed by the host before you can join.',
@@ -66,7 +66,7 @@ return [
     'hint_bench_mode' => 'Players on the bench don\'t take a seat automatically — you choose who plays when a spot opens. A waitlist promotes automatically, first come first served.',
     'content_you_ve_got_the_game' => 'You\'ve got the game. We\'ll help you find the right players — and handle the logistics so you can focus on what you do best: hosting unforgettable sessions.',
     'error_min_players_cannot_exceed_max_players' => 'Min players cannot exceed max players.',
-    'error_clone_own_only' => 'You can only clone your own game sessions.',
+    'error_clone_own_only' => 'You can only clone your own games.',
     'error_select_game_type' => 'Please select a game type before creating.',
     'error_you_cannot_apply_to_your_own_game' => 'You cannot apply to your own game.',
     // Signup cutoff (M057/S05) — used by the three participant-write gate paths
@@ -108,8 +108,8 @@ return [
     'error_name_s_base_game_base_name_is_in_your_avoid_list' => ':name\'s base game (:baseName) is in your avoid list. You cannot favorite an expansion of an avoided base game.',
     'error_name_s_base_game_base_name_is_in_your_favorites' => ':name\'s base game (:baseName) is in your favorites. The avoid preference will take priority.',
     // Guest nudge keys
-    'guest_nudge_join_game' => 'Sign up to join this game session!',
-    'guest_nudge_game_detail' => 'Create a free account to join game sessions near you.',
+    'guest_nudge_join_game' => 'Create a free account to join this game!',
+    'guest_nudge_game_detail' => 'Create a free account to join games near you.',
     // Guest navigation
     // GamesPage - My Games section
     'heading_my_games' => 'My Games',
@@ -165,7 +165,7 @@ return [
     'content_expansion_of_name' => 'Expansion of :name',
     'heading_expansions' => 'Expansions',
     'heading_game_sessions' => 'Active Sessions & Campaigns',
-    'content_sessions_using_this_system' => 'There are currently :sessions game sessions and :campaigns campaigns using this system.',
+    'content_sessions_using_this_system' => 'There are currently :sessions games and :campaigns campaigns using this system.',
     'action_find_sessions' => 'Find sessions',
     // Upcoming tables module (M062 / 62-02)
     'heading_upcoming_tables' => 'Upcoming Games',

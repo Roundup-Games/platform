@@ -66,7 +66,7 @@ return [
     'content_who_can_see_your_location' => 'Who can see your city',
     'content_who_can_see_your_game_systems' => 'Who can see your favorite and avoided games',
     'content_who_can_see_your_vibes' => 'Who can see your play style preferences',
-    'content_who_can_see_your_sessions_and_campaigns' => 'Who can see game sessions and campaigns you participate in',
+    'content_who_can_see_your_sessions_and_campaigns' => 'Who can see games and campaigns you participate in',
     'content_who_can_see_your_teams' => 'Who can see teams you belong to',
     'content_who_can_see_your_friends_list' => 'Who can see who you follow',
     'content_avoided' => 'avoided',
@@ -150,7 +150,7 @@ return [
     'label_reliability_attendance_rate' => 'attendance',
     'label_reliability_games_played' => 'Games',
     'content_reliability_stats' => 'Reliability Stats',
-    'content_who_can_see_your_reliability_stats' => 'Who can see your detailed attendance rate and game count. Your stats are always visible to anyone viewing a game session or campaign you organize',
+    'content_who_can_see_your_reliability_stats' => 'Who can see your detailed attendance rate and game count. Your stats are always visible to anyone viewing a game or campaign you organize',
     // GM Social Links
     'field_gm_profile' => 'GM Profile',
     'gm_social_links_title' => 'Social Links',

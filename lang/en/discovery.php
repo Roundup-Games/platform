@@ -119,7 +119,7 @@ return [
     // ── Discovery Portal ────────────────────────────────────────
     // M066/S07/T02: hero says what the page actually is — people-hosted
     // sessions near you with two tracks (board game nights / adventures).
-    'field_tabletop_sessions_near_you' => 'Tabletop sessions near you',
+    'field_tabletop_sessions_near_you' => 'Tabletop games near you',
     'content_pick_your_track' => 'Board game nights and tabletop adventures, hosted by people in your area — pick your track.',
     'field_board_game_night' => 'Board Game Night',
     'content_find_sessions_near_you' => 'Find board games happening near you.',
@@ -130,14 +130,14 @@ return [
     'content_featured_city_hubs_teaser' => 'Curated local scenes with live games and venues.',
     'action_view_city_hub' => 'View the :city city hub',
     // SEO
-    'seo_title_discover' => 'Discover Tabletop Games & Sessions Near You',
+    'seo_title_discover' => 'Discover Tabletop Games & Campaigns Near You',
     'seo_description_discover' => 'Find tabletop games and RPG campaigns hosted by people near you. Browse board game nights, adventures, and events in your area.',
     'seo_title_browse_games' => 'Browse Games',
     'seo_title_browse_campaigns' => 'Browse Campaigns',
     'seo_title_browse_all' => 'Browse Games & Campaigns',
     'seo_description_browse' => 'Search and filter board games and tabletop RPG campaigns by game system, vibe, experience level, and more.',
     'seo_title_browse_board_games' => 'Find Board Game Groups & Sessions',
-    'seo_description_browse_board_games' => 'Find local board game groups and sessions near you. Filter by game system, experience level, and vibe, then join with a click.',
+    'seo_description_browse_board_games' => 'Find local board game groups and games near you. Filter by game system, experience level, and vibe, then join with a click.',
     'seo_title_browse_adventures' => 'Find D&D Groups & RPG Campaigns',
     'seo_description_browse_adventures' => 'Find D&D and tabletop RPG groups, campaigns, and one-shots near you, in person. Filter by system, play style, and experience level.',
     'content_showing_of_total' => 'Showing :shown of :total results',

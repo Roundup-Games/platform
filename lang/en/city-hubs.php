@@ -46,7 +46,7 @@ return [
     'section_venues' => 'Verified Venues',
 
     // Full-list onward links at the bottom of each section (T03).
-    'action_view_all_board_games' => 'Browse all board game sessions',
+    'action_view_all_board_games' => 'Browse all board games',
     'action_view_all_adventures' => 'Browse all adventures',
     'action_view_all_events' => 'Events in :city',
     'action_view_all_venues' => 'All venues in :city',
@@ -62,12 +62,12 @@ return [
     // Per-locale SEO (T04). :city renders the canonical cluster display
     // name; the site-name suffix is appended by the SEO package config.
     'seo_title' => 'Board Game Groups & Sessions in :city',
-    'seo_description' => 'Find upcoming public board game sessions, campaigns, and events in :city, plus verified venues to play at.',
+    'seo_description' => 'Find upcoming public board games, campaigns, and events in :city, plus verified venues to play at.',
 
     // Index page SEO (M066/S06/T04); the site-name suffix is appended by
     // the SEO package config.
     'seo_title_index' => 'Find Board Game Groups by City',
-    'seo_description_index' => 'Browse every live city hub: upcoming public board game sessions, campaigns, and events, plus verified venues to play at — city by city.',
+    'seo_description_index' => 'Browse every live city hub: upcoming public board games, campaigns, and events, plus verified venues to play at — city by city.',
 
 
     'action_all_hubs' => 'All city hubs',

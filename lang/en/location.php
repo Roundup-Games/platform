@@ -30,7 +30,7 @@ return [
     'error_please_confirm_your_location_to_continue' => 'Please confirm your location to continue.',
     'placeholder_street_address_neighborhood' => 'Street address, neighborhood',
     'hint_address_private' => 'Only your city is shared with other players. Your address stays private.',
-    'hint_session_location' => 'Where will this session take place? Choose a location that participants can easily find.',
+    'hint_session_location' => 'Where will it take place? Choose a location that participants can easily find.',
     'hint_profile_location' => 'This helps players find games near you. Only your city is visible to others.',
     'content_location_not_set' => 'No location set',
     'content_we_think_you_re_in_city_is_that_right' => 'We think you\'re in :city — is that right?',
