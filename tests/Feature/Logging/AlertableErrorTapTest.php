@@ -78,6 +78,28 @@ it('records warning-level records but ignores info-level ones', function () {
         ->and(AlertableError::query()->count())->toBe(1);
 });
 
+it('lands the bgg.sync.items_failed aggregate warning with incremented occurrences', function () {
+    // M075: BggSyncService emits ONE structured WARNING per failing slice
+    // finalization. Pin that exact message/shape landing in alertable_errors
+    // and the occurrence rollup across repeated degraded syncs — the same
+    // mechanism that carries badges.sweep.user_failed (warning-level
+    // structured logs are alertable by shape, not by caller). Warning-level
+    // filtering itself is pinned by the cases above, not re-proven here.
+    $logger = tapAttachedLogger();
+
+    $logger->warning('bgg.sync.items_failed', ['failed' => 3, 'synced' => 17, 'remaining' => 0]);
+    $this->travel(2)->minutes();
+    $logger->warning('bgg.sync.items_failed', ['failed' => 1, 'synced' => 20, 'remaining' => 4]);
+
+    $row = AlertableError::query()->sole();
+
+    // jsonb does not preserve key order — compare pair-wise (toEqual).
+    expect($row->message)->toBe('bgg.sync.items_failed')
+        ->and($row->level)->toBe('WARNING')
+        ->and($row->occurrences)->toBe(2)
+        ->and($row->context)->toEqual(['failed' => 3, 'synced' => 17, 'remaining' => 0]);
+});
+
 it('increments occurrences across repeat sightings outside the dedup window', function () {
     $logger = tapAttachedLogger();
 

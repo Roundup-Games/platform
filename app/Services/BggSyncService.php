@@ -252,6 +252,21 @@ class BggSyncService
             Log::info("BGG sync completed: {$synced} synced, {$failed} failed"
                 .($remaining === [] ? '' : ' (partial — '.count($remaining).' id(s) continue under a fresh lock hold)'));
 
+            // Aggregate alertable signal (M075): the per-item Log::error
+            // lines above each land as separate alertable_errors rows
+            // (deduped by message hash), so a failing weekly sync shows up
+            // fragmented with no count rollup. ONE structured WARNING at
+            // finalization gives the digest a single aggregate line whose
+            // occurrences count repeats. Degraded success — the command
+            // still exits success by design, hence WARNING, not ERROR.
+            if ($failed > 0) {
+                Log::warning('bgg.sync.items_failed', [
+                    'failed' => $failed,
+                    'synced' => $synced,
+                    'remaining' => count($remaining),
+                ]);
+            }
+
             return [
                 'result' => new SyncResult(
                     synced: $synced,

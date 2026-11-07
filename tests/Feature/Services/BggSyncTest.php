@@ -15,6 +15,9 @@ use App\Services\BggXmlParser;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Tests\Traits\CapturesLogRecords;
+
+uses(CapturesLogRecords::class);
 
 beforeEach(function () {
     $this->gloomhavenXml = file_get_contents(fixture_path('bgg-gloomhaven.xml'));
@@ -910,6 +913,8 @@ it('persists a per-item failure summary when a slice ends with failed items', fu
         ),
     ]);
 
+    $this->captureLogRecords();
+
     $service = createService();
     $result = $service->syncGameSystems([12345]);
 
@@ -918,6 +923,15 @@ it('persists a per-item failure summary when a slice ends with failed items', fu
     $log = BggSyncLog::first();
     expect($log->items_failed)->toBe(1)
         ->and($log->error_message)->toContain('Failed to upsert bgg_id=12345');
+
+    // Aggregate alertable signal (M075): exactly ONE structured warning
+    // at finalization replaces the N-way fragmentation of the per-item
+    // Log::error lines in alertable_errors. Slice counts: 1 failed,
+    // 0 synced, normal completion so 0 ids deferred to a fresh hold.
+    $warning = $this->logRecord('bgg.sync.items_failed');
+    expect($warning)->not->toBeNull()
+        ->and($warning['level_name'])->toBe('WARNING')
+        ->and($warning['context'])->toBe(['failed' => 1, 'synced' => 0, 'remaining' => 0]);
 });
 
 it('caps the persisted summary at five lines with an overflow count', function () {
@@ -960,6 +974,8 @@ it('caps the persisted summary at five lines with an overflow count', function (
 });
 
 it('keeps error_message empty when a slice completes clean', function () {
+    $this->captureLogRecords();
+
     Http::fake([
         'boardgamegeek.com/*' => Http::response($this->gloomhavenXml, 200, ['Content-Type' => 'application/xml']),
     ]);
@@ -971,4 +987,7 @@ it('keeps error_message empty when a slice completes clean', function () {
     expect($log->status)->toBe('success')
         ->and($log->items_failed)->toBe(0)
         ->and($log->error_message)->toBeNull();
+
+    // Clean sync: the degraded-success aggregate warning must NOT fire.
+    expect($this->logRecord('bgg.sync.items_failed'))->toBeNull();
 });
