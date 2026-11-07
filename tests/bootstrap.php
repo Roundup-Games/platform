@@ -267,7 +267,14 @@ if ($isParallel) {
         //     same-run edge of a half-written file or a container that died
         //     between write and adoption.
         $waited = 0;
-        $maxWait = 90; // seconds — primary setup (prune + container + migrate) can take ~60s
+        // Primary setup (orphan prune + container start + migrate + reference
+        // seed) takes ~60s baseline; under host disk pressure (2026-11-07
+        // incident: host at 97%, Docker VM thrashing) it exceeded the old 90s
+        // budget and every secondary worker died with 'TIMED OUT waiting for
+        // a FRESH, reachable primary container', crashing the whole
+        // pest --parallel run. Budget 150s (~2.5x baseline) so secondaries
+        // outlast a slow-but-healthy primary instead of giving up mid-setup.
+        $maxWait = 150; // seconds — primary setup (prune + container + migrate) ~60s baseline
         $details = null;
 
         $adoptable = function () use ($cacheFile, $workerStart, &$details): bool {
