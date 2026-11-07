@@ -60,7 +60,7 @@ describe('Rendering', function () {
         // Set location in the middle of nowhere
         Livewire::test(NearbySessions::class)
             ->call('onGuestLocationUpdated', 0.0, 0.0, 'browser')
-            ->assertSeeHtml('No sessions near you yet');
+            ->assertSeeHtml(__('campaigns.content_no_sessions_near_you_yet', [], 'en'));
     });
 
 });
