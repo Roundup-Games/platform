@@ -131,6 +131,19 @@ if ($profileBeforeEach !== null) {
 
 $featureExtension->in('Feature');
 
+/*
+| tests/Feature/Migrations runs REAL DDL (dropColumn + guarded up()) inside
+| DatabaseTransactions on the SHARED parallel database. DDL's
+| AccessExclusive locks deadlock sibling --parallel workers as innocent
+| victims (SQLSTATE 40P01, seen 2026-11-01 — three gated-push blocks), so
+| the directory is excluded from --parallel distribution and run as a
+| serial tail by pre-push/CI (--group=ddl-serial). Mechanism: UsesCall::in()
+| globs relative to tests/ and applies the group to EVERY test file under
+| the directory target — future files added there are covered automatically
+| (per-test ->group() chaining would not be).
+*/
+uses()->group('ddl-serial')->in('Feature/Migrations');
+
 foreach ($unitDirsNeedingTransactions as $dir) {
     pest()->extend(TestCase::class)
         ->use(DatabaseTransactions::class)

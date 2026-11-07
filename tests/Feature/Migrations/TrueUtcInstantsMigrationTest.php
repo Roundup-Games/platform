@@ -17,6 +17,10 @@ use Illuminate\Support\Facades\Schema;
 // to the SAVEPOINT and re-runs the body — the outer test transaction stays
 // intact, and a genuine regression still fails both attempts.
 //
+// Serial isolation (M075): this file runs serially via the 'ddl-serial'
+// group (see tests/Pest.php) — never under --parallel; pre-push and CI run
+// it as a serial tail after the parallel phase.
+//
 // R089 — the storage flip migration: existing wall-Berlin-labeled rows are
 // reinterpreted as Europe/Berlin wall time → true UTC instants (DST-correct
 // per row), users.timezone_manually_set lands in the same migration, and a

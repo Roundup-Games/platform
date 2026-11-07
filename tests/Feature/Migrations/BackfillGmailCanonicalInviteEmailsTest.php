@@ -17,6 +17,10 @@ uses(CreatesGameInstances::class);
  *   - dot-variant duplicates for the same entity are merged (unique index safe)
  *   - non-gmail addresses are untouched
  *   - suppressed invites are untouched
+ *
+ * Serial isolation (M075): this file runs serially via the 'ddl-serial'
+ * group (see tests/Pest.php) — never under --parallel; pre-push and CI run
+ * it as a serial tail after the parallel phase.
  */
 
 it('backfills non-canonical gmail invite emails', function () {

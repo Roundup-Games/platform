@@ -12,7 +12,9 @@
 #
 # Mirrors CI exactly: APP_DEBUG=true (CI's .env.example copy sets it —
 # Livewire snapshot corruption only surfaces under debug; local .env
-# typically has it false) and --parallel.
+# typically has it false) and --parallel. Since M075 the suite is two-phase
+# (parallel minus the ddl-serial group + a serial DDL tail) — mirroring
+# CI's two Run tests steps.
 #
 # Install: composer install-hooks
 # Bypass:  git push --no-verify   (use sparingly — you are opting into CI red)
@@ -49,8 +51,18 @@ suite_log="$(mktemp "${TMPDIR:-/tmp}/prepush-suite.XXXXXX")"
 # for github.com (ServerAliveInterval in ~/.ssh/config). Output is also
 # captured to a file with stdin detached so orphaned --parallel workers
 # can never touch git's pipes — belt and suspenders.
-if APP_DEBUG=true vendor/bin/pest --ci --parallel --compact \
-    > "$suite_log" 2>&1 < /dev/null; then
+# Two-phase suite (M075): tests/Feature/Migrations (the 'ddl-serial' group,
+# bound in tests/Pest.php) runs REAL DDL that deadlocks sibling --parallel
+# workers as bystander victims (SQLSTATE 40P01 — three gated-push blocks
+# the week of 2026-11-01). The parallel phase EXCLUDES that group; a serial
+# tail after a green parallel phase runs it alone. Both phases must be
+# green to push — a red tail falls through to the same failure-reporting
+# path below as a red parallel phase (its output is appended to the same
+# suite log). The stdin-detached redirect pattern is kept on BOTH
+# invocations: orphaned parallel workers must never touch git's pipes.
+if APP_DEBUG=true vendor/bin/pest --ci --parallel --compact --exclude-group=ddl-serial \
+    > "$suite_log" 2>&1 < /dev/null \
+    && vendor/bin/pest --ci --compact --group=ddl-serial >> "$suite_log" 2>&1 < /dev/null; then
     end=$(date +%s)
     grep -aE "Tests:|Duration" "$suite_log" | tail -2
     printf "\n${GRN}✅ Suite green (%d min) — pushing.${RST}\n\n" $(( (end - start) / 60 ))

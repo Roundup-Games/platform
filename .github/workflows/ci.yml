@@ -247,8 +247,17 @@ jobs:
       - name: Generate application key
         run: php artisan key:generate
 
-      - name: Run tests
+      - name: Run tests (parallel)
         # DB credentials are injected by tests/bootstrap.php (applyConnection →
         # test/test on the testcontainers instance); anything set here would be
         # overridden and mislead readers.
-        run: vendor/bin/pest --ci --parallel
+        #
+        # Two-phase (M075): the 'ddl-serial' group (tests/Feature/Migrations,
+        # bound in tests/Pest.php) runs REAL DDL that deadlocks sibling
+        # --parallel workers (SQLSTATE 40P01, seen 2026-11-01) — it is
+        # excluded here and run by the serial-tail step below.
+        run: vendor/bin/pest --ci --parallel --exclude-group=ddl-serial
+
+      - name: Run tests (serial DDL tail)
+        # tests/Feature/Migrations only — see the parallel step's note.
+        run: vendor/bin/pest --ci --group=ddl-serial
