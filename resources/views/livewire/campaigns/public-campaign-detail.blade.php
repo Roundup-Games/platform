@@ -11,9 +11,16 @@
 
     {{-- ── Hero ─────────────────────────────────────────────── --}}
     <section class="relative bg-primary text-on-primary overflow-hidden">
-        @php($coverUrl = $campaign->gameSystem?->getFirstMediaUrl('cover'))
-        @if(!$coverUrl && $campaign->gameSystem?->thumbnail_url)
-            @php($coverUrl = $campaign->gameSystem->thumbnail_url)
+        @php
+            // Cover image via the deterministic fallback chain (S07): host-uploaded
+            // cover -> representative GameSystem cover -> og-default.jpg asset.
+            // Eager-loaded gameSystems keeps the representative rung N+1-safe.
+            $coverUrl = $campaign->resolveCoverUrl();
+        @endphp
+        @if($coverUrl)
+            @push('preload')
+                <link rel="preload" as="image" href="{{ $coverUrl }}" fetchpriority="high">
+            @endpush
         @endif
         @if($coverUrl)
             <div class="absolute inset-0">
