@@ -25,7 +25,9 @@ GRN='\033[0;32m'
 CYN='\033[0;36m'
 RST='\033[0m'
 
-# Only run for branch pushes (e.g. main); tag pushes skip.
+# Ref-agnostic gate: the remote + pushed-tree identity decide (skip guard
+# below); the checked-out branch is display-only. Tag pushes are NOT special:
+# a tag whose target is the gated origin/main tree skips, any other tag gates.
 remote="$1"
 branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
 if [[ "$branch" == "HEAD" ]]; then
@@ -36,18 +38,46 @@ fi
 # remote (K012) and every homelab push follows an origin push of the same
 # tree that just passed this exact gate — re-running the ~6-13 min suite on
 # a byte-identical tree is pure redundant gating (~45 min measured
-# 2026-11-07). When this homelab push is exactly the tree origin/main
-# already gated green, skip the suite and let the push through: origin
-# pushes always gate, and a homelab push of a tree origin/main has not
-# seen gates as before. An unresolvable ref (fresh clone, no origin/main)
-# never compares equal — a failing rev-parse echoes its argument instead
-# of a SHA — so the guard cannot misfire; || true keeps a failing
-# rev-parse from tripping set -e.
-head_sha="$(git rev-parse HEAD 2>/dev/null || true)"
+# 2026-11-07). When every ref this homelab push delivers is exactly the
+# tree origin/main already gated green, skip the suite and let the push
+# through: origin pushes always gate, and a homelab push of a tree
+# origin/main has not seen gates as before.
+#
+# The predicate reads the PUSHED REFSPEC from stdin ("<local_ref> <local_sha>
+# <remote_ref> <remote_sha>" — the same lines the server-side post-receive
+# deploys on), NOT the checked-out HEAD: from an up-to-date main checkout,
+# `git push homelab feature-x:main` delivers a tree origin/main never gated,
+# and a HEAD-based skip would wave it through to the deploy hook (review
+# hardening 2026-11-08). Ref deletions push the all-zero sha, which never
+# equals a real origin/main sha — they always gate. An unresolvable ref
+# (fresh clone, no origin/main) never compares equal — a failing rev-parse
+# echoes its argument instead of a SHA — so the guard cannot misfire;
+# || true keeps a failing rev-parse from tripping set -e. A no-ref
+# invocation (empty stdin) never skips: nothing was proven gated, so the
+# suite runs, preserving the pre-2026-11-08 behavior.
 origin_main_sha="$(git rev-parse origin/main 2>/dev/null || true)"
-if [[ "$remote" == "homelab" && -n "$origin_main_sha" && "$head_sha" == "$origin_main_sha" ]]; then
-    printf "\n${CYN}⏭️ Pre-push skip: %s push of %s is the identical tree already gated on origin/main — full suite skipped.${RST}\n\n" "$remote" "$branch"
-    exit 0
+if [[ "$remote" == "homelab" && -n "$origin_main_sha" ]]; then
+    pushed_shas=()
+    while read -r _local_ref local_sha _remote_ref _remote_sha; do
+        [[ -n "$local_sha" ]] && pushed_shas+=("$local_sha")
+    done
+
+    # Skip only when at least one ref is pushed and EVERY pushed tree is
+    # the gated origin/main tree (multi-ref pushes need all-ref identity).
+    if [[ "${#pushed_shas[@]}" -gt 0 ]]; then
+        all_gated=1
+        for sha in "${pushed_shas[@]}"; do
+            if [[ "$sha" != "$origin_main_sha" ]]; then
+                all_gated=0
+                break
+            fi
+        done
+
+        if [[ "$all_gated" == 1 ]]; then
+            printf "\n${CYN}⏭️ Pre-push skip: %s push of %s is the identical tree already gated on origin/main — full suite skipped.${RST}\n\n" "$remote" "$branch"
+            exit 0
+        fi
+    fi
 fi
 
 printf "\n${CYN}🧪 Pre-push: full test suite (CI Tests-job mirror) on %s → %s${RST}\n" "$branch" "$remote"
