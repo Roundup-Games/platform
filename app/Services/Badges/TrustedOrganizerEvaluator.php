@@ -10,6 +10,7 @@ use App\Models\Review;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -82,7 +83,22 @@ class TrustedOrganizerEvaluator extends CohortSweepEvaluator
      */
     protected function proposalFor(User $user): ?array
     {
-        $quarters = $this->quarterlyEvents($user);
+        $batch = $this->batchedEvidence($user);
+
+        if ($batch['batched']) {
+            /** @var array{quarters: array<int, list<Event>>, announced: list<string>} $payload */
+            $payload = $batch['evidence'];
+            $quarters = $payload['quarters'];
+            // The chunk-wide announced-cancellation set — per-event
+            // membership semantics are unchanged, only the round trips
+            // collapsed (see prefetchEvidence).
+            $announcedEventIds = $payload['announced'];
+        } else {
+            $quarters = $this->quarterlyEvents($user);
+            // Null keeps the single-user path on its own per-quarter
+            // announcement query, byte-identical to the pre-batching code.
+            $announcedEventIds = null;
+        }
 
         if ($quarters === []) {
             return null;
@@ -104,7 +120,7 @@ class TrustedOrganizerEvaluator extends CohortSweepEvaluator
         for ($quarter = $end; $quarter >= $earliest && $streak < $maxStreak; $quarter--) {
             $events = $quarters[$quarter] ?? null;
 
-            if ($events === null || ! $this->quarterQualifies($events)) {
+            if ($events === null || ! $this->quarterQualifies($events, $announcedEventIds)) {
                 break;
             }
 
@@ -133,6 +149,69 @@ class TrustedOrganizerEvaluator extends CohortSweepEvaluator
         }
 
         return [$tierKey, $evidence];
+    }
+
+    /**
+     * R094 batching: the window fetch collapses to one query per chunk
+     * (same bounded window and PHP bucketing as the single-user
+     * path), and the announced-cancellation set becomes one chunk-wide
+     * distinct pluck — a cancelled event counts as announced iff its
+     * id is in the set, which is exactly the per-event semantics the
+     * per-quarter queries had. Criterion (b)'s games+avg queries stay
+     * per qualifying quarter (bounded ≤ 6, only after (a) survives) —
+     * SQL avg('rating') byte-identical, the 4.5 float boundary is
+     * never recomputed in PHP. Every chunk user gets an entry (empty
+     * quarters included) so the sweep never falls back.
+     */
+    protected function prefetchEvidence(EloquentCollection $users): void
+    {
+        $maxQuarters = $this->maxTierThreshold();
+        $oldestIndex = $this->mostRecentClosedQuarterIndex() - $maxQuarters + 1;
+
+        $events = Event::query()
+            ->whereIn('organizer_id', $users->modelKeys())
+            ->whereNotNull('start_date')
+            ->where('start_date', '>=', $this->quarterStartDate($oldestIndex))
+            // "Through today" on the community wall calendar (R089) —
+            // start_date is a DATE column.
+            ->where('start_date', '<=', community_now()->toDateString())
+            ->get();
+
+        $quartersByOrganizer = [];
+
+        foreach ($events as $event) {
+            $start = $event->start_date;
+
+            if ($start === null) {
+                continue;
+            }
+
+            $quartersByOrganizer[$event->organizer_id][$this->quarterIndex($start->year, $start->month)][] = $event;
+        }
+
+        foreach ($quartersByOrganizer as $organizerId => $quarters) {
+            ksort($quartersByOrganizer[$organizerId]);
+        }
+
+        $cancelledIds = $events
+            ->filter(fn (Event $event): bool => $event->status === EventStatus::Cancelled)
+            ->pluck('id')
+            ->values()
+            ->all();
+
+        /** @var list<string> $announcedIds */
+        $announcedIds = $cancelledIds === [] ? [] : EventAnnouncement::query()
+            ->whereIn('event_id', $cancelledIds)
+            ->distinct()
+            ->pluck('event_id')
+            ->all();
+
+        foreach ($users as $user) {
+            $this->setChunkEvidence($user, [
+                'quarters' => $quartersByOrganizer[$user->id] ?? [],
+                'announced' => $announcedIds,
+            ]);
+        }
     }
 
     /**
@@ -194,8 +273,9 @@ class TrustedOrganizerEvaluator extends CohortSweepEvaluator
      * (b) only run for quarters that survive it.
      *
      * @param  list<Event>  $events  the organizer's events in one quarter
+     * @param  list<string>|null  $announcedEventIds  the chunk-wide announced set (R094), or null on the single-user path — which then queries per quarter, byte-identical to the pre-batching code
      */
-    private function quarterQualifies(array $events): bool
+    private function quarterQualifies(array $events, ?array $announcedEventIds): bool
     {
         $completedCount = 0;
 
@@ -209,7 +289,7 @@ class TrustedOrganizerEvaluator extends CohortSweepEvaluator
             return false;
         }
 
-        return $this->cancellationsStayAnnounced($events)
+        return $this->cancellationsStayAnnounced($events, $announcedEventIds)
             && $this->averageRatingMeets($events);
     }
 
@@ -221,8 +301,9 @@ class TrustedOrganizerEvaluator extends CohortSweepEvaluator
      * is not the badge's business.
      *
      * @param  list<Event>  $events
+     * @param  list<string>|null  $announcedEventIds  the chunk-wide announced set (R094), or null on the single-user path — which then queries per quarter, byte-identical to the pre-batching code
      */
-    private function cancellationsStayAnnounced(array $events): bool
+    private function cancellationsStayAnnounced(array $events, ?array $announcedEventIds): bool
     {
         $cancelledIds = [];
 
@@ -236,13 +317,17 @@ class TrustedOrganizerEvaluator extends CohortSweepEvaluator
             return true;
         }
 
-        /** @var Collection<int, string> $announcedIds */
-        $announcedIds = EventAnnouncement::query()
-            ->whereIn('event_id', $cancelledIds)
-            ->distinct()
-            ->pluck('event_id');
+        if ($announcedEventIds === null) {
+            /** @var Collection<int, string> $announcedIds */
+            $announcedIds = EventAnnouncement::query()
+                ->whereIn('event_id', $cancelledIds)
+                ->distinct()
+                ->pluck('event_id');
 
-        $unannouncedCount = count(array_diff($cancelledIds, $announcedIds->all()));
+            $announcedEventIds = $announcedIds->all();
+        }
+
+        $unannouncedCount = count(array_diff($cancelledIds, $announcedEventIds));
 
         return $unannouncedCount / count($events) < self::MAX_UNANNOUNCED_CANCELLATION_RATE;
     }

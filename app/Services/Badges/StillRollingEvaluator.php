@@ -6,6 +6,7 @@ use App\Enums\GameStatus;
 use App\Models\Game;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Still Rolling (spec §3 Support Tenure row, M069 S05 T2): hosting
@@ -78,10 +79,20 @@ class StillRollingEvaluator extends CohortSweepEvaluator
     /**
      * The earliest owned game that counts as hosted: session date in
      * the past and status not Canceled — the tenure anchor and the
-     * evidence pointer (morph alias 'game' per D170).
+     * evidence pointer (morph alias 'game' per D170). Sweep path reads
+     * the chunk prefetch; the evaluate()/event path runs the fresh
+     * single-user query (batched=false), byte-identical to the
+     * pre-batching code.
      */
     private function firstHostedGame(User $user): ?Game
     {
+        $batch = $this->batchedEvidence($user);
+
+        if ($batch['batched']) {
+            // The prefetch records Game|null for every chunk user.
+            return $batch['evidence'] instanceof Game ? $batch['evidence'] : null;
+        }
+
         return Game::query()
             ->whereBelongsTo($user, 'owner')
             ->whereNotNull('date_time')
@@ -89,6 +100,32 @@ class StillRollingEvaluator extends CohortSweepEvaluator
             ->whereNot('status', GameStatus::Canceled->value)
             ->orderBy('date_time')
             ->first();
+    }
+
+    /**
+     * R094 batching: one round trip per chunk instead of one
+     * earliest-game query per user — DISTINCT ON (owner_id) keeps the
+     * per-user (date_time asc) pick inside the database (the same
+     * earliest-hosted-game derivation Debut batches), and every chunk
+     * user gets an entry (null evidence included) so the sweep never
+     * falls back to the single-user path.
+     */
+    protected function prefetchEvidence(Collection $users): void
+    {
+        $earliest = Game::query()
+            ->selectRaw('DISTINCT ON (owner_id) games.*')
+            ->whereIn('owner_id', $users->modelKeys())
+            ->whereNotNull('date_time')
+            ->where('date_time', '<=', now())
+            ->whereNot('status', GameStatus::Canceled->value)
+            ->orderBy('owner_id')
+            ->orderBy('date_time')
+            ->get()
+            ->keyBy('owner_id');
+
+        foreach ($users as $user) {
+            $this->setChunkEvidence($user, $earliest->get($user->id));
+        }
     }
 
     /**

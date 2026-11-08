@@ -6,6 +6,7 @@ use App\Enums\AttendanceStatus;
 use App\Models\GameParticipant;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * First Seat (spec §3 Milestones row): sat at your first table — at
@@ -49,18 +50,61 @@ class FirstSeatEvaluator extends CohortSweepEvaluator
      */
     protected function proposalFor(User $user): ?array
     {
-        // The verified-attendance floor is single-sourced on
-        // GameParticipant::scopeVerifiedAttendance (Attended on an
-        // organizer-resolved, dated game) — the evidence pick only
-        // adds the session-date ordering.
-        $evidence = GameParticipant::query()
+        $evidence = $this->earliestVerifiedSeat($user);
+
+        return $evidence === null ? null : [null, $evidence];
+    }
+
+    /**
+     * R094 batching: one round trip per chunk instead of one
+     * earliest-seat query per user — DISTINCT ON (user_id) over the
+     * verified-attendance join keeps the per-user (games.date_time
+     * asc) pick inside the database (today's query has no id
+     * tiebreak; the batch preserves the pick modulo DB tie choice).
+     * Every chunk user gets an entry (null evidence included) so the
+     * sweep never falls back to the single-user path.
+     */
+    protected function prefetchEvidence(Collection $users): void
+    {
+        $earliest = GameParticipant::query()
+            ->selectRaw('DISTINCT ON (game_participants.user_id) game_participants.*')
+            ->verifiedAttendance()
+            ->whereIn('game_participants.user_id', $users->modelKeys())
+            ->orderBy('game_participants.user_id')
+            ->orderBy('games.date_time')
+            ->get()
+            ->keyBy('user_id');
+
+        foreach ($users as $user) {
+            $this->setChunkEvidence($user, $earliest->get($user->id));
+        }
+    }
+
+    /**
+     * The earliest verified seat by session date. Sweep path reads
+     * the chunk prefetch; the evaluate()/event path runs the fresh
+     * single-user query (batched=false), byte-identical to the
+     * pre-batching code. The verified-attendance floor is
+     * single-sourced on GameParticipant::scopeVerifiedAttendance
+     * (Attended on an organizer-resolved, dated game) — the evidence
+     * pick only adds the session-date ordering.
+     */
+    private function earliestVerifiedSeat(User $user): ?GameParticipant
+    {
+        $batch = $this->batchedEvidence($user);
+
+        if ($batch['batched']) {
+            // The prefetch records GameParticipant|null for every
+            // chunk user.
+            return $batch['evidence'] instanceof GameParticipant ? $batch['evidence'] : null;
+        }
+
+        return GameParticipant::query()
             ->verifiedAttendance()
             ->whereBelongsTo($user)
             ->orderBy('games.date_time')
             ->select('game_participants.*')
             ->first();
-
-        return $evidence === null ? null : [null, $evidence];
     }
 
     /**

@@ -62,43 +62,54 @@ class FoundingTableEvaluator implements BadgeEvaluator
 
         $service = app(BadgeService::class);
 
-        // Existing holders are excluded from the cohort: while the
-        // window is open this sweep runs nightly, and iterating every
-        // account just to conclude AlreadyHeld is O(users) round trips
-        // forever (award() re-locks and re-reads each hold). The
-        // exclusion is outcome-equivalent — founding holds never lapse
-        // (spec §4), tierless so nothing upgrades, and a revoked hold
-        // re-proposing would only hit RefusedRevoked anyway. Cost drops
-        // to O(new accounts).
-        User::query()
-            ->notAnonymized()
-            ->whereDoesntHave('badges', fn ($query) => $query
-                ->whereHas('badgeDefinition', fn ($definition) => $definition
-                    ->where('key', self::BADGE_KEY)))
-            ->chunkById(200, function ($users) use ($service): void {
-                /** @var iterable<User> $users */
-                foreach ($users as $user) {
-                    try {
-                        $evidence = $this->proposalFor($user);
+        // Sweep-scoped definition memo (R094): this whole-table sweep
+        // awards every new account in the window, and award() re-reads
+        // the badge_definitions row per call — the memo lives exactly
+        // this pass and is flushed in the finally (see
+        // CohortSweepEvaluator::sweep() for the same bracket).
+        $service->beginSweepDefinitionMemo();
 
-                        if ($evidence === null) {
-                            // Window closed (possibly mid-sweep): nothing to
-                            // propose and, per the no-lapse rule, nothing to
-                            // strip from existing holds.
-                            continue;
+        try {
+            // Existing holders are excluded from the cohort: while the
+            // window is open this sweep runs nightly, and iterating every
+            // account just to conclude AlreadyHeld is O(users) round trips
+            // forever (award() re-locks and re-reads each hold). The
+            // exclusion is outcome-equivalent — founding holds never lapse
+            // (spec §4), tierless so nothing upgrades, and a revoked hold
+            // re-proposing would only hit RefusedRevoked anyway. Cost drops
+            // to O(new accounts).
+            User::query()
+                ->notAnonymized()
+                ->whereDoesntHave('badges', fn ($query) => $query
+                    ->whereHas('badgeDefinition', fn ($definition) => $definition
+                        ->where('key', self::BADGE_KEY)))
+                ->chunkById(200, function ($users) use ($service): void {
+                    /** @var iterable<User> $users */
+                    foreach ($users as $user) {
+                        try {
+                            $evidence = $this->proposalFor($user);
+
+                            if ($evidence === null) {
+                                // Window closed (possibly mid-sweep): nothing to
+                                // propose and, per the no-lapse rule, nothing to
+                                // strip from existing holds.
+                                continue;
+                            }
+
+                            $service->award($user, self::BADGE_KEY, null, $evidence);
+                        } catch (Throwable $e) {
+                            // Per-user isolation — see CohortSweepEvaluator::sweep().
+                            Log::error('badges.sweep.user_failed', [
+                                'badge' => self::BADGE_KEY,
+                                'user_id' => $user->id,
+                                'exception' => $e::class.': '.$e->getMessage(),
+                            ]);
                         }
-
-                        $service->award($user, self::BADGE_KEY, null, $evidence);
-                    } catch (Throwable $e) {
-                        // Per-user isolation — see CohortSweepEvaluator::sweep().
-                        Log::error('badges.sweep.user_failed', [
-                            'badge' => self::BADGE_KEY,
-                            'user_id' => $user->id,
-                            'exception' => $e::class.': '.$e->getMessage(),
-                        ]);
                     }
-                }
-            });
+                });
+        } finally {
+            $service->endSweepDefinitionMemo();
+        }
     }
 
     // ── Internals ──────────────────────────────────────

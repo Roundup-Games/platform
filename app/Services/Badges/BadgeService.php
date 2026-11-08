@@ -55,6 +55,20 @@ use InvalidArgumentException;
 class BadgeService
 {
     /**
+     * Sweep-scoped badge-definition memo (R094): while active, the
+     * definition row lookups award()/lapse()/revoke() share are served
+     * from memory instead of re-reading badge_definitions on every
+     * call (a cohort sweep pays one read per award AND one per
+     * null-proposal lapse probe). Null outside a sweep pass — the
+     * begin/end pair is bracketed by the sweep skeletons, so admin
+     * is_active/is_dormant toggles converge on the next evaluator's
+     * pass and no other caller ever sees a cached row.
+     *
+     * @var array<string, BadgeDefinition>|null
+     */
+    private ?array $sweepDefinitionMemo = null;
+
+    /**
      * Award a badge (or a higher tier of it) to a user, idempotently.
      *
      * @param  string  $key  Registry key, e.g. 'debut' (must exist in badge_definitions —
@@ -80,16 +94,12 @@ class BadgeService
         ?User $actor = null,
         ?string $reason = null,
     ): BadgeAwardResult {
-        // Deliberately NOT memoized per instance: is_active/is_dormant are
-        // runtime-mutable admin state (the Filament toggle is in-band, not
-        // out-of-band), so a cached row could serve a stale decision — the
-        // key lookup is a unique-indexed point read, cheap against the
-        // cohort queries a sweep already runs.
-        $definition = BadgeDefinition::query()->where('key', $key)->first();
-
-        if ($definition === null) {
-            throw new InvalidArgumentException("Unknown badge key [{$key}] — is the registry synced? Run `php artisan badges:sync`.");
-        }
+        // Sweep-scoped memo when beginSweepDefinitionMemo() brackets
+        // this call (see definition()); instance-level memoization
+        // stays rejected — is_active/is_dormant are runtime-mutable
+        // admin state, so a cached row must never outlive one
+        // evaluator's sweep pass.
+        $definition = $this->definition($key);
 
         // Admin retirement: refuse NEW awards, existing holds stay untouched.
         if (! $definition->is_active) {
@@ -233,11 +243,7 @@ class BadgeService
             throw new InvalidArgumentException("Revoking [{$key}] requires a reason.");
         }
 
-        $definition = BadgeDefinition::query()->where('key', $key)->first();
-
-        if ($definition === null) {
-            throw new InvalidArgumentException("Unknown badge key [{$key}] — is the registry synced? Run `php artisan badges:sync`.");
-        }
+        $definition = $this->definition($key);
 
         $userId = $user->id;
 
@@ -313,11 +319,7 @@ class BadgeService
             throw new InvalidArgumentException("Lapsing [{$key}] requires a reason.");
         }
 
-        $definition = BadgeDefinition::query()->where('key', $key)->first();
-
-        if ($definition === null) {
-            throw new InvalidArgumentException("Unknown badge key [{$key}] — is the registry synced? Run `php artisan badges:sync`.");
-        }
+        $definition = $this->definition($key);
 
         // Retirement freezes holds (spec §2.3): no new awards, and no
         // lapses — mirror of award()'s RefusedInactive refusal.
@@ -375,6 +377,50 @@ class BadgeService
     }
 
     // ── Internals ──────────────────────────────────────
+
+    /**
+     * Activate the sweep-scoped definition memo (R094) — every write
+     * path's badge_definitions lookup is served from memory until the
+     * matching endSweepDefinitionMemo(). The sweep skeletons bracket
+     * exactly one evaluator's pass with this pair: bounded staleness
+     * (an admin is_active/is_dormant toggle lands on the next pass)
+     * at a fraction of the round trips.
+     */
+    public function beginSweepDefinitionMemo(): void
+    {
+        $this->sweepDefinitionMemo = [];
+    }
+
+    /** Flush the sweep-scoped definition memo — subsequent lookups read fresh again. */
+    public function endSweepDefinitionMemo(): void
+    {
+        $this->sweepDefinitionMemo = null;
+    }
+
+    /**
+     * The badge definition for a registry key — the single-sourced,
+     * sweep-memo-aware lookup every write path shares (identical
+     * unknown-key error for award/revoke/lapse; a missing row is a
+     * programming error, badges:sync heals it).
+     */
+    private function definition(string $key): BadgeDefinition
+    {
+        if ($this->sweepDefinitionMemo !== null && array_key_exists($key, $this->sweepDefinitionMemo)) {
+            return $this->sweepDefinitionMemo[$key];
+        }
+
+        $definition = BadgeDefinition::query()->where('key', $key)->first();
+
+        if ($definition === null) {
+            throw new InvalidArgumentException("Unknown badge key [{$key}] — is the registry synced? Run `php artisan badges:sync`.");
+        }
+
+        if ($this->sweepDefinitionMemo !== null) {
+            $this->sweepDefinitionMemo[$key] = $definition;
+        }
+
+        return $definition;
+    }
 
     private function assertTierAllowed(BadgeDefinition $definition, ?string $tier): void
     {

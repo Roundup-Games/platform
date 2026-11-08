@@ -8,6 +8,7 @@ use App\Models\GMProfile;
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 
 /**
@@ -73,9 +74,22 @@ class MentorEvaluator extends CohortSweepEvaluator
             return null;
         }
 
-        $distinctReviewers = $this->qualifyingReviews($gmProfile)
-            ->distinct()
-            ->count('reviews.reviewer_id');
+        $batch = $this->batchedEvidence($user);
+
+        if ($batch['batched']) {
+            /** @var array{reviewers: int, earliest: Review|null} $payload */
+            $payload = $batch['evidence'];
+            $distinctReviewers = $payload['reviewers'];
+            // The evidence pick stays lazy below (??=) — same order as
+            // the single-user path, which only fetches it once a tier
+            // is reached.
+            $evidence = $payload['earliest'];
+        } else {
+            $distinctReviewers = $this->qualifyingReviews($gmProfile)
+                ->distinct()
+                ->count('reviews.reviewer_id');
+            $evidence = null;
+        }
 
         $tierKey = $this->tierFor($distinctReviewers);
 
@@ -83,7 +97,7 @@ class MentorEvaluator extends CohortSweepEvaluator
             return null;
         }
 
-        $evidence = $this->earliestQualifyingReview($gmProfile);
+        $evidence ??= $this->earliestQualifyingReview($gmProfile);
 
         if ($evidence === null) {
             // Unreachable while the count above holds — a reached tier
@@ -94,6 +108,51 @@ class MentorEvaluator extends CohortSweepEvaluator
         }
 
         return [$tierKey, $evidence];
+    }
+
+    /**
+     * R094 batching: one fetch of every qualifying review for the
+     * chunk's GMs instead of a count plus an evidence query per GM —
+     * the distinct-reviewer count (same integer) and the earliest
+     * (created_at, id) pick are computed from the same rows the
+     * per-GM queries returned. Every chunk user gets an entry
+     * (profile-less users included) so the sweep never falls back.
+     */
+    protected function prefetchEvidence(Collection $users): void
+    {
+        // Append-built (not filter/map): the collection stubs cannot
+        // narrow GMProfile|null across callbacks, and the append form is
+        // a provable list<string> for the whereIn fetch below.
+        $profileIds = [];
+
+        foreach ($users as $user) {
+            if ($user->gmProfile !== null) {
+                $profileIds[] = $user->gmProfile->id;
+            }
+        }
+
+        $reviewsByProfile = $profileIds === [] ? [] : $this->groupQualifyingReviews(
+            $this->qualifyingReviewsForProfiles($profileIds)->get(),
+        );
+
+        foreach ($users as $user) {
+            $gmProfile = $user->gmProfile;
+
+            if ($gmProfile === null) {
+                $this->setChunkEvidence($user, ['reviewers' => 0, 'earliest' => null]);
+
+                continue;
+            }
+
+            [$distinctReviewers, $earliest] = $this->reviewerCountAndEarliest(
+                $reviewsByProfile[$gmProfile->id] ?? [],
+            );
+
+            $this->setChunkEvidence($user, [
+                'reviewers' => $distinctReviewers,
+                'earliest' => $earliest,
+            ]);
+        }
     }
 
     /**
@@ -144,6 +203,107 @@ class MentorEvaluator extends CohortSweepEvaluator
             ->orderBy('reviews.created_at')
             ->orderBy('reviews.id')
             ->first();
+    }
+
+    /**
+     * The chunk-wide variant of qualifyingReviews(): one fetch of every
+     * qualifying review for the chunk's GM profiles. The correlated
+     * earliest-session subquery stays per-row — it joins gm_profiles so
+     * each review resolves ITS OWN profile's owner instead of a single
+     * GM constant — which makes the whereIn swap outcome-equivalent to
+     * the per-GM query.
+     *
+     * @param  list<string>  $profileIds
+     * @return Builder<Review>
+     */
+    private function qualifyingReviewsForProfiles(array $profileIds): Builder
+    {
+        return Review::query()
+            ->whereIn('reviews.gm_profile_id', $profileIds)
+            ->where('reviews.reviewable_type', (new Game)->getMorphClass())
+            ->where('reviews.status', 'published')
+            ->where('reviews.rating', self::PERFECT_RATING)
+            ->where('reviews.reviewable_id', function (QueryBuilder $earliest): void {
+                $earliest->select('g.id')
+                    ->from('games as g')
+                    ->join('game_participants as p', 'p.game_id', '=', 'g.id')
+                    ->join('gm_profiles as gp', 'gp.id', '=', 'reviews.gm_profile_id')
+                    ->whereColumn('p.user_id', 'reviews.reviewer_id')
+                    ->whereColumn('g.owner_id', 'gp.user_id')
+                    ->whereNotNull('g.date_time')
+                    ->where('p.attendance_status', AttendanceStatus::Attended->value)
+                    ->orderBy('g.date_time')
+                    ->orderBy('g.id')
+                    ->limit(1);
+            });
+    }
+
+    /**
+     * Group a chunk's qualifying reviews by the GM profile they flow
+     * through.
+     *
+     * @param  Collection<int, Review>  $reviews
+     * @return array<string, list<Review>>
+     */
+    private function groupQualifyingReviews(Collection $reviews): array
+    {
+        $byProfile = [];
+
+        foreach ($reviews as $review) {
+            $byProfile[(string) $review->gm_profile_id][] = $review;
+        }
+
+        return $byProfile;
+    }
+
+    /**
+     * The two numbers the per-GM queries produced, from the batched
+     * rows: the distinct-reviewer count (COUNT(DISTINCT reviewer_id)
+     * in SQL; the key set here is the same integer) and the earliest
+     * (created_at, id) evidence pick.
+     *
+     * @param  list<Review>  $reviews
+     * @return array{0: int, 1: Review|null}
+     */
+    private function reviewerCountAndEarliest(array $reviews): array
+    {
+        $reviewers = [];
+        $earliest = null;
+
+        foreach ($reviews as $review) {
+            $reviewers[$review->reviewer_id] = true;
+
+            if ($earliest === null || $this->reviewSortsBefore($review, $earliest)) {
+                $earliest = $review;
+            }
+        }
+
+        return [count($reviewers), $earliest];
+    }
+
+    /**
+     * The (created_at, id) ordering of the single-user pick's orderBy
+     * clauses, computed PHP-side: ascending created_at with Postgres
+     * NULLS LAST on a null timestamp (a null never wins while a dated
+     * review exists; two nulls fall through to the id tiebreak), then
+     * ascending id on exact ties — the deterministic evidence pointer
+     * both surfaces agree on.
+     */
+    private function reviewSortsBefore(Review $candidate, Review $champion): bool
+    {
+        $candidateAt = $candidate->created_at;
+        $championAt = $champion->created_at;
+
+        if ($candidateAt === null) {
+            return $championAt === null && $candidate->id < $champion->id;
+        }
+
+        if ($championAt === null) {
+            return true;
+        }
+
+        return $candidateAt->lt($championAt)
+            || ($candidateAt->equalTo($championAt) && $candidate->id < $champion->id);
     }
 
     /** GMs (a profile exists — reviews flow through it); holders join through the skeleton's holders half. */

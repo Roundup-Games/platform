@@ -80,8 +80,14 @@ it('isolates one poisoned user during the sweep — later users still get their 
     $awarded = [];
     $this->captureLogRecords();
 
-    $this->mock(BadgeService::class)
-        ->shouldReceive('award')
+    $service = $this->mock(BadgeService::class);
+
+    // R094: the sweep brackets its pass with the definition-memo pair —
+    // no-ops on the mock, this test pins the award() failure isolation.
+    $service->shouldReceive('beginSweepDefinitionMemo');
+    $service->shouldReceive('endSweepDefinitionMemo');
+
+    $service->shouldReceive('award')
         ->andReturnUsing(function (User $user) use (&$awarded, $first): void {
             if ($user->is($first)) {
                 throw new RuntimeException('poisoned row');

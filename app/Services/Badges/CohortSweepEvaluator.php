@@ -5,6 +5,7 @@ namespace App\Services\Badges;
 use App\Models\BadgeUser;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 use LogicException;
@@ -45,6 +46,9 @@ use Throwable;
  * - proposalFor()          — [tier, evidence] the user's current signal
  *                            earns, or null (untiered badges propose a
  *                            null tier). Pure: no writes.
+ * - prefetchEvidence()     — optional per-chunk evidence prefetch
+ *                            (R094): one batched round trip per
+ *                            evidence type instead of per-user queries.
  * - sweepOnUnqualified()   — what a null proposal means during sweep.
  *                            Default parks nothing (milestone badges
  *                            never lapse, spec §2.1); lapse-capable
@@ -64,6 +68,19 @@ abstract class CohortSweepEvaluator implements BadgeEvaluator
      * and progress survives interruptions (resume by re-running).
      */
     private const COHORT_CHUNK_SIZE = 200;
+
+    /**
+     * Batched per-user evidence for the chunk currently being swept,
+     * keyed by user id (R094). Populated once per chunk by
+     * prefetchEvidence(), rebuilt before every chunk and dropped after
+     * the sweep — the map never outlives the sweep path, so evaluate()
+     * (the MembershipActivated event pipeline) always runs
+     * proposalFor()'s fresh single-user queries, byte-identical to the
+     * pre-batching code.
+     *
+     * @var array<string, mixed>
+     */
+    private array $chunkEvidence = [];
 
     abstract protected function badgeKey(): string;
 
@@ -131,6 +148,55 @@ abstract class CohortSweepEvaluator implements BadgeEvaluator
         return User::query()->notAnonymized();
     }
 
+    /**
+     * Per-chunk evidence prefetch hook (R094): called once at the top
+     * of every chunkById batch, BEFORE proposalFor() runs for any of
+     * its users. Override to replace per-user evidence queries with one
+     * batched round trip per evidence type (grouped counts keyed by
+     * user_id, or Postgres DISTINCT ON for earliest/latest row picks).
+     *
+     * Contract:
+     * - Record an entry for EVERY chunk user — null evidence included
+     *   — through setChunkEvidence(); a user WITHOUT an entry falls
+     *   back to proposalFor()'s own single-user query, which is exactly
+     *   the evaluate()/event-pipeline path and must stay byte-identical.
+     * - Qualification and tier math NEVER changes here — only where
+     *   proposalFor()'s numbers come from does.
+     *
+     * @param  Collection<int, User>  $users  the chunk about to be swept
+     */
+    protected function prefetchEvidence(Collection $users): void
+    {
+        // Default no-op: evaluators without per-user evidence queries
+        // (eager loads via baseQuery(), whole-table windows) batch
+        // nothing.
+    }
+
+    /**
+     * Record one user's batched evidence for the current chunk
+     * (null = the batch ran and found nothing).
+     */
+    final protected function setChunkEvidence(User $user, mixed $evidence): void
+    {
+        $this->chunkEvidence[$user->id] = $evidence;
+    }
+
+    /**
+     * The chunk's batched evidence for this user.
+     *
+     * @return array{batched: bool, evidence: mixed} batched=false means
+     *                                               no prefetch covered this user — proposalFor() runs its
+     *                                               own single-user query (the evaluate()/event path).
+     */
+    final protected function batchedEvidence(User $user): array
+    {
+        if (array_key_exists($user->id, $this->chunkEvidence)) {
+            return ['batched' => true, 'evidence' => $this->chunkEvidence[$user->id]];
+        }
+
+        return ['batched' => false, 'evidence' => null];
+    }
+
     public function evaluate(User $user): ?BadgeAward
     {
         $proposal = $this->proposalFor($user);
@@ -146,36 +212,73 @@ abstract class CohortSweepEvaluator implements BadgeEvaluator
     {
         $service = app(BadgeService::class);
 
-        $this->cohort()->chunkById(self::COHORT_CHUNK_SIZE, function ($users) use ($service): void {
-            /** @var iterable<User> $users */
-            foreach ($users as $user) {
-                // Per-user isolation: one poisoned row (a malformed
-                // driver value, a registry/DB drift after a failed sync)
-                // must not abort the chunk loop — chunkById order is
-                // deterministic, so an unguarded throw would starve the
-                // same badge's whole tail cohort every night until the
-                // data is repaired. Skip, log, keep sweeping.
+        // Sweep-scoped definition memo (R094): award()/lapse() re-read
+        // the badge_definitions row on every call — once per award and
+        // once per null-proposal lapse probe — which after evidence
+        // batching is the sweep's biggest fixed query cost. The memo
+        // lives exactly this evaluator's pass and is flushed in the
+        // finally, so an admin is_active/is_dormant toggle converges on
+        // the next evaluator's pass.
+        $service->beginSweepDefinitionMemo();
+
+        try {
+            $this->cohort()->chunkById(self::COHORT_CHUNK_SIZE, function (Collection $users) use ($service): void {
+                // R094: one evidence round trip per evidence TYPE per
+                // chunk, replacing the per-user evidence queries. The
+                // map is rebuilt for every chunk (and dropped after the
+                // sweep in the finally), so it can never leak into the
+                // evaluate()/event-pipeline path.
+                $this->chunkEvidence = [];
+
                 try {
-                    $proposal = $this->proposalFor($user);
-
-                    if ($proposal === null) {
-                        $this->sweepOnUnqualified($user, $service);
-
-                        continue;
-                    }
-
-                    [$tierKey, $evidence] = $proposal;
-
-                    $service->award($user, $this->badgeKey(), $tierKey, $evidence);
+                    $this->prefetchEvidence($users);
                 } catch (Throwable $e) {
-                    Log::error('badges.sweep.user_failed', [
+                    // A broken batch query degrades to the per-user
+                    // path instead of aborting the chunk: per-user
+                    // isolation (the loop's catch below) is the sweep's
+                    // failure contract — a prefetch failure must not
+                    // starve the badge's whole tail cohort any more
+                    // than a poisoned row may.
+                    $this->chunkEvidence = [];
+
+                    Log::error('badges.sweep.prefetch_failed', [
                         'badge' => $this->badgeKey(),
-                        'user_id' => $user->id,
                         'exception' => $e::class.': '.$e->getMessage(),
                     ]);
                 }
-            }
-        });
+
+                foreach ($users as $user) {
+                    // Per-user isolation: one poisoned row (a malformed
+                    // driver value, a registry/DB drift after a failed sync)
+                    // must not abort the chunk loop — chunkById order is
+                    // deterministic, so an unguarded throw would starve the
+                    // same badge's whole tail cohort every night until the
+                    // data is repaired. Skip, log, keep sweeping.
+                    try {
+                        $proposal = $this->proposalFor($user);
+
+                        if ($proposal === null) {
+                            $this->sweepOnUnqualified($user, $service);
+
+                            continue;
+                        }
+
+                        [$tierKey, $evidence] = $proposal;
+
+                        $service->award($user, $this->badgeKey(), $tierKey, $evidence);
+                    } catch (Throwable $e) {
+                        Log::error('badges.sweep.user_failed', [
+                            'badge' => $this->badgeKey(),
+                            'user_id' => $user->id,
+                            'exception' => $e::class.': '.$e->getMessage(),
+                        ]);
+                    }
+                }
+            });
+        } finally {
+            $this->chunkEvidence = [];
+            $service->endSweepDefinitionMemo();
+        }
     }
 
     /**

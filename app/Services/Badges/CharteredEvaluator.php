@@ -6,6 +6,7 @@ use App\Models\SessionZeroConfirmation;
 use App\Models\SessionZeroSurvey;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 /**
  * Chartered (spec §3 GM Craft row, D189; live since M070/S04): the
@@ -61,7 +62,20 @@ class CharteredEvaluator extends CohortSweepEvaluator
      */
     protected function proposalFor(User $user): ?array
     {
-        $count = $this->countersignedCharterCount($user);
+        $batch = $this->batchedEvidence($user);
+
+        if ($batch['batched']) {
+            /** @var array{count: int, evidence: SessionZeroConfirmation|null} $payload */
+            $payload = $batch['evidence'];
+            $count = $payload['count'];
+            // The evidence pick stays lazy below (??=) — same order as
+            // the single-user path, which only fetches it once a tier
+            // is reached.
+            $evidence = $payload['evidence'];
+        } else {
+            $count = $this->countersignedCharterCount($user);
+            $evidence = null;
+        }
 
         $tierKey = $this->tierFor($count);
 
@@ -69,7 +83,7 @@ class CharteredEvaluator extends CohortSweepEvaluator
             return null;
         }
 
-        $evidence = $this->latestGmConfirmation($user);
+        $evidence ??= $this->latestGmConfirmation($user);
 
         // Non-null by construction — a charter only counts because a gm
         // row exists on it — but the guard keeps the tuple's type honest
@@ -80,6 +94,88 @@ class CharteredEvaluator extends CohortSweepEvaluator
         }
 
         return [$tierKey, $evidence];
+    }
+
+    /**
+     * R094 batching: two round trips per chunk instead of two queries
+     * per qualifying user —
+     *
+     * (1) every countersigned charter in the chunk (the same proof
+     *     chain as countersignedCharters(), joined to its owner),
+     *     feeding both the per-owner distinct count and query (2)'s
+     *     scope;
+     * (2) the latest gm confirmation per OWNER via DISTINCT ON with
+     *     the same (confirmed_at desc, id desc) ordering the
+     *     single-user evidence read used.
+     *
+     * Every chunk user gets an entry (zero counts / null evidence
+     * included) so the sweep never falls back to the single-user path.
+     */
+    protected function prefetchEvidence(EloquentCollection $users): void
+    {
+        $charters = SessionZeroSurvey::query()
+            ->join('campaigns', 'campaigns.id', '=', 'session_zero_surveys.campaign_id')
+            ->whereIn('campaigns.owner_id', $users->modelKeys())
+            ->whereHas('confirmations', fn (Builder $confirmation): Builder => $confirmation
+                ->where('role', SessionZeroConfirmation::ROLE_GM)
+                ->whereHas('version', fn (Builder $version): Builder => $version
+                    ->whereHas('confirmations', fn (Builder $participant): Builder => $participant
+                        ->where('role', SessionZeroConfirmation::ROLE_PARTICIPANT))))
+            ->distinct()
+            ->toBase()
+            ->get(['campaigns.owner_id as owner_id', 'session_zero_surveys.id as survey_id']);
+
+        $charterIdsByOwner = [];
+        $ownerBySurveyId = [];
+
+        foreach ($charters as $charter) {
+            $charterIdsByOwner[$charter->owner_id][] = $charter->survey_id;
+            $ownerBySurveyId[$charter->survey_id] = $charter->owner_id;
+        }
+
+        $allCharterIds = array_keys($ownerBySurveyId);
+
+        $latestByOwner = $allCharterIds === [] ? [] : $this->latestGmConfirmationsByOwner($allCharterIds, $ownerBySurveyId);
+
+        foreach ($users as $user) {
+            $this->setChunkEvidence($user, [
+                'count' => count($charterIdsByOwner[$user->id] ?? []),
+                'evidence' => $latestByOwner[$user->id] ?? null,
+            ]);
+        }
+    }
+
+    /**
+     * The batched evidence read: the latest gm confirmation per owner
+     * across the chunk's countersigned charters — DISTINCT ON keeps the
+     * (confirmed_at desc, id desc) pick inside the database, one row
+     * per owner, exactly what latestGmConfirmation() returned per user.
+     *
+     * @param  list<string>  $charterIds  every countersigned charter id in the chunk
+     * @param  array<string, string>  $ownerBySurveyId  charter id => owner id
+     * @return array<string, SessionZeroConfirmation>
+     */
+    private function latestGmConfirmationsByOwner(array $charterIds, array $ownerBySurveyId): array
+    {
+        $confirmations = SessionZeroConfirmation::query()
+            ->selectRaw('DISTINCT ON (campaigns.owner_id) session_zero_confirmations.*')
+            ->join('session_zero_surveys', 'session_zero_surveys.id', '=', 'session_zero_confirmations.session_zero_survey_id')
+            ->join('campaigns', 'campaigns.id', '=', 'session_zero_surveys.campaign_id')
+            ->where('session_zero_confirmations.role', SessionZeroConfirmation::ROLE_GM)
+            ->whereIn('session_zero_confirmations.session_zero_survey_id', $charterIds)
+            ->orderBy('campaigns.owner_id')
+            ->orderByDesc('session_zero_confirmations.confirmed_at')
+            ->orderByDesc('session_zero_confirmations.id')
+            ->get();
+
+        $latestByOwner = [];
+
+        foreach ($confirmations as $confirmation) {
+            $ownerId = $ownerBySurveyId[$confirmation->session_zero_survey_id];
+            $latestByOwner[$ownerId] = $confirmation;
+        }
+
+        return $latestByOwner;
     }
 
     /**

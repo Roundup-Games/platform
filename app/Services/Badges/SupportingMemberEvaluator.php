@@ -2,10 +2,12 @@
 
 namespace App\Services\Badges;
 
+use App\Models\LocalSubscription;
 use App\Models\User;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -53,11 +55,36 @@ class SupportingMemberEvaluator extends CohortSweepEvaluator
      */
     protected function proposalFor(User $user): ?array
     {
-        if (! $user->hasActiveMembership()) {
-            return null;
-        }
+        $batch = $this->batchedEvidence($user);
 
-        $earliest = $this->earliestMembershipStart($user);
+        if ($batch['batched']) {
+            /** @var array{local: LocalSubscription|null, activeLocal: bool} $payload */
+            $payload = $batch['evidence'];
+
+            // The batched halves of hasActiveMembership(): Cashier reads
+            // the chunk-eager-loaded relation (no query — baseQuery()'s
+            // with('subscriptions')), local consults the batched active
+            // set — the same rows the per-user exists() would visit.
+            if (! $user->subscribed() && ! $payload['activeLocal']) {
+                return null;
+            }
+
+            // The Cashier half of earliestMembershipStart(): the
+            // chunk-eager-loaded relation holds every subscription row
+            // the per-user value('created_at') query read, so min() over
+            // it is the same timestamp without the round trip.
+            $cashierStartedAt = $this->asCarbon($user->subscriptions
+                ->whereNotNull('created_at')
+                ->min('created_at'));
+
+            $earliest = $this->earliestStartFrom($payload['local'], $cashierStartedAt);
+        } else {
+            if (! $user->hasActiveMembership()) {
+                return null;
+            }
+
+            $earliest = $this->earliestMembershipStart($user);
+        }
 
         if ($earliest === null) {
             return null;
@@ -81,6 +108,49 @@ class SupportingMemberEvaluator extends CohortSweepEvaluator
         }
 
         return [$tierKey, $evidence];
+    }
+
+    /**
+     * R094 batching: two round trips per chunk instead of up to three
+     * queries per cohort member —
+     *
+     * (1) the earliest dated LocalSubscription per user via DISTINCT
+     *     ON (user_id) with the per-user (starts_at asc) pick kept in
+     *     the database;
+     * (2) the active-local-membership set (hasActiveMembership()'s
+     *     per-user exists(), batched) — the Cashier half stays on the
+     *     chunk-eager-loaded subscriptions relation.
+     *
+     * Every chunk user gets an entry (null local / inactive included)
+     * so the sweep never falls back to the single-user path.
+     */
+    protected function prefetchEvidence(EloquentCollection $users): void
+    {
+        $ids = $users->modelKeys();
+
+        $earliestLocal = LocalSubscription::query()
+            ->selectRaw('DISTINCT ON (user_id) local_subscriptions.*')
+            ->whereIn('user_id', $ids)
+            ->whereNotNull('starts_at')
+            ->orderBy('user_id')
+            ->orderBy('starts_at')
+            ->get()
+            ->keyBy('user_id');
+
+        $activeLocalIds = LocalSubscription::query()
+            ->whereIn('user_id', $ids)
+            ->active()
+            ->pluck('user_id')
+            ->unique()
+            ->values()
+            ->all();
+
+        foreach ($users as $user) {
+            $this->setChunkEvidence($user, [
+                'local' => $earliestLocal->get($user->id),
+                'activeLocal' => in_array($user->id, $activeLocalIds, true),
+            ]);
+        }
     }
 
     /**
@@ -117,6 +187,19 @@ class SupportingMemberEvaluator extends CohortSweepEvaluator
             ->orderBy('created_at')
             ->value('created_at'));
 
+        return $this->earliestStartFrom($local, $cashierStartedAt);
+    }
+
+    /**
+     * The earlier of the two subscription flavors' starts — the pure
+     * comparator both the batched and single-user reads share: local
+     * wins ties (lte), Cashier-anchored tenure carries a null
+     * evidence pointer.
+     *
+     * @return array{0: CarbonInterface, 1: Model|null}|null
+     */
+    private function earliestStartFrom(?Model $local, ?CarbonInterface $cashierStartedAt): ?array
+    {
         $localStartedAt = $this->asCarbon($local?->getAttribute('starts_at'));
 
         if ($localStartedAt === null && $cashierStartedAt === null) {

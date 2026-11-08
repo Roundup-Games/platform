@@ -5,6 +5,7 @@ namespace App\Services\Badges;
 use App\Models\DiscordGuildOrganizer;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Guild Linked (spec §3 Community Infrastructure row, M069 S05 T2 per
@@ -55,15 +56,58 @@ class GuildLinkedEvaluator extends CohortSweepEvaluator
      */
     protected function proposalFor(User $user): ?array
     {
-        $evidence = DiscordGuildOrganizer::query()
+        $evidence = $this->earliestQualifyingLink($user);
+
+        return $evidence === null ? null : [null, $evidence];
+    }
+
+    /**
+     * R094 batching: one round trip per chunk instead of one
+     * earliest-link query per user — DISTINCT ON (user_id) keeps the
+     * per-user (opted_in_at asc) pick inside the database, and every
+     * chunk user gets an entry (null evidence included) so the sweep
+     * never falls back to the single-user path.
+     */
+    protected function prefetchEvidence(Collection $users): void
+    {
+        $earliest = DiscordGuildOrganizer::query()
+            ->selectRaw('DISTINCT ON (user_id) discord_guild_organizers.*')
+            ->whereIn('user_id', $users->modelKeys())
+            ->whereNotNull('opted_in_at')
+            ->where('opted_in_at', '<=', now()->subDays(self::MINIMUM_LINK_AGE_DAYS))
+            ->whereHas('guild', fn (Builder $guild): Builder => $guild->where('paused', false))
+            ->orderBy('user_id')
+            ->orderBy('opted_in_at')
+            ->get()
+            ->keyBy('user_id');
+
+        foreach ($users as $user) {
+            $this->setChunkEvidence($user, $earliest->get($user->id));
+        }
+    }
+
+    /**
+     * The oldest qualifying guild link. Sweep path reads the chunk
+     * prefetch; the evaluate()/event path runs the fresh single-user
+     * query (batched=false), byte-identical to the pre-batching code.
+     */
+    private function earliestQualifyingLink(User $user): ?DiscordGuildOrganizer
+    {
+        $batch = $this->batchedEvidence($user);
+
+        if ($batch['batched']) {
+            // The prefetch records DiscordGuildOrganizer|null for
+            // every chunk user.
+            return $batch['evidence'] instanceof DiscordGuildOrganizer ? $batch['evidence'] : null;
+        }
+
+        return DiscordGuildOrganizer::query()
             ->whereBelongsTo($user)
             ->whereNotNull('opted_in_at')
             ->where('opted_in_at', '<=', now()->subDays(self::MINIMUM_LINK_AGE_DAYS))
             ->whereHas('guild', fn (Builder $guild): Builder => $guild->where('paused', false))
             ->orderBy('opted_in_at')
             ->first();
-
-        return $evidence === null ? null : [null, $evidence];
     }
 
     /**

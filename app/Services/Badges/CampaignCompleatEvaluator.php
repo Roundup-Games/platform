@@ -8,6 +8,7 @@ use App\Enums\JournalEntryKind;
 use App\Models\Campaign;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
@@ -86,8 +87,17 @@ class CampaignCompleatEvaluator extends CohortSweepEvaluator
      */
     protected function proposalFor(User $user): ?array
     {
-        $qualifying = $this->completedCampaignsWithCounts($user)
-            ->filter(fn (Campaign $campaign): bool => $this->qualifies($campaign));
+        $batch = $this->batchedEvidence($user);
+
+        if ($batch['batched']) {
+            /** @var Collection<int, Campaign>|null $batched */
+            $batched = $batch['evidence'];
+            $campaigns = $batched ?? collect();
+        } else {
+            $campaigns = $this->completedCampaignsWithCounts($user);
+        }
+
+        $qualifying = $campaigns->filter(fn (Campaign $campaign): bool => $this->qualifies($campaign));
 
         $count = $qualifying->count();
 
@@ -107,6 +117,43 @@ class CampaignCompleatEvaluator extends CohortSweepEvaluator
         }
 
         return [$tierKey, $evidence];
+    }
+
+    /**
+     * R094 batching: the completed-campaigns fetch (with its two D222
+     * aggregates) runs whereIn the chunk instead of per owner — the
+     * withCount subqueries are correlated per-row, so the per-user
+     * math in proposalFor() (qualifies() filter, count, tier pick,
+     * newest-first evidence pick) is unchanged. Every chunk user gets
+     * an entry (empty collection included) so the sweep never falls
+     * back to the single-user path.
+     */
+    protected function prefetchEvidence(EloquentCollection $users): void
+    {
+        $campaigns = Campaign::query()
+            ->whereIn('owner_id', $users->modelKeys())
+            ->where('status', CampaignStatus::Completed->value)
+            ->withCount([
+                'sessions as completed_sessions_count' => fn (Builder $session): Builder => $session
+                    ->where('games.status', GameStatus::Completed->value),
+                'journalEntries as covered_sessions_count' => fn (Builder $entry): Builder => $entry
+                    ->where('campaign_journal_entries.kind', JournalEntryKind::Recap->value)
+                    ->whereNotNull('campaign_journal_entries.game_id')
+                    ->whereHas('game', fn (Builder $game): Builder => $game
+                        ->where('games.status', GameStatus::Completed->value)),
+            ])
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->get();
+
+        $byOwner = $campaigns->groupBy('owner_id');
+
+        foreach ($users as $user) {
+            // groupBy preserves the parent query's per-owner relative
+            // order, so each owner's first qualifying row is the same
+            // evidence pick the single-user query produced.
+            $this->setChunkEvidence($user, $byOwner->get($user->id));
+        }
     }
 
     /**

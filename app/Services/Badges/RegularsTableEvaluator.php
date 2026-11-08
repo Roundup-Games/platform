@@ -7,6 +7,7 @@ use App\Models\GameParticipant;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
@@ -99,15 +100,72 @@ class RegularsTableEvaluator extends CohortSweepEvaluator
     }
 
     /**
+     * R094 batching: two round trips per chunk instead of two queries
+     * per user —
+     *
+     * (a) every verified (user_id, session date) pair in the chunk as
+     *     ROW-LEVEL data: the community-calendar month bucketing (R089)
+     *     happens PHP-side, so no SQL aggregation here — the walker in
+     *     bucketCoveredMonths() stays byte-identical;
+     * (b) the latest attended participant per user (the evidence
+     *     pointer, tier earners only read it) via DISTINCT ON with the
+     *     same session-date ordering guard as the single-user pick.
+     *
+     * Every chunk user gets an entry (empty dates / null evidence
+     * included) so the sweep never falls back to the single-user path.
+     */
+    protected function prefetchEvidence(EloquentCollection $users): void
+    {
+        $ids = $users->modelKeys();
+
+        $pairs = GameParticipant::query()
+            ->verifiedAttendance()
+            ->whereIn('game_participants.user_id', $ids)
+            ->toBase()
+            ->get(['game_participants.user_id as user_id', 'games.date_time as date_time']);
+
+        $datesByUser = [];
+
+        foreach ($pairs as $pair) {
+            $datesByUser[$pair->user_id][] = (string) $pair->date_time;
+        }
+
+        $latest = GameParticipant::query()
+            ->selectRaw('DISTINCT ON (game_participants.user_id) game_participants.*')
+            ->verifiedAttendance()
+            ->whereIn('game_participants.user_id', $ids)
+            ->orderBy('game_participants.user_id')
+            ->orderByDesc('games.date_time')
+            ->get()
+            ->keyBy('user_id');
+
+        foreach ($users as $user) {
+            $this->setChunkEvidence($user, [
+                'dates' => $datesByUser[$user->id] ?? [],
+                'latest' => $latest->get($user->id),
+            ]);
+        }
+    }
+
+    /**
      * Distinct covered month indices (year * 12 + month - 1), ascending.
      * Multiple sessions in one month collapse into one bucket — a month
-     * is covered or it is not.
+     * is covered or it is not. Sweep path reads the chunk prefetch;
+     * the evaluate()/event path runs the fresh single-user pluck
+     * (batched=false), byte-identical to the pre-batching code.
      *
      * @return array<int, int>
      */
     private function coveredMonths(User $user): array
     {
-        $buckets = [];
+        $batch = $this->batchedEvidence($user);
+
+        if ($batch['batched']) {
+            /** @var array{dates: list<string>, latest: GameParticipant|null} $payload */
+            $payload = $batch['evidence'];
+
+            return $this->bucketCoveredMonths($payload['dates']);
+        }
 
         // Raw session dates straight from the database — the walker only
         // needs the Y-M bucket, no per-row Carbon round-trip.
@@ -116,6 +174,20 @@ class RegularsTableEvaluator extends CohortSweepEvaluator
             ->verifiedAttendance()
             ->whereBelongsTo($user)
             ->pluck('games.date_time');
+
+        return $this->bucketCoveredMonths(array_values($dates->all()));
+    }
+
+    /**
+     * The covered-month bucketing both surfaces share — unchanged by
+     * R094 batching, only its input source differs.
+     *
+     * @param  list<string>  $dates  raw session dates (true UTC instants)
+     * @return array<int, int>
+     */
+    private function bucketCoveredMonths(array $dates): array
+    {
+        $buckets = [];
 
         foreach ($dates as $date) {
             // date_time stores true UTC instants (R089); a "covered month" is
@@ -214,10 +286,21 @@ class RegularsTableEvaluator extends CohortSweepEvaluator
     /**
      * Evidence pointer: the user's most recent attended participant row
      * by session date (morph alias 'game_participant' per D170 — the
-     * alias is mapped already, no new registration).
+     * alias is mapped already, no new registration). Sweep path reads
+     * the chunk prefetch; the evaluate()/event path runs the fresh
+     * single-user query (batched=false).
      */
     private function latestAttendedParticipant(User $user): ?GameParticipant
     {
+        $batch = $this->batchedEvidence($user);
+
+        if ($batch['batched']) {
+            /** @var array{dates: list<string>, latest: GameParticipant|null} $payload */
+            $payload = $batch['evidence'];
+
+            return $payload['latest'];
+        }
+
         // Same verified-attendance floor as coveredMonths() (the
         // single-sourced scope): without the date_time filter Postgres
         // NULLS-FIRST ordering on DESC could pick a date-less game as
