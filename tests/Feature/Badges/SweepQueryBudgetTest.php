@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\BadgeUser;
+use App\Models\User;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
 
 /*
@@ -40,6 +42,14 @@ use Illuminate\Support\Facades\DB;
 | the ceilings absorb award-draw and notification variance. Set
 | SWEEP_BUDGET_REPORT=1 to print the measured counts on every run and
 | watch the trend before a ceiling trips.
+|
+| Parallel observability: paratest swallows worker STDERR, so the report
+| line above is invisible under --parallel. Set
+| SWEEP_BUDGET_BREAKDOWN=<path> to append a per-worker block (worker id,
+| per-window statement totals, cohort counts, per-window SQL histograms)
+| to that file BEFORE any assertion — env vars propagate to paratest
+| workers, making the file the only channel that survives the parallel
+| gate (M075/S07).
 */
 
 /**
@@ -54,6 +64,47 @@ function sweepBudgetHoldsFor(string $key): int
     return BadgeUser::query()
         ->whereHas('badgeDefinition', fn ($query) => $query->where('key', $key))
         ->count();
+}
+
+/**
+ * Histogram lines ("sql: <verb> <table> = N") for one counting window.
+ *
+ * Groups each statement by its leading SQL keyword (lowercased) plus the
+ * first table token after from/into/update (quotes stripped, lowercased),
+ * counted and sorted descending — the shape the SWEEP_BUDGET_BREAKDOWN
+ * file consumes to attribute budget inflation to a verb/table pair.
+ * Transaction-control statements (begin, commit, savepoint, ...) carry
+ * no table and group under the verb alone; statements with no known
+ * leading verb are dropped from the histogram (the window's statement
+ * total remains the source of truth).
+ *
+ * @param  list<string>  $statements
+ * @return list<string>
+ */
+function sweepBudgetHistogramLines(array $statements): array
+{
+    $buckets = [];
+    foreach ($statements as $sql) {
+        if (! preg_match('/^(select|insert|update|delete|begin|commit|rollback|savepoint|release)\b/i', $sql, $verbMatch)) {
+            continue;
+        }
+
+        $verb = strtolower($verbMatch[1]);
+        $table = preg_match('/\b(?:from|into|update)\s+["`]?([a-zA-Z0-9_.\-]+)["`]?/i', $sql, $tableMatch)
+            ? strtolower($tableMatch[1])
+            : null;
+
+        $key = $verb.($table !== null ? ' '.$table : '');
+        $buckets[$key] = ($buckets[$key] ?? 0) + 1;
+    }
+
+    arsort($buckets);
+
+    return array_map(
+        fn (int $count, string $key): string => "sql: {$key} = {$count}",
+        array_values($buckets),
+        array_keys($buckets),
+    );
 }
 
 beforeEach(function () {
@@ -73,9 +124,14 @@ beforeEach(function () {
 it('keeps the badge sweep inside the post-R094 query budget without losing the demo contract', function () {
     // Cheap counting vehicle: a DB::listen counter has no query-log
     // memory overhead, unlike getQueryLog() at hundreds of statements.
+    // $sqlLog mirrors every statement string so the breakdown file can
+    // histogram each counting window — the only diagnostic channel that
+    // survives --parallel, where paratest swallows worker stderr.
     $queries = 0;
-    DB::listen(function () use (&$queries): void {
+    $sqlLog = [];
+    DB::listen(function (QueryExecuted $event) use (&$queries, &$sqlLog): void {
         $queries++;
+        $sqlLog[] = $event->sql;
     });
 
     // First cycle: the exact DemoCohortProofTest backfill — sync, then
@@ -83,12 +139,52 @@ it('keeps the badge sweep inside the post-R094 query budget without losing the d
     $this->artisan('badges:sync')->assertSuccessful();
     $this->artisan('badges:sweep')->assertSuccessful();
     $firstCycle = $queries;
+    $firstEnd = count($sqlLog);
 
     // Steady state: a second sweep finds nothing new to award or lapse —
     // the nightly production shape, and the purest N+1 signal because no
     // award-path or delivery statements dilute the count.
     $this->artisan('badges:sweep')->assertSuccessful();
     $steadyState = $queries - $firstCycle;
+    $steadyEnd = count($sqlLog);
+
+    // Cohort counts feed the breakdown file and the purity guard below;
+    // they run after both windows are snapshotted so they pollute
+    // neither budget.
+    $usersTotal = User::query()->count();
+    $usersNotAnonymized = User::query()->whereNull('anonymized_at')->count();
+    $badgeUserTotal = BadgeUser::query()->count();
+
+    // File-based breakdown: appended (multiple workers share the file)
+    // and written BEFORE any assertion, so red runs — expected while
+    // diagnosing the parallel-gate inflation — still produce it.
+    $breakdownPath = getenv('SWEEP_BUDGET_BREAKDOWN');
+    if ($breakdownPath !== false && $breakdownPath !== '') {
+        $workerToken = getenv('TEST_TOKEN');
+        $worker = $workerToken !== false && $workerToken !== '' ? $workerToken : 'standalone';
+        $block = [
+            '## sweep-budget-breakdown '.date('Y-m-d\TH:i:s'),
+            "worker: {$worker}",
+            'window: first-cycle',
+            "statements: {$firstCycle}",
+            'window: steady-state',
+            "statements: {$steadyState}",
+            "users_total_after: {$usersTotal}",
+            "users_not_anonymized_after: {$usersNotAnonymized}",
+            "badge_user_after: {$badgeUserTotal}",
+            'histogram: first-cycle',
+            ...sweepBudgetHistogramLines(array_slice($sqlLog, 0, $firstEnd)),
+            'histogram: steady-state',
+            ...sweepBudgetHistogramLines(array_slice($sqlLog, $firstEnd, $steadyEnd - $firstEnd)),
+            '',
+        ];
+
+        $directory = dirname($breakdownPath);
+        if (! is_dir($directory)) {
+            mkdir($directory, 0775, true);
+        }
+        file_put_contents($breakdownPath, implode("\n", $block)."\n", FILE_APPEND);
+    }
 
     // Behavioral floor (DemoCohortProofTest remains the full contract):
     // all eight demo badges must still be held. A lost award usually
@@ -105,6 +201,17 @@ it('keeps the badge sweep inside the post-R094 query budget without losing the d
         }
     }
     expect($lost)->toBeEmpty('budget run lost the demo contract: '.implode(', ', $lost));
+
+    // Cohort purity: the demo cohort seeds exactly 25 users (--users=25,
+    // byte-identical boot to DemoCohortProofTest). Anything above 25 can
+    // only be foreign rows committed into this worker's shared parallel
+    // database — the silent budget inflator this guard makes loud and
+    // attributable before the ceilings mask its source.
+    expect($usersTotal)->toBe(25, sprintf(
+        'cohort purity violated: demo:seed --users=25 expected exactly 25 users, found %d — %d foreign committed user row(s) leaked onto the shared parallel DB, inflating the query budget',
+        $usersTotal,
+        $usersTotal - 25,
+    ));
 
     // Opt-in drift observability: the ceilings only speak on failure;
     // this prints the measured counts on every opt-in run.
