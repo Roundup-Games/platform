@@ -211,6 +211,16 @@ verify_public_retry() {  # $1 = path, retries ×3 — Cloudflare edge can lag a 
 save_state() {  # $1 = live slot, $2 = live tag, $3 = previous tag
     printf '{"live":"%s","tag":"%s","prev_tag":"%s","ts":"%s"}\n' \
         "$1" "$2" "$3" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$STATE_FILE"
+
+    # Mirror the live tag for Compose Manager Plus (indirect stack): its
+    # "external env file path" points at .env.compose next to the compose
+    # file, so GUI actions (validate, a deliberate maintenance-window
+    # recreate) interpolate the DEPLOYED sha instead of falling back to
+    # ${DEPLOY_TAG:-latest} (which could silently pull an unvetted newer
+    # image). Single writer: this function — do not hand-edit the file; the
+    # Env tab edits land here but are overwritten by the next deploy.
+    printf 'DEPLOY_TAG=%s\n' "$2" > "$REPO_DIR/.env.compose.tmp" \
+        && mv -f "$REPO_DIR/.env.compose.tmp" "$REPO_DIR/.env.compose"
 }
 
 read_state_field() {  # $1 = jq-style key (crude grep — no jq dependency)
