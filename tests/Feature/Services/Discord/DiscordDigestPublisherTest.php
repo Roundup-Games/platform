@@ -199,7 +199,7 @@ class DiscordDigestPublisherTest extends TestCase
     {
         [$guild, $owner, $game] = $this->guildWithUpcomingGame();
         $guild->update([
-            'digest_thread_date' => now()->toDateString(),
+            'digest_thread_date' => community_now()->toDateString(),
             'digest_thread_channel_id' => self::CALENDAR_CHANNEL,
             'digest_thread_message_id' => self::MESSAGE_ID,
         ]);
@@ -224,7 +224,7 @@ class DiscordDigestPublisherTest extends TestCase
     {
         [$guild, $owner, $game] = $this->guildWithUpcomingGame();
         $guild->update([
-            'digest_thread_date' => now()->toDateString(),
+            'digest_thread_date' => community_now()->toDateString(),
             'digest_thread_channel_id' => self::CALENDAR_CHANNEL,
             'digest_thread_message_id' => self::MESSAGE_ID,
         ]);
@@ -247,7 +247,7 @@ class DiscordDigestPublisherTest extends TestCase
         // bricking the digest on a dead message id.
         [$guild, $owner, $game] = $this->guildWithUpcomingGame();
         $guild->update([
-            'digest_thread_date' => now()->toDateString(),
+            'digest_thread_date' => community_now()->toDateString(),
             'digest_thread_channel_id' => self::CALENDAR_CHANNEL,
             'digest_thread_message_id' => 'dead-message-id',
         ]);
@@ -426,7 +426,7 @@ class DiscordDigestPublisherTest extends TestCase
             ->configured()
             ->create([
                 'calendar_channel_id' => self::CALENDAR_CHANNEL,
-                'digest_thread_date' => now()->toDateString(),
+                'digest_thread_date' => community_now()->toDateString(),
                 'digest_thread_channel_id' => self::CALENDAR_CHANNEL,
                 'digest_thread_message_id' => self::MESSAGE_ID,
             ]);
@@ -455,7 +455,7 @@ class DiscordDigestPublisherTest extends TestCase
         $oldChannel = self::CALENDAR_CHANNEL;
         $newChannel = '777888999000111222';
         $guild->update([
-            'digest_thread_date' => now()->toDateString(),
+            'digest_thread_date' => community_now()->toDateString(),
             'digest_thread_channel_id' => $oldChannel,
             'digest_thread_message_id' => '111222333444555666',
             'calendar_channel_id' => $newChannel,
@@ -796,7 +796,7 @@ class DiscordDigestPublisherTest extends TestCase
     {
         [$guild, $owner, $game] = $this->guildWithUpcomingGame();
         $guild->update([
-            'digest_thread_date' => now()->toDateString(),
+            'digest_thread_date' => community_now()->toDateString(),
             'digest_thread_channel_id' => self::CALENDAR_CHANNEL,
             'digest_thread_message_id' => self::MESSAGE_ID,
         ]);
