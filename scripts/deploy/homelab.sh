@@ -18,6 +18,34 @@
 # takes over; the worker's stop/drain never gates user traffic.
 #
 # ═══════════════════════════════════════════════════════════════════════
+# COMPOSE MANAGER PLUS (indirect stack) — COEXISTENCE CONTRACT
+# ═══════════════════════════════════════════════════════════════════════
+#
+# The stack is registered in Unraid's Compose Manager Plus as an INDIRECT
+# stack (stack folder /boot/config/plugins/compose.manager/projects/
+# roundup-games-laravel/, `indirect` → this checkout's docker-compose.yml).
+# The compose file pins `name: roundup-games-laravel` so the GUI and this
+# script address the SAME compose project.
+#
+#   GUI-SAFE at any time:    stack status, container table, logs (stack or
+#                            per-container), console, Check for Updates
+#                            (digest), View Last Cmd Log.
+#   GUI-SAFE as emergency:   per-container restart/stop (worker restart is
+#                            routine; restarting the LIVE app slot or edge
+#                            costs seconds of 503s — acceptable break-glass).
+#   GUI-NEVER (deploys):     stack-level Up / Restart / Update / Force-Update
+#                            — they recreate edge+app together (the 2026-11-06
+#                            outage class) and would use ${DEPLOY_TAG:-latest}
+#                            instead of the pinned sha. The profiles guard
+#                            makes an accidental click error out harmlessly
+#                            ("no service selected"); stack-level Stop/Down
+#                            are maintenance-window actions only.
+#
+# This script's flock and CMP's per-stack lock are independent — do not run
+# GUI stack actions while a deploy is in flight (deploy-logs/deploy-*.log is
+# being written; the stack row shows the deploy's container churn).
+#
+# ═══════════════════════════════════════════════════════════════════════
 # USAGE
 # ═══════════════════════════════════════════════════════════════════════
 #   git push homelab main                           PRIMARY PATH — the

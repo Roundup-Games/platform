@@ -22,12 +22,36 @@
 # auto-activates their profiles, so it is unaffected. `docker compose
 # ps/logs/exec` for read-only inspection still work.
 #
+# ── Compose Manager Plus (indirect stack) ────────────────────────────
+#
+# This file is registered in Unraid's Compose Manager Plus as an INDIRECT
+# stack pointing at /mnt/user/appdata/roundup-games-laravel/docker-compose.yml
+# (the deployment git tree — the same checkout the post-receive hook runs
+# scripts/deploy/homelab.sh from). The pinned `name:` below makes the
+# compose project identity deterministic for every invoker (deploy script,
+# CMP GUI, ad-hoc CLI) regardless of directory — CMP's stack row sees the
+# SAME containers the script manages.
+#
+# Division of labour (do not blur it):
+#   DEPLOYS stay git-push-driven (`git push homelab main` → post-receive →
+#   homelab.sh blue/green choreography — K012). CMP's stack-level Up /
+#   Restart / Update / Force-Update are NEVER deploy tools here: they
+#   recreate edge+app together (the outage class the guardrail exists for)
+#   and would interpolate ${DEPLOY_TAG:-latest} instead of the pinned
+#   sha tag. The `profiles: ["live"]` guardrail also covers CMP: its action
+#   dialogs show a profile selector, and "default services only" selects
+#   nothing — an accidental stack-level action errors out harmlessly.
+#   Per-container restart/stop and all read-only surfaces (logs, console,
+#   status, digest update checks) are safe and encouraged.
+#
 # Worker note: `depends_on` is deliberately ABSENT from the worker. With
 # blue/green slots there is no static "the app" service to depend on, and a
 # depends_on would resurrect a retired blue slot during a green deploy.
 # Start ordering is owned by the deploy script (worker rolls after the
 # candidate is healthy, i.e. after migrations); Horizon additionally
 # self-heals transient boot races by retrying.
+
+name: roundup-games-laravel
 
 services:
   app:
