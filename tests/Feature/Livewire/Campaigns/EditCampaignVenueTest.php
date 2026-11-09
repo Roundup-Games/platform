@@ -99,77 +99,8 @@ describe('Campaign location notification uses shared i18n key', function () {
     });
 });
 
-// ── Finding 3: Location data pre-loaded from controller ──
-
-describe('Campaign location data pre-loaded in edit modal', function () {
-    it('pre-loads location name/city/address when opening edit modal', function () {
-        $location = Location::factory()->create([
-            'name' => 'RPG Store',
-            'city' => 'Munich',
-            'address' => 'Gaming Lane 3',
-        ]);
-        $campaign = createOwnedCampaignWithLocation($this->owner, $this->gameSystem, $location);
-
-        Livewire::actingAs($this->owner)->test(CampaignsPage::class)
-            ->call('editCampaign', $campaign->id)
-            ->assertSet('edit_location_name', 'RPG Store')
-            ->assertSet('edit_location_city', 'Munich')
-            ->assertSet('edit_location_address', 'Gaming Lane 3');
-    });
-
-    it('handles null location gracefully', function () {
-        $campaign = createOwnedCampaignWithLocation($this->owner, $this->gameSystem);
-
-        Livewire::actingAs($this->owner)->test(CampaignsPage::class)
-            ->call('editCampaign', $campaign->id)
-            ->assertSet('edit_location_name', '')
-            ->assertSet('edit_location_city', '')
-            ->assertSet('edit_location_address', '');
-    });
-});
-
-// ── Trait integration for campaigns ──
-
-describe('EditsVenueLocation trait integration (campaigns)', function () {
-    it('selects a verified venue via editSelectVenue', function () {
-        $campaign = createOwnedCampaignWithLocation($this->owner, $this->gameSystem);
-
-        $venue = Location::factory()->create([
-            'name' => 'Campaign Venue',
-            'city' => 'Cologne',
-            'is_verified' => true,
-            'venue_type' => VenueType::Flgs,
-        ]);
-
-        Livewire::actingAs($this->owner)->test(CampaignsPage::class)
-            ->call('editCampaign', $campaign->id)
-            ->call('editSelectVenue', $venue->id)
-            ->assertSet('edit_location_id', $venue->id)
-            ->assertSet('edit_location_name', 'Campaign Venue')
-            ->assertSet('edit_location_city', 'Cologne');
-    });
-
-    it('creates a new Location via editSaveAddress', function () {
-        $campaign = createOwnedCampaignWithLocation($this->owner, $this->gameSystem);
-
-        Livewire::actingAs($this->owner)->test(CampaignsPage::class)
-            ->call('editCampaign', $campaign->id)
-            ->set('edit_address_mode', 'address')
-            ->set('edit_address_city', 'Frankfurt')
-            ->set('edit_address_street', 'Boardgame Ave 7')
-            ->call('editSaveAddress')
-            ->assertSet('edit_location_name', 'Boardgame Ave 7, Frankfurt')
-            ->assertSet('edit_location_city', 'Frankfurt');
-    });
-
-    it('clears location state via editClearLocation', function () {
-        $location = Location::factory()->create(['name' => 'Venue', 'city' => 'Berlin']);
-        $campaign = createOwnedCampaignWithLocation($this->owner, $this->gameSystem, $location);
-
-        Livewire::actingAs($this->owner)->test(CampaignsPage::class)
-            ->call('editCampaign', $campaign->id)
-            ->call('editClearLocation')
-            ->assertSet('edit_location_id', null)
-            ->assertSet('edit_location_name', '');
-    });
-});
+// Validation note (M077/S01): the 'pre-loaded edit modal' and 'EditsVenueLocation
+// trait integration' describes (5 tests) were cut — EditGameVenueTest covers the
+// shared trait more deeply through the game surface (3 field_location variants,
+// non-verified rejection, search-context, stdClass guard). The campaign-side
+// notification i18n tests above are the unique campaign-surface contracts.

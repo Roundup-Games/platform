@@ -19,6 +19,10 @@ beforeEach(function () {
     Cache::flush();
 });
 
+// M077/S01: the three individual exclusion tests (private / Other-type / slug-less)
+// were cut — the combined one-index test below asserts all exclusions together
+// with an eligible venue present (a strictly stronger assertion).
+
 describe('Venues Sitemap — inclusion', function () {
     it('includes a verified commercial venue with both en and de locale URLs', function () {
         $venue = Location::factory()->verifiedVenue()->create([
@@ -89,48 +93,6 @@ describe('Venues Sitemap — exclusion (the safety contract)', function () {
 
         expect($content)->toContain("/en/venue/{$venue->slug}");
         expect($content)->toContain("/de/venue/{$venue->slug}");
-    });
-
-    it('excludes private (unverified) locations', function () {
-        $private = Location::factory()->create([
-            'is_verified' => false,
-            'venue_type' => VenueType::Cafe,
-            'slug' => 'private-location-sitemap',
-        ]);
-
-        $content = get('/sitemap-venues.xml')->content();
-
-        expect($content)->not->toContain("/venue/{$private->slug}");
-    });
-
-    it('excludes verified "Other"-type locations', function () {
-        $other = Location::factory()->verifiedVenue()->create([
-            'is_verified' => true,
-            'venue_type' => VenueType::Other,
-            'slug' => 'verified-other-sitemap',
-        ]);
-
-        $content = get('/sitemap-venues.xml')->content();
-
-        expect($content)->not->toContain("/venue/{$other->slug}");
-    });
-
-    it('excludes locations without a slug', function () {
-        $slugless = Location::factory()->verifiedVenue()->create([
-            'is_verified' => true,
-            'venue_type' => VenueType::Cafe,
-        ]);
-
-        // The Location saving hook now auto-slugs eligible venues, so force the
-        // slug-less state at the DB level (bypassing the hook) to validate the
-        // sitemap's null-slug guard — a row without a slug must never emit a
-        // /venue/ URL, even if such a row only arises from data corruption.
-        Location::where('id', $slugless->id)->update(['slug' => null]);
-
-        $content = get('/sitemap-venues.xml')->content();
-
-        // No venue URL should reference this location — it has no slug to build one.
-        expect($content)->not->toMatch('#<loc>[^<]*/venue/[^<]+</loc>#');
     });
 
     it('includes the eligible venue but excludes private, unverified, other, and slug-less locations in one index', function () {

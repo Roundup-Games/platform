@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Models;
 
-use App\Models\Game;
 use App\Models\GameBulletin;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
@@ -11,29 +10,11 @@ class GameBulletinModelTest extends TestCase
 {
     use DatabaseTransactions;
 
-    // ── Model Basics ──────────────────────────────────────────
-
-    public function test_can_create_bulletin_via_factory(): void
-    {
-        $game = Game::factory()->create();
-        $bulletin = GameBulletin::factory()->create(['game_id' => $game->id]);
-
-        $this->assertInstanceOf(GameBulletin::class, $bulletin);
-        $this->assertNotEmpty($bulletin->id);
-        $this->assertEquals($game->id, $bulletin->game_id);
-    }
-
-    public function test_auto_generates_uuid_on_creation(): void
-    {
-        $game = Game::factory()->create();
-        $bulletin = GameBulletin::create([
-            'game_id' => $game->id,
-            'user_id' => $game->owner_id,
-            'content' => 'Test bulletin',
-        ]);
-
-        $this->assertMatchesRegularExpression('/^[0-9a-f-]{36}$/', $bulletin->id);
-    }
+    // Validation note (M077/S01): factory-create + uuid primitives and the
+    // is_expired null/future accessor dups were cut — the notExpired scope trio
+    // plus GameBulletinBoardTest ('shows non-expired'/'excludes expired') cover
+    // the same comparisons end-to-end. The past-expiry accessor pin stays
+    // (asserted by OneShotEpilogueTest despite no app-code callers).
 
     // ── Scopes ────────────────────────────────────────────────
 
@@ -65,20 +46,6 @@ class GameBulletinModelTest extends TestCase
     }
 
     // ── Accessors ─────────────────────────────────────────────
-
-    public function test_is_expired_returns_false_when_no_expiry(): void
-    {
-        $bulletin = GameBulletin::factory()->create(['expires_at' => null]);
-
-        $this->assertFalse($bulletin->is_expired);
-    }
-
-    public function test_is_expired_returns_false_when_future_expiry(): void
-    {
-        $bulletin = GameBulletin::factory()->create(['expires_at' => now()->addHour()]);
-
-        $this->assertFalse($bulletin->is_expired);
-    }
 
     public function test_is_expired_returns_true_when_past_expiry(): void
     {

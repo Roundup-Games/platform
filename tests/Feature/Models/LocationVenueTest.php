@@ -84,16 +84,10 @@ class LocationVenueTest extends TestCase
         $this->assertNull($location->managedBy);
     }
 
+    // M077/S01: factory verifiedVenue-state primitive cut (Laravel framework behavior);
+    // geohash trigger regression + scope/isVenue/managedBy contracts retained.
+
     // ── Factory verifiedVenue state ────────────────────
-
-    public function test_factory_verified_venue_state_produces_valid_venue(): void
-    {
-        $venue = Location::factory()->verifiedVenue()->create(['place_id' => 'factory_venue']);
-
-        $this->assertTrue($venue->is_verified);
-        $this->assertInstanceOf(VenueType::class, $venue->venue_type);
-        $this->assertContains($venue->venue_type, VenueType::cases());
-    }
 
     // ── Regression: geohash_4 still auto-computes ──────
 

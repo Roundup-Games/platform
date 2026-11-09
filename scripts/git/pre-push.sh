@@ -56,9 +56,13 @@ fi
 # invocation (empty stdin) never skips: nothing was proven gated, so the
 # suite runs, preserving the pre-2026-11-08 behavior.
 origin_main_sha="$(git rev-parse origin/main 2>/dev/null || true)"
+# Capture the pushed refspecs once — the homelab skip guard and the M077
+# path gates (below) both consume them; stdin can only be read once.
+mapfile -t pushed_lines
 if [[ "$remote" == "homelab" && -n "$origin_main_sha" ]]; then
     pushed_shas=()
-    while read -r _local_ref local_sha _remote_ref _remote_sha; do
+    for line in "${pushed_lines[@]}"; do
+        read -r _local_ref local_sha _remote_ref _remote_sha <<< "$line"
         [[ -n "$local_sha" ]] && pushed_shas+=("$local_sha")
     done
 
@@ -80,8 +84,57 @@ if [[ "$remote" == "homelab" && -n "$origin_main_sha" ]]; then
     fi
 fi
 
+# M077/S04 path gates — mirror ci.yml exactly:
+#   ddl      database/migrations | database/schema changes → run the DDL tail
+#   deferred nightly-group app-side paths changed → run the nightly group
+# Both fail SAFE: an empty or unresolvable ref list gates ON (run the tests).
+paths_changed_in_push() {
+    # $1: pathspec args…; returns 0 (true) when any pushed range touches them
+    local patterns=("$@")
+    [[ "${#pushed_lines[@]}" -gt 0 ]] || return 0
+    local line local_sha remote_sha
+    for line in "${pushed_lines[@]}"; do
+        read -r _local_ref local_sha _remote_ref remote_sha <<< "$line"
+        [[ -n "$local_sha" && -n "$remote_sha" ]] || return 0
+        if [[ "$remote_sha" =~ ^0+$ ]]; then return 0; fi   # new branch — fail safe
+        if git diff --quiet "$remote_sha" "$local_sha" -- "${patterns[@]}" 2>/dev/null; then
+            :   # this ref touches nothing — keep checking other refs
+        else
+            return 0
+        fi
+    done
+    return 1
+}
+
+ddl_paths=(database/migrations database/schema)
+deferred_paths=(
+    app/Console/Dev
+    app/Services/BggSyncService.php
+    app/Services/GameSystemRequestService.php
+    app/Filament
+    resources/views/filament
+    tests/Feature/Console/DemoSeedCommandTest.php
+    tests/Feature/Console/DemoEnvironmentGuardTest.php
+    tests/Feature/Badges/DemoCohortProofTest.php
+    tests/Feature/Services/BggSyncTest.php
+    tests/Feature/Services/GameSystemRequestServiceBggSyncTest.php
+    tests/Feature/Services/BggSyncServiceTaxonomyTest.php
+    tests/Feature/Console/BggWeeklySyncTest.php
+    tests/Feature/Filament/AdminResourceSmokeTest.php
+    tests/Feature/Filament/SignupAttributionUatTest.php
+    tests/Feature/Filament/ScheduledTasksPageTest.php
+)
+
+run_ddl_tail=0
+paths_changed_in_push "${ddl_paths[@]}" && run_ddl_tail=1
+run_deferred=0
+paths_changed_in_push "${deferred_paths[@]}" && run_deferred=1
+
 printf "\n${CYN}🧪 Pre-push: full test suite (CI Tests-job mirror) on %s → %s${RST}\n" "$branch" "$remote"
-printf "    This takes a while — the same minutes CI would spend finding it for you.\n\n"
+printf "    This takes a while — the same minutes CI would spend finding it for you.\n"
+[[ "$run_ddl_tail" == 1 ]] || printf "    ⏭️ DDL serial tail skipped (no database/migrations|schema changes in this push).\n"
+[[ "$run_deferred" == 1 ]] && printf "    ➕ Deferred (nightly-group) tests triggered by path changes in this push.\n"
+printf "\n"
 
 if [[ ! -x vendor/bin/pest ]]; then
     printf "${RED}⛔ vendor/bin/pest not found — run composer install.${RST}\n\n"
@@ -108,9 +161,30 @@ suite_log="$(mktemp "${TMPDIR:-/tmp}/prepush-suite.XXXXXX")"
 # path below as a red parallel phase (its output is appended to the same
 # suite log). The stdin-detached redirect pattern is kept on BOTH
 # invocations: orphaned parallel workers must never touch git's pipes.
-if APP_DEBUG=true vendor/bin/pest --ci --parallel --compact --exclude-group=ddl-serial \
-    > "$suite_log" 2>&1 < /dev/null \
-    && vendor/bin/pest --ci --compact --group=ddl-serial >> "$suite_log" 2>&1 < /dev/null; then
+# Two-phase suite (M075) + nightly deferral (M077/S04): the parallel phase
+# excludes 'ddl-serial' AND the 'nightly' group (demo-env proofs, BGG
+# integration, Filament UAT walkthroughs — bound in tests/Pest.php). The
+# DDL tail runs only when this push changes database/migrations|schema
+# (fail-safe: unresolvable refs run it); the deferred nightly group runs
+# only when its app-side paths changed (same fail-safe). Both extra phases
+# append to the same suite log; any red phase blocks the push.
+suite_green=1
+if APP_DEBUG=true vendor/bin/pest --ci --parallel --compact --exclude-group=ddl-serial,nightly \
+    > "$suite_log" 2>&1 < /dev/null; then
+    :
+else
+    suite_green=0
+fi
+
+if [[ "$suite_green" == 1 && "$run_ddl_tail" == 1 ]]; then
+    vendor/bin/pest --ci --compact --group=ddl-serial >> "$suite_log" 2>&1 < /dev/null || suite_green=0
+fi
+
+if [[ "$suite_green" == 1 && "$run_deferred" == 1 ]]; then
+    vendor/bin/pest --ci --compact --group=nightly >> "$suite_log" 2>&1 < /dev/null || suite_green=0
+fi
+
+if [[ "$suite_green" == 1 ]]; then
     end=$(date +%s)
     grep -aE "Tests:|Duration" "$suite_log" | tail -2
     printf "\n${GRN}✅ Suite green (%d min) — pushing.${RST}\n\n" $(( (end - start) / 60 ))

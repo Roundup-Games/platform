@@ -247,6 +247,29 @@ jobs:
       - name: Generate application key
         run: php artisan key:generate
 
+      - name: Detect changed paths (M077)
+        # Path gates for the DDL serial tail and the deferred (nightly-group)
+        # tests. Fails SAFE: if the base ref cannot be resolved (new branch,
+        # force-push), both gates report 'changed' so the safety net runs.
+        id: paths
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="refs/remotes/origin/${{ github.event.pull_request.base.ref }}"
+            git fetch --no-tags --prune --depth=1000 origin "${{ github.event.pull_request.base.ref }}"
+          else
+            BASE="${{ github.event.before }}"
+            git fetch --no-tags --depth=1000 origin "$BASE" || true
+          fi
+          if ! git rev-parse --verify --quiet "$BASE"^{commit}; then
+            echo "ddl=changed" >> "$GITHUB_OUTPUT"
+            echo "deferred=changed" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          ddl=$(git diff --name-only "$BASE"..HEAD -- database/migrations database/schema | wc -l | tr -d ' ')
+          deferred=$(git diff --name-only "$BASE"..HEAD -- app/Console/Dev app/Services/BggSyncService.php app/Services/GameSystemRequestService.php app/Filament resources/views/filament tests/Feature/Console/DemoSeedCommandTest.php tests/Feature/Console/DemoEnvironmentGuardTest.php tests/Feature/Badges/DemoCohortProofTest.php tests/Feature/Services/BggSyncTest.php tests/Feature/Services/GameSystemRequestServiceBggSyncTest.php tests/Feature/Services/BggSyncServiceTaxonomyTest.php tests/Feature/Console/BggWeeklySyncTest.php tests/Feature/Filament/AdminResourceSmokeTest.php tests/Feature/Filament/SignupAttributionUatTest.php tests/Feature/Filament/ScheduledTasksPageTest.php | wc -l | tr -d ' ')
+          if [ "$ddl" -gt 0 ]; then echo "ddl=changed" >> "$GITHUB_OUTPUT"; else echo "ddl=unchanged" >> "$GITHUB_OUTPUT"; fi
+          if [ "$deferred" -gt 0 ]; then echo "deferred=changed" >> "$GITHUB_OUTPUT"; else echo "deferred=unchanged" >> "$GITHUB_OUTPUT"; fi
+
       - name: Run tests (parallel)
         # DB credentials are injected by tests/bootstrap.php (applyConnection →
         # test/test on the testcontainers instance); anything set here would be
@@ -256,11 +279,26 @@ jobs:
         # bound in tests/Pest.php) runs REAL DDL that deadlocks sibling
         # --parallel workers (SQLSTATE 40P01, seen 2026-11-01) — it is
         # excluded here and run by the serial-tail step below.
-        run: vendor/bin/pest --ci --parallel --exclude-group=ddl-serial
+        #
+        # M077/S04: the 'nightly' group (demo-env proofs, BGG integration,
+        # Filament UAT walkthroughs — bound in tests/Pest.php) is also
+        # excluded here; it runs path-triggered below and nightly via
+        # .github/workflows/nightly.yml.
+        run: vendor/bin/pest --ci --parallel --exclude-group=ddl-serial,nightly
 
       - name: Run tests (serial DDL tail)
         # tests/Feature/Migrations only — see the parallel step's note.
+        # M077/S04: gated on database/migrations|schema changes (fail-safe:
+        # runs when the base ref is unresolvable).
+        if: steps.paths.outputs.ddl == 'changed'
         run: vendor/bin/pest --ci --group=ddl-serial
+
+      - name: Run deferred tests (nightly group, path-triggered)
+        # The nightly-group deferrals run when their app-side paths change,
+        # so a broken demo seeder or Filament surface never waits for the
+        # nightly cron to surface.
+        if: steps.paths.outputs.deferred == 'changed'
+        run: vendor/bin/pest --ci --group=nightly
 
   smoke:
     name: Smoke (canon + raw strings)

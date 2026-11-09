@@ -6,55 +6,30 @@ use App\Models\Location;
 // ── generateSlug ────────────────────────────────────
 
 describe('Location::generateSlug', function () {
-    it('converts a simple name to a lowercase hyphenated slug', function () {
-        expect(Location::generateSlug('Dragon Lair'))->toBe('dragon-lair');
-    });
+    // M077/S01: thirteen slugify primitives consolidated into one boot-efficient
+    // case walk — same input→expected pairs, one transaction (custom umlaut
+    // expansion is app code worth pinning; the per-case boots were the waste).
+    it('slugifies names', function () {
+        $cases = [
+            'simple name' => ['Dragon Lair', 'dragon-lair'],
+            'multiple spaces' => ['The   Dragon   Lair', 'the-dragon-lair'],
+            'hyphens in name' => ['Café-Bar Berlin', 'cafe-bar-berlin'],
+            'lowercases the result' => ['UPPER CASE VENUE', 'upper-case-venue'],
+            'strips emojis' => ['Café Glück 🎲', 'cafe-glueck'],
+            // The check mark is non-ASCII and has no transliteration → stripped.
+            'strips specials, keeps alphanumerics' => ['Café Glück ✓', 'cafe-glueck'],
+            // ü expands to ue (German transliteration), consistent with UserSlugTest.
+            'umlaut multi-char expansion' => ['Müller Spielecafé', 'mueller-spielecafe'],
+            'collapses consecutive hyphens' => ['Café -- Luck', 'cafe-luck'],
+            'strips leading and trailing hyphens' => ['  Café Luck  ', 'cafe-luck'],
+            'only non-transliterable chars' => ['@#$%✓', ''],
+            'emoji-only name' => ['🎲🎯🧩', ''],
+            'single word name' => ['Meeple', 'meeple'],
+        ];
 
-    it('handles multiple spaces', function () {
-        expect(Location::generateSlug('The   Dragon   Lair'))->toBe('the-dragon-lair');
-    });
-
-    it('handles hyphens in name', function () {
-        expect(Location::generateSlug('Café-Bar Berlin'))->toBe('cafe-bar-berlin');
-    });
-
-    it('lowercases the result', function () {
-        expect(Location::generateSlug('UPPER CASE VENUE'))->toBe('upper-case-venue');
-    });
-
-    it('strips emojis', function () {
-        expect(Location::generateSlug('Café Glück 🎲'))->toBe('cafe-glueck');
-    });
-
-    it('strips special characters but keeps alphanumerics', function () {
-        // The check mark is non-ASCII and has no transliteration → stripped.
-        expect(Location::generateSlug('Café Glück ✓'))->toBe('cafe-glueck');
-    });
-
-    it('transliterates German umlauts with multi-char expansions matching User::generateSlug', function () {
-        // ü expands to ue (German transliteration), consistent with
-        // UserSlugTest's 'François Müller' → 'francois-mueller' assertion.
-        expect(Location::generateSlug('Müller Spielecafé'))->toBe('mueller-spielecafe');
-    });
-
-    it('collapses consecutive hyphens', function () {
-        expect(Location::generateSlug('Café -- Luck'))->toBe('cafe-luck');
-    });
-
-    it('strips leading and trailing hyphens', function () {
-        expect(Location::generateSlug('  Café Luck  '))->toBe('cafe-luck');
-    });
-
-    it('returns an empty string for names with only non-transliterable chars', function () {
-        expect(Location::generateSlug('@#$%✓'))->toBe('');
-    });
-
-    it('returns an empty string for emoji-only names', function () {
-        expect(Location::generateSlug('🎲🎯🧩'))->toBe('');
-    });
-
-    it('handles a single word name', function () {
-        expect(Location::generateSlug('Meeple'))->toBe('meeple');
+        foreach ($cases as $label => [$name, $expected]) {
+            expect(Location::generateSlug($name))->toBe($expected);
+        }
     });
 });
 

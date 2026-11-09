@@ -143,6 +143,29 @@ $featureExtension->in('Feature');
 */
 uses()->group('ddl-serial')->in('Feature/Migrations');
 
+/*
+| Heavy, rarely-relevant clusters deferred OFF the default CI/pre-push path
+| (M077/S04 — validated in S01/T03 with runtime + change-frequency evidence):
+| demo-environment proofs, BGG integration, and Filament UAT walkthroughs.
+| They run (a) every night via .github/workflows/nightly.yml and (b) in CI
+| whenever their app-side paths change (path-triggered deferred-tests step).
+| Mechanism identical to ddl-serial above: UsesCall::in() file targets,
+| globs relative to tests/. Keep this list and the ci.yml/pre-push.sh
+| path-trigger sets in sync.
+*/
+uses()->group('nightly')->in(
+    'Feature/Console/DemoSeedCommandTest.php',
+    'Feature/Console/DemoEnvironmentGuardTest.php',
+    'Feature/Badges/DemoCohortProofTest.php',
+    'Feature/Services/BggSyncTest.php',
+    'Feature/Services/GameSystemRequestServiceBggSyncTest.php',
+    'Feature/Services/BggSyncServiceTaxonomyTest.php',
+    'Feature/Console/BggWeeklySyncTest.php',
+    'Feature/Filament/AdminResourceSmokeTest.php',
+    'Feature/Filament/SignupAttributionUatTest.php',
+    'Feature/Filament/ScheduledTasksPageTest.php',
+);
+
 foreach ($unitDirsNeedingTransactions as $dir) {
     pest()->extend(TestCase::class)
         ->use(DatabaseTransactions::class)

@@ -9,6 +9,7 @@ use App\Notifications\BaseNotification;
 use App\Notifications\Channels\DiscordChannel;
 use App\Services\Discord\DiscordWebhookClient;
 use App\Services\Discord\DiscordWebhookPayload;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Client\Request;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Http;
@@ -28,6 +29,8 @@ use Tests\TestCase;
  */
 class DiscordChannelTest extends TestCase
 {
+    use DatabaseTransactions;
+
     private const DM_CHANNEL = '888777666555444333';
 
     private const MESSAGE_ID = '999888777666555444';

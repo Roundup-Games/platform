@@ -1,0 +1,78 @@
+name: Nightly
+
+# M077/S04: full-suite safety net for the deferred test clusters.
+#
+# The default CI path (ci.yml) excludes the 'nightly' group (demo-env proofs,
+# BGG integration, Filament UAT walkthroughs) and gates the DDL serial tail on
+# database changes. Those tests still matter: this workflow runs the ENTIRE
+# suite nightly so a deferred surface cannot rot silently for more than a day.
+# Path-triggered runs in ci.yml cover the same surfaces when their app-side
+# code changes, so breakage is usually caught at PR time anyway.
+
+on:
+  schedule:
+    # 03:15 UTC — off-peak for EU; avoids the top-of-hour cron congestion.
+    - cron: '15 3 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+jobs:
+  full-suite:
+    name: Full suite (incl. deferred clusters)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          tools: composer:v2
+          extensions: pdo_pgsql
+          ini-values: >-
+            opcache.enable_cli=1,
+            opcache.jit=tracing,
+            opcache.jit_buffer_size=64M,
+            zend.assertions=-1
+
+      - name: Install PHP dependencies
+        uses: ramsey/composer-install@v3
+        with:
+          dependency-versions: locked
+          composer-options: --classmap-authoritative
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        # Vite manifest required by any view-rendering test (same rationale
+        # as the ci.yml test job).
+        run: npm run build
+
+      - name: Copy environment file
+        run: cp .env.example .env
+
+      - name: Generate application key
+        run: php artisan key:generate
+
+      - name: Run tests (parallel, nightly group included)
+        # Identical shape to ci.yml's default path but WITHOUT the nightly
+        # exclusion: the deferred clusters run here on purpose.
+        run: vendor/bin/pest --ci --parallel --exclude-group=ddl-serial
+
+      - name: Run tests (serial DDL tail)
+        run: vendor/bin/pest --ci --group=ddl-serial

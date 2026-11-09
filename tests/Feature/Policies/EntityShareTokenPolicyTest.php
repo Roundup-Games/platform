@@ -7,6 +7,14 @@ use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 
+/*
+ * M077/S01 consolidation: 11 dataset templates × 2 entity types (22 cases,
+ * each with its own boot) → 3 flow tests that loop the entity type in-test.
+ * Every original template is preserved verbatim as a labeled step; per-case
+ * entity creation is unchanged. The stranger-grant case runs last in the
+ * grants flow because actingAs() persists within a test.
+ */
+
 beforeEach(function () {
     seedPermissions();
     seedRoles();
@@ -33,172 +41,131 @@ function createShareableEntity(string $type, array $overrides = []): array
     return ['entity' => Campaign::factory()->create([...$base, ...$overrides]), 'label' => 'campaign'];
 }
 
-// ═══════════════════════════════════════════════════════════
-// PROTECTED ENTITY + VALID SHARE TOKEN
-// ═══════════════════════════════════════════════════════════
+describe('Share token grants (flow)', function () {
+    it('a valid share token grants access across entity types, visibilities, and lifecycles', function () {
+        foreach (['game', 'campaign'] as $type) {
+            // grants guest access with valid share token (protected)
+            $token = (string) Str::uuid();
+            ['entity' => $entity] = createShareableEntity($type, [
+                'visibility' => 'protected',
+                'share_token' => $token,
+                'share_token_expires_at' => now()->addDays(7),
+            ]);
+            request()->merge(['share' => $token]);
+            expect(Gate::allows('view', $entity))->toBeTrue();
 
-describe('Protected entity with share token', function () {
-    it('grants guest access with valid share token', function ($type) {
-        $token = (string) Str::uuid();
-        ['entity' => $entity] = createShareableEntity($type, [
-            'visibility' => 'protected',
-            'share_token' => $token,
-            'share_token_expires_at' => now()->addDays(7),
-        ]);
+            // grants guest access with valid share token (private)
+            $privateToken = (string) Str::uuid();
+            ['entity' => $privateEntity] = createShareableEntity($type, [
+                'visibility' => 'private',
+                'share_token' => $privateToken,
+                'share_token_expires_at' => now()->addDays(7),
+            ]);
+            request()->merge(['share' => $privateToken]);
+            expect(Gate::allows('view', $privateEntity))->toBeTrue();
 
-        request()->merge(['share' => $token]);
+            // grants access when token has no expiry date (never expires)
+            $noExpiryToken = (string) Str::uuid();
+            ['entity' => $noExpiryEntity] = createShareableEntity($type, [
+                'visibility' => 'protected',
+                'share_token' => $noExpiryToken,
+                'share_token_expires_at' => null,
+            ]);
+            request()->merge(['share' => $noExpiryToken]);
+            expect(Gate::allows('view', $noExpiryEntity))->toBeTrue();
 
-        expect(Gate::allows('view', $entity))->toBeTrue();
-    })->with(['game', 'campaign']);
+            // grants access via share token for active entity
+            $activeToken = (string) Str::uuid();
+            ['entity' => $activeEntity] = createShareableEntity($type, [
+                'visibility' => 'private',
+                'share_token' => $activeToken,
+                'share_token_expires_at' => now()->addDays(7),
+                'status' => $type === 'game' ? 'scheduled' : 'active',
+            ]);
+            request()->merge(['share' => $activeToken]);
+            expect(Gate::allows('view', $activeEntity))->toBeTrue();
 
-    it('grants stranger access with valid share token', function ($type) {
-        $token = (string) Str::uuid();
-        ['entity' => $entity] = createShareableEntity($type, [
-            'visibility' => 'protected',
-            'share_token' => $token,
-            'share_token_expires_at' => now()->addDays(7),
-        ]);
-        $stranger = User::factory()->create();
-
-        $this->actingAs($stranger);
-        request()->merge(['share' => $token]);
-
-        expect(Gate::allows('view', $entity))->toBeTrue();
-    })->with(['game', 'campaign']);
-
-    it('denies access with wrong token', function ($type) {
-        $token = (string) Str::uuid();
-        ['entity' => $entity] = createShareableEntity($type, [
-            'visibility' => 'protected',
-            'share_token' => $token,
-            'share_token_expires_at' => now()->addDays(7),
-        ]);
-
-        request()->merge(['share' => (string) Str::uuid()]);
-
-        expect(Gate::allows('view', $entity))->toBeFalse();
-    })->with(['game', 'campaign']);
-
-    it('denies access with expired token', function ($type) {
-        $token = (string) Str::uuid();
-        ['entity' => $entity] = createShareableEntity($type, [
-            'visibility' => 'protected',
-            'share_token' => $token,
-            'share_token_expires_at' => now()->subDay(),
-        ]);
-
-        request()->merge(['share' => $token]);
-
-        expect(Gate::allows('view', $entity))->toBeFalse();
-    })->with(['game', 'campaign']);
-
-    it('denies access when no token provided', function ($type) {
-        $token = (string) Str::uuid();
-        ['entity' => $entity] = createShareableEntity($type, [
-            'visibility' => 'protected',
-            'share_token' => $token,
-            'share_token_expires_at' => now()->addDays(7),
-        ]);
-
-        // No share param in request
-        expect(Gate::allows('view', $entity))->toBeFalse();
-    })->with(['game', 'campaign']);
-
-    it('denies access when entity has no share_token set', function ($type) {
-        ['entity' => $entity] = createShareableEntity($type, [
-            'visibility' => 'protected',
-            'share_token' => null,
-            'share_token_expires_at' => null,
-        ]);
-
-        request()->merge(['share' => (string) Str::uuid()]);
-
-        expect(Gate::allows('view', $entity))->toBeFalse();
-    })->with(['game', 'campaign']);
+            // grants stranger access with valid share token (actingAs persists — last)
+            $strangerToken = (string) Str::uuid();
+            ['entity' => $strangerEntity] = createShareableEntity($type, [
+                'visibility' => 'protected',
+                'share_token' => $strangerToken,
+                'share_token_expires_at' => now()->addDays(7),
+            ]);
+            $this->actingAs(User::factory()->create());
+            request()->merge(['share' => $strangerToken]);
+            expect(Gate::allows('view', $strangerEntity))->toBeTrue();
+        }
+    });
 });
 
-// ═══════════════════════════════════════════════════════════
-// PRIVATE ENTITY + VALID SHARE TOKEN
-// ═══════════════════════════════════════════════════════════
+describe('Share token denials (flow)', function () {
+    it('wrong, expired, absent, and missing-entity tokens deny access across entity types', function () {
+        foreach (['game', 'campaign'] as $type) {
+            // denies access with wrong token
+            ['entity' => $wrongTokenEntity] = createShareableEntity($type, [
+                'visibility' => 'protected',
+                'share_token' => (string) Str::uuid(),
+                'share_token_expires_at' => now()->addDays(7),
+            ]);
+            request()->merge(['share' => (string) Str::uuid()]);
+            expect(Gate::allows('view', $wrongTokenEntity))->toBeFalse();
 
-describe('Private entity with share token', function () {
-    it('grants guest access with valid share token', function ($type) {
-        $token = (string) Str::uuid();
-        ['entity' => $entity] = createShareableEntity($type, [
-            'visibility' => 'private',
-            'share_token' => $token,
-            'share_token_expires_at' => now()->addDays(7),
-        ]);
+            // denies access with expired token
+            $expiredToken = (string) Str::uuid();
+            ['entity' => $expiredEntity] = createShareableEntity($type, [
+                'visibility' => 'protected',
+                'share_token' => $expiredToken,
+                'share_token_expires_at' => now()->subDay(),
+            ]);
+            request()->merge(['share' => $expiredToken]);
+            expect(Gate::allows('view', $expiredEntity))->toBeFalse();
 
-        request()->merge(['share' => $token]);
+            // denies access when no token provided
+            ['entity' => $noTokenEntity] = createShareableEntity($type, [
+                'visibility' => 'protected',
+                'share_token' => (string) Str::uuid(),
+                'share_token_expires_at' => now()->addDays(7),
+            ]);
+            request()->merge(['share' => null]); // cleared: no share param in request
+            expect(Gate::allows('view', $noTokenEntity))->toBeFalse();
 
-        expect(Gate::allows('view', $entity))->toBeTrue();
-    })->with(['game', 'campaign']);
+            // denies access when entity has no share_token set
+            ['entity' => $tokenlessEntity] = createShareableEntity($type, [
+                'visibility' => 'protected',
+                'share_token' => null,
+                'share_token_expires_at' => null,
+            ]);
+            request()->merge(['share' => (string) Str::uuid()]);
+            expect(Gate::allows('view', $tokenlessEntity))->toBeFalse();
+        }
+    });
 });
 
-// ═══════════════════════════════════════════════════════════
-// TOKEN WITHOUT EXPIRY (never expires)
-// ═══════════════════════════════════════════════════════════
+describe('Share token status guard (flow)', function () {
+    it('terminal statuses deny the share-token bypass across entity types', function () {
+        foreach (['game', 'campaign'] as $type) {
+            // denies access via share token for completed entity
+            $completedToken = (string) Str::uuid();
+            ['entity' => $completedEntity] = createShareableEntity($type, [
+                'visibility' => 'private',
+                'share_token' => $completedToken,
+                'share_token_expires_at' => now()->addDays(7),
+                'status' => 'completed',
+            ]);
+            request()->merge(['share' => $completedToken]);
+            expect(Gate::allows('view', $completedEntity))->toBeFalse();
 
-describe('Share token without expiry', function () {
-    it('grants access when token has no expiry date', function ($type) {
-        $token = (string) Str::uuid();
-        ['entity' => $entity] = createShareableEntity($type, [
-            'visibility' => 'protected',
-            'share_token' => $token,
-            'share_token_expires_at' => null,
-        ]);
-
-        request()->merge(['share' => $token]);
-
-        expect(Gate::allows('view', $entity))->toBeTrue();
-    })->with(['game', 'campaign']);
-});
-
-// ═══════════════════════════════════════════════════════════
-// STATUS CHECK — terminal statuses deny share token bypass
-// ═══════════════════════════════════════════════════════════
-
-describe('Share token status guard', function () {
-    it('denies access via share token for completed entity', function ($type) {
-        $token = (string) Str::uuid();
-        ['entity' => $entity] = createShareableEntity($type, [
-            'visibility' => 'private',
-            'share_token' => $token,
-            'share_token_expires_at' => now()->addDays(7),
-            'status' => 'completed',
-        ]);
-
-        request()->merge(['share' => $token]);
-
-        expect(Gate::allows('view', $entity))->toBeFalse();
-    })->with(['game', 'campaign']);
-
-    it('denies access via share token for canceled entity', function ($type) {
-        $token = (string) Str::uuid();
-        ['entity' => $entity] = createShareableEntity($type, [
-            'visibility' => 'private',
-            'share_token' => $token,
-            'share_token_expires_at' => now()->addDays(7),
-            'status' => $type === 'game' ? 'canceled' : 'cancelled',
-        ]);
-
-        request()->merge(['share' => $token]);
-
-        expect(Gate::allows('view', $entity))->toBeFalse();
-    })->with(['game', 'campaign']);
-
-    it('grants access via share token for active entity', function ($type) {
-        $token = (string) Str::uuid();
-        ['entity' => $entity] = createShareableEntity($type, [
-            'visibility' => 'private',
-            'share_token' => $token,
-            'share_token_expires_at' => now()->addDays(7),
-            'status' => $type === 'game' ? 'scheduled' : 'active',
-        ]);
-
-        request()->merge(['share' => $token]);
-
-        expect(Gate::allows('view', $entity))->toBeTrue();
-    })->with(['game', 'campaign']);
+            // denies access via share token for canceled entity
+            $canceledToken = (string) Str::uuid();
+            ['entity' => $canceledEntity] = createShareableEntity($type, [
+                'visibility' => 'private',
+                'share_token' => $canceledToken,
+                'share_token_expires_at' => now()->addDays(7),
+                'status' => $type === 'game' ? 'canceled' : 'cancelled',
+            ]);
+            request()->merge(['share' => $canceledToken]);
+            expect(Gate::allows('view', $canceledEntity))->toBeFalse();
+        }
+    });
 });

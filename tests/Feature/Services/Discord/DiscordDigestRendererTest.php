@@ -10,6 +10,7 @@ use App\Services\Discord\DiscordDigestRenderer;
 use App\Services\Discord\DiscordWebhookPayload;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -28,6 +29,8 @@ use Tests\TestCase;
  */
 class DiscordDigestRendererTest extends TestCase
 {
+    use DatabaseTransactions;
+
     private DiscordDigestRenderer $renderer;
 
     protected function setUp(): void

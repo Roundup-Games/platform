@@ -11,6 +11,7 @@ use App\Services\Discord\DiscordCardContext;
 use App\Services\Discord\DiscordCardRenderer;
 use App\Services\Discord\DiscordRosterMember;
 use App\Services\Discord\DiscordWebhookPayload;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -29,6 +30,8 @@ use Tests\TestCase;
  */
 class DiscordCardRendererTest extends TestCase
 {
+    use DatabaseTransactions;
+
     private const GAME_ID = '01234567-89ab-cdef-0123-456789abcdef';
 
     private DiscordCardRenderer $renderer;

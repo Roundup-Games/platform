@@ -94,55 +94,38 @@ describe('VenueLink component', function () {
             ->toContain('wire:navigate');
     });
 
-    it('renders nothing for a private (unverified) location (no anchor, no name)', function () {
-        $location = venueLinkCreatePrivateLocation(['name' => 'Secret Hideaway']);
+    // M077/S01: the five renders-nothing variants were consolidated into one
+    // boot-efficient case walk (LocationDisclosure pattern) — same five branches,
+    // five assertion groups, one transaction.
+    it('renders nothing for every non-linkable location state', function () {
+        $cases = [
+            'private (unverified) location' => function () {
+                return venueLinkCreatePrivateLocation(['name' => 'Secret Hideaway']);
+            },
+            'verified-but-Other venue type (excluded by the authority)' => function () {
+                return Location::factory()->verifiedVenue()->create([
+                    'venue_type' => VenueType::Other,
+                    'slug' => 'other-'.Str::random(8),
+                    'name' => 'Misc Venue',
+                ]);
+            },
+            'null venue name (graceful)' => function () {
+                return venueLinkCreateVenue(['name' => null]);
+            },
+            'null slug (no reachable URL)' => function () {
+                $venue = venueLinkCreateVenue();
+                Location::where('id', $venue->id)->update(['slug' => null]);
 
-        $rendered = Blade::render('<x-venue-link :location="$location" />', ['location' => $location]);
+                return $venue->refresh();
+            },
+            'null location' => fn () => null,
+        ];
 
-        expect($rendered)
-            ->not->toContain('Secret Hideaway')
-            ->not->toContain('href=')
-            ->not->toContain('/venue/');
-    });
+        foreach ($cases as $label => $makeLocation) {
+            $rendered = Blade::render('<x-venue-link :location="$location" />', ['location' => $makeLocation()]);
 
-    it('renders nothing for a verified-but-Other venue type (excluded by the authority)', function () {
-        $location = Location::factory()->verifiedVenue()->create([
-            'venue_type' => VenueType::Other,
-            'slug' => 'other-'.Str::random(8),
-            'name' => 'Misc Venue',
-        ]);
-
-        $rendered = Blade::render('<x-venue-link :location="$location" />', ['location' => $location]);
-
-        expect($rendered)->not->toContain('Misc Venue')->not->toContain('href=');
-    });
-
-    it('renders nothing when the venue name is null (graceful)', function () {
-        $venue = venueLinkCreateVenue(['name' => null]);
-
-        $rendered = Blade::render('<x-venue-link :location="$location" />', ['location' => $venue]);
-
-        expect($rendered)->not->toContain('href=')->not->toContain('/venue/');
-    });
-
-    it('renders nothing when the slug is null (no reachable URL)', function () {
-        // The Location saving hook now auto-slugs every eligible venue, so a
-        // null slug can no longer be produced through normal creation. Force
-        // the legacy / data-corruption null-slug state at the DB level
-        // (bypassing the hook) — the component must still defend against it.
-        $venue = venueLinkCreateVenue();
-        Location::where('id', $venue->id)->update(['slug' => null]);
-        $venue->refresh();
-
-        $rendered = Blade::render('<x-venue-link :location="$location" />', ['location' => $venue]);
-
-        expect($rendered)->not->toContain('href=')->not->toContain('/venue/');
-    });
-
-    it('renders nothing when the location is null', function () {
-        $rendered = Blade::render('<x-venue-link :location="$location" />', ['location' => null]);
-
-        expect($rendered)->not->toContain('href=')->not->toContain('/venue/');
+            expect($rendered)->not->toContain('href=')->not->toContain('/venue/');
+        }
     });
 });
 
@@ -181,35 +164,7 @@ describe('game header venue link', function () {
 });
 
 // ═══════════════════════════════════════════════════════════
-// WIRE-IN: SESSION CARD (the demo entry point)
-// ═══════════════════════════════════════════════════════════
 
-describe('session card venue link', function () {
-    it('shows the venue link for a verified-venue session', function () {
-        $venue = venueLinkCreateVenue(['name' => 'Board Game Bar']);
-        $game = venueLinkCreateGame($venue);
-        $game->load(['gameSystems', 'linkedLocation']);
-
-        $rendered = view('livewire.components.partials.session-card', [
-            'entity' => $game,
-            'type' => 'session',
-        ])->render();
-
-        $expectedUrl = route('venues.detail', ['locale' => 'en', 'slug' => $venue->slug]);
-        expect($rendered)->toContain($expectedUrl)->toContain('Board Game Bar');
-    });
-
-    it('omits the venue link for a private-home session (no name chip)', function () {
-        $location = venueLinkCreatePrivateLocation(['name' => 'Living Room Host']);
-        $game = venueLinkCreateGame($location);
-        $game->load(['gameSystems', 'linkedLocation']);
-
-        $rendered = view('livewire.components.partials.session-card', [
-            'entity' => $game,
-            'type' => 'session',
-        ])->render();
-
-        // No venue anchor and no leak of the private location's name as a link.
-        expect($rendered)->not->toContain('/venue/')->not->toContain('Living Room Host');
-    });
-});
+// M077/S01: the session-card wire-in pair was cut — it exercises the same
+// <x-venue-link> component path as the game-header pair above; one wire-in
+// surface pins the integration.

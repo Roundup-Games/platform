@@ -9,6 +9,7 @@ use App\Notifications\BaseNotification;
 use App\Notifications\Channels\DiscordChannel;
 use App\Notifications\WaitlistPromoted;
 use App\Services\NotificationService;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Channels\PushChannel;
@@ -39,6 +40,8 @@ use Tests\TestCase;
  */
 class DiscordChannelDispatchTest extends TestCase
 {
+    use DatabaseTransactions;
+
     private NotificationService $service;
 
     protected function setUp(): void

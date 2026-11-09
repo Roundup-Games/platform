@@ -62,6 +62,10 @@ $dockerHost = (string) (getenv('DOCKER_HOST') ?: '');
 
 $isParallel = (bool) getenv('PARATEST');
 $token = (int) (getenv('TEST_TOKEN') ?: 0);
+
+// M077/S06: opt-in per-worker database fan-out (prototype) — see the
+// fanOut* docblock above. Parallel only; off by default.
+$fanOut = $isParallel && getenv('TEST_PER_WORKER_DB') === '1';
 $isPrimary = ! $isParallel || $token === 1;
 
 // Suppress Laravel's per-worker database creation (TestDatabases trait).
@@ -115,13 +119,13 @@ function pruneOrphanedParallelContainers(string $dockerHost): void
 /**
  * Apply connection details to all PHP superglobals that Laravel reads.
  */
-function applyConnection(string $host, int $port): void
+function applyConnection(string $host, int $port, string $database = 'roundup_games_test'): void
 {
     $vars = [
         'DB_CONNECTION' => 'pgsql',
         'DB_HOST' => $host,
         'DB_PORT' => (string) $port,
-        'DB_DATABASE' => 'roundup_games_test',
+        'DB_DATABASE' => $database,
         'DB_USERNAME' => 'test',
         'DB_PASSWORD' => 'test',
         'APP_ENV' => 'testing',
@@ -163,6 +167,68 @@ function runMigrations(): void
     } else {
         echo "  Testcontainers: reference data seeded.\n";
     }
+}
+
+/*
+| M077/S06 — per-worker database fan-out (prototype, env-gated).
+|
+| TEST_PER_WORKER_DB=1 (parallel runs only): after the shared database is
+| migrated + reference-seeded, the primary stamps it into a TEMPLATE
+| database; every worker then clones a private database from that template
+| and points its connection at it. Workers stop contending for one shared
+| DB (the 2.2x per-test inflation under --parallel comes from that
+| contention), and per-worker committed rows can no longer leak across
+| workers. Schema + reference data come free via the template copy, so a
+| worker pays one CREATE DATABASE (~0.5s) instead of its own migrate+seed.
+|
+| Safety: the template is created BEFORE the primary publishes its cacheFile
+| (secondaries proceed only after the file exists), so no worker can race
+| template creation. Concurrent CREATE DATABASE ... TEMPLATE from multiple
+| workers is serialized by Postgres and needs zero template connections —
+| nobody ever connects to the template itself. Worker DBs die with the
+| container (pruned by the next run's primary). Off by default; the nightly
+| workflow and CI keep the shared-DB protocol unless explicitly enabled.
+*/
+function fanOutMaintenancePdo(string $host, int $port): PDO
+{
+    return new PDO(
+        "pgsql:host={$host};port={$port};dbname=postgres",
+        'test',
+        'test',
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 15],
+    );
+}
+
+function fanOutTemplateDatabase(string $host, int $port): void
+{
+    $pdo = fanOutMaintenancePdo($host, $port);
+    // Prior-run leftovers are near-impossible (the container is pruned each
+    // run) but a hard-killed run could leave one — drop it before stamping.
+    $pdo->exec('DROP DATABASE IF EXISTS roundup_games_tpl');
+    $pdo->exec('CREATE DATABASE roundup_games_tpl TEMPLATE roundup_games_test');
+    echo "  Testcontainers: fan-out template stamped.\n";
+}
+
+function fanOutWorkerDatabase(string $host, int $port, int $token): string
+{
+    $name = 'roundup_games_w'.$token;
+    $pdo = fanOutMaintenancePdo($host, $port);
+
+    // Belt and suspenders: the cacheFile (already awaited) is published only
+    // after the template exists, but poll anyway so a pathological ordering
+    // cannot crash the worker outright.
+    for ($i = 0; $i < 100; $i++) {
+        $exists = $pdo->query("SELECT 1 FROM pg_database WHERE datname = 'roundup_games_tpl'")->fetchColumn();
+        if ($exists === '1' || $exists === 1) {
+            break;
+        }
+        usleep(500_000);
+    }
+
+    $pdo->exec(sprintf('CREATE DATABASE %s TEMPLATE roundup_games_tpl', $name));
+    echo "  Testcontainers: per-worker database {$name} cloned (fan-out).\n";
+
+    return $name;
 }
 
 // ── Parallel: primary worker starts container, others wait ─────────────────
@@ -227,6 +293,14 @@ if ($isParallel) {
         applyConnection($host, $port);
         runMigrations();
 
+        // Fan-out (M077/S06): stamp the migrated+seeded shared DB into a
+        // template BEFORE publishing the cacheFile, so siblings can never
+        // race it. The migrate/seed subprocesses have exited — zero
+        // connections hold the shared DB, which TEMPLATE requires.
+        if ($fanOut) {
+            fanOutTemplateDatabase($host, $port);
+        }
+
         // Write connection details for sibling workers. The container id is
         // stored only for diagnostics — no worker stops the shared container
         // during its own shutdown (that would race siblings). Cleanup of this
@@ -236,6 +310,7 @@ if ($isParallel) {
             'host' => $host,
             'port' => $port,
             'id' => $started->getId(),
+            'fanout' => $fanOut,
         ]));
 
         // Also remove the cache file on a clean exit so a healthy run leaves no
@@ -252,6 +327,12 @@ if ($isParallel) {
         // run prunes it at startup via pruneOrphanedParallelContainers() above.
 
         echo "  Testcontainers: PostgreSQL ready at {$host}:{$port} (primary worker)\n";
+
+        // Fan-out (M077/S06): the primary clones its own private database too
+        // — it runs tests just like any sibling.
+        if ($fanOut) {
+            applyConnection($host, $port, fanOutWorkerDatabase($host, $port, max(1, $token)));
+        }
     } else {
         // Secondary worker: wait for the primary to publish FRESH connection
         // details. Mere file existence is NOT enough — a hard-killed prior
@@ -310,6 +391,16 @@ if ($isParallel) {
         }
 
         applyConnection((string) $details['host'], (int) $details['port']);
+
+        // Fan-out (M077/S06): clone a private database from the template the
+        // primary stamped before publishing these details.
+        if ($details['fanout'] ?? false) {
+            applyConnection(
+                (string) $details['host'],
+                (int) $details['port'],
+                fanOutWorkerDatabase((string) $details['host'], (int) $details['port'], max(1, $token)),
+            );
+        }
 
         // Secondary workers do NOT stop the shared container on exit — only
         // the primary created it and only the next run's prune removes it.

@@ -5,6 +5,17 @@ use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Tests\Traits\AssignsScopedRoles;
 
+/*
+ * M077/S01 consolidation: 22 tests → 8 flow tests. The before() global-admin
+ * bypass describe stays its own flow test; view split into guest + authenticated
+ * flows; create dataset inlined as two ordered steps (no-permission runs before
+ * the persistent givePermissionTo grant); update, viewAny, RoleSeeder split and
+ * delete each collapsed into one flow. The shared beforeEach world is unchanged;
+ * every original assertion is preserved verbatim, with the original test name
+ * carried as a comment per check. viewAny reorders the regular-user denial
+ * before the global role grant because assignRole persists within a test.
+ */
+
 uses(AssignsScopedRoles::class);
 
 beforeEach(function () {
@@ -42,8 +53,9 @@ beforeEach(function () {
 
 describe('Event Policy', function () {
     describe('before() global admin bypass', function () {
-        test('Platform Admin can do anything on events', function () {
+        test('Platform Admin global admin bypass flow', function () {
             $this->actingAs($this->admin);
+            // Platform Admin can do anything on events
             expect(Gate::allows('viewAny', Event::class))->toBeTrue();
             expect(Gate::allows('create', Event::class))->toBeTrue();
             expect(Gate::allows('update', $this->publicEvent))->toBeTrue();
@@ -52,88 +64,76 @@ describe('Event Policy', function () {
     });
 
     describe('view', function () {
-        test('guest can view public event', function () {
+        test('guest view flow (public allowed, private denied)', function () {
+            // guest can view public event
             expect(Gate::allows('view', $this->publicEvent))->toBeTrue();
-        });
-
-        test('guest cannot view private event', function () {
+            // guest cannot view private event
             expect(Gate::allows('view', $this->privateEvent))->toBeFalse();
         });
 
-        test('organizer can view their own private event', function () {
+        test('authenticated view flow (organizer + event admin)', function () {
+            // organizer can view their own private event
             $this->actingAs($this->organizer);
             expect(Gate::allows('view', $this->privateEvent))->toBeTrue();
-        });
-
-        test('event admin can view their scoped event', function () {
+            // event admin can view their scoped event
             $this->actingAs($this->eventAdmin);
             expect(Gate::allows('view', $this->publicEvent))->toBeTrue();
-        });
-
-        test('event admin cannot view unscoped private event', function () {
-            $this->actingAs($this->eventAdmin);
+            // event admin cannot view unscoped private event
             expect(Gate::allows('view', $this->privateEvent))->toBeFalse();
         });
     });
 
     describe('create', function () {
-        test('create permission gates event creation', function (bool $grantPermission, bool $expected) {
-            if ($grantPermission) {
-                setPermissionsTeamId(1);
-                $this->regularUser->givePermissionTo('create event');
-                $this->regularUser->unsetRelations();
-                setPermissionsTeamId(1);
-            }
-
+        test('create permission gates event creation (flow)', function () {
+            // user without permission cannot create event — runs first:
+            // givePermissionTo below persists within the test
             $this->actingAs($this->regularUser);
-            expect(Gate::allows('create', Event::class))->toBe($expected);
-        })->with([
-            'user with create event permission can create' => [true, true],
-            'user without permission cannot create event' => [false, false],
-        ]);
+            expect(Gate::allows('create', Event::class))->toBe(false);
+
+            // user with create event permission can create
+            setPermissionsTeamId(1);
+            $this->regularUser->givePermissionTo('create event');
+            $this->regularUser->unsetRelations();
+            setPermissionsTeamId(1);
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('create', Event::class))->toBe(true);
+        });
     });
 
     describe('update', function () {
-        test('organizer can update their own event', function () {
+        test('update permission flow (organizer, event admin, regular user)', function () {
+            // organizer can update their own event
             $this->actingAs($this->organizer);
             expect(Gate::allows('update', $this->publicEvent))->toBeTrue();
-        });
-
-        test('event admin can update their scoped event', function () {
+            // event admin can update their scoped event
             $this->actingAs($this->eventAdmin);
             expect(Gate::allows('update', $this->publicEvent))->toBeTrue();
-        });
-
-        test('event admin cannot update unscoped event', function () {
-            $this->actingAs($this->eventAdmin);
+            // event admin cannot update unscoped event
             expect(Gate::allows('update', $this->privateEvent))->toBeFalse();
-        });
-
-        test('regular user cannot update event', function () {
+            // regular user cannot update event
             $this->actingAs($this->regularUser);
             expect(Gate::allows('update', $this->publicEvent))->toBeFalse();
         });
     });
 
     describe('viewAny (global-context only — M063/S04/T03 any-scope leak fix)', function () {
-        test('globally-assigned Event Admin (curated organizer) can viewAny', function () {
+        test('viewAny global-context flow (scoped denial, clean-user denial, curated grant)', function () {
+            // event-scoped co-organizer cannot viewAny: no full listing for scoped holders
+            $this->actingAs($this->eventAdmin);
+            expect(Gate::allows('viewAny', Event::class))->toBeFalse();
+
+            // regular user cannot viewAny — runs before the global role grant
+            // below: assignRole persists within the test
+            $this->actingAs($this->regularUser);
+            expect(Gate::allows('viewAny', Event::class))->toBeFalse();
+
+            // globally-assigned Event Admin (curated organizer) can viewAny
             setPermissionsTeamId(null);
             $this->regularUser->assignRole('Event Admin');
             $this->regularUser->unsetRelations();
             setPermissionsTeamId(1);
-
             $this->actingAs($this->regularUser);
             expect(Gate::allows('viewAny', Event::class))->toBeTrue();
-        });
-
-        test('event-scoped co-organizer cannot viewAny: no full listing for scoped holders', function () {
-            $this->actingAs($this->eventAdmin);
-            expect(Gate::allows('viewAny', Event::class))->toBeFalse();
-        });
-
-        test('regular user cannot viewAny', function () {
-            $this->actingAs($this->regularUser);
-            expect(Gate::allows('viewAny', Event::class))->toBeFalse();
         });
     });
 
@@ -145,23 +145,17 @@ describe('Event Policy', function () {
             setPermissionsTeamId(1);
         });
 
-        test('globally-assigned Event Admin can create events', function () {
+        test('globally-assigned Event Admin boundary flow (create allowed, update/delete denied)', function () {
+            // globally-assigned Event Admin can create events
             $this->actingAs($this->regularUser);
             expect(Gate::allows('create', Event::class))->toBeTrue();
-        });
-
-        test('globally-assigned Event Admin cannot update an event they do not organize', function () {
-            $this->actingAs($this->regularUser);
+            // globally-assigned Event Admin cannot update an event they do not organize
             expect(Gate::allows('update', $this->publicEvent))->toBeFalse()
                 ->and(Gate::allows('delete', $this->publicEvent))->toBeFalse();
-        });
-
-        test('event-scoped holder cannot create events: delegation is never a creation grant', function () {
+            // event-scoped holder cannot create events: delegation is never a creation grant
             $this->actingAs($this->eventAdmin);
             expect(Gate::allows('create', Event::class))->toBeFalse();
-        });
-
-        test('organizer is unaffected: still updates and deletes their own event', function () {
+            // organizer is unaffected: still updates and deletes their own event
             $this->actingAs($this->organizer);
             expect(Gate::allows('update', $this->publicEvent))->toBeTrue()
                 ->and(Gate::allows('delete', $this->publicEvent))->toBeTrue();
@@ -169,17 +163,14 @@ describe('Event Policy', function () {
     });
 
     describe('delete', function () {
-        test('organizer can delete their own event', function () {
+        test('delete permission flow (organizer, event admin, regular user)', function () {
+            // organizer can delete their own event
             $this->actingAs($this->organizer);
             expect(Gate::allows('delete', $this->publicEvent))->toBeTrue();
-        });
-
-        test('event admin can delete their scoped event', function () {
+            // event admin can delete their scoped event
             $this->actingAs($this->eventAdmin);
             expect(Gate::allows('delete', $this->publicEvent))->toBeTrue();
-        });
-
-        test('regular user cannot delete event', function () {
+            // regular user cannot delete event
             $this->actingAs($this->regularUser);
             expect(Gate::allows('delete', $this->publicEvent))->toBeFalse();
         });

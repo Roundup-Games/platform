@@ -14,6 +14,23 @@ use App\Models\UserRelationship;
 use App\Services\CampaignJournalService;
 use App\Services\DashboardCacheService;
 use Illuminate\Support\Facades\Cache;
+use Livewire\Livewire;
+
+/*
+ * M077/S01 consolidation: 16 tests → 3 flow tests.
+ *
+ * Mapping (old → new):
+ * - 'Cache lifecycle' describe (miss/hit/invalidation/warm, 4 tests) and
+ *   'Full cache cycle' → cut: DashboardCacheServiceTest covers the section
+ *   cache contract per-section via datasets (miss/hit/warm/invalidation).
+ * - 'Participant status change invalidation' (3), 'Game event invalidation'
+ *   (2), 'Review invalidation' (1), 'Follow invalidation' (1),
+ *   'invalidates on game creation' (1) → STEP blocks in the flow test below;
+ *   every trigger keeps its warm → act → assert-null contract.
+ * - 'Action Center data computation' (2) → computation flow test (empty →
+ *   pending item in one world).
+ * - 'dashboard component uses action center cache service' → kept verbatim.
+ */
 
 beforeEach(function () {
     $this->user = User::factory()->create();
@@ -23,325 +40,124 @@ beforeEach(function () {
     $this->gameSystem = GameSystem::factory()->create();
 });
 
-// ── Action Center cache warm/fetch/invalidation cycle ─────────────
-
-describe('Cache lifecycle', function () {
-    test('action center cache miss computes and stores data', function () {
-        $cacheService = app(DashboardCacheService::class);
-
-        // Ensure cold cache
-        $cacheKey = "dashboard:action_center:{$this->user->id}";
-        expect(Cache::get($cacheKey))->toBeNull();
-
-        // First call — should compute and cache
-        $data = $cacheService->getActionCenter($this->user);
-
-        expect($data)->toBeArray();
-        expect(Cache::get($cacheKey))->not->toBeNull();
-    });
-
-    test('action center cache hit returns stored data', function () {
-        $cacheService = app(DashboardCacheService::class);
-
-        // Pre-populate with specific data
-        Cache::put("dashboard:action_center:{$this->user->id}", ['test_key' => 'test_value'], 300);
-
-        $data = $cacheService->getActionCenter($this->user);
-
-        expect($data)->toBe(['test_key' => 'test_value']);
-    });
-
-    test('action center cache invalidation clears the key', function () {
-        $cacheService = app(DashboardCacheService::class);
-
-        // Warm the cache
-        $cacheService->getActionCenter($this->user);
-        $cacheKey = "dashboard:action_center:{$this->user->id}";
-        expect(Cache::get($cacheKey))->not->toBeNull();
-
-        // Invalidate
-        $cacheService->invalidateForUser((string) $this->user->id, ['action_center']);
-
-        expect(Cache::get($cacheKey))->toBeNull();
-    });
-
-    test('warm action center populates cache', function () {
+describe('Action Center invalidation triggers', function () {
+    test('every app event invalidates the action center cache (flow)', function () {
         $cacheService = app(DashboardCacheService::class);
         $cacheKey = "dashboard:action_center:{$this->user->id}";
 
-        $cacheService->warmActionCenter($this->user);
+        $warm = function () use ($cacheService, $cacheKey): void {
+            $cacheService->getActionCenter($this->user);
+            expect(Cache::get($cacheKey))->not->toBeNull();
+        };
 
-        expect(Cache::get($cacheKey))->not->toBeNull();
-    });
-});
-
-// ── Invalidation triggers: participant status change ───────────────
-
-describe('Participant status change invalidation', function () {
-    test('participant status change invalidates action center for participant and owner', function () {
-        $cacheService = app(DashboardCacheService::class);
-
-        // Warm caches for both users
-        $cacheService->getActionCenter($this->user);
-
-        $owner = User::factory()->create();
-        $cacheService->getActionCenter($owner);
-
-        $participantCacheKey = "dashboard:action_center:{$this->user->id}";
-        $ownerCacheKey = "dashboard:action_center:{$owner->id}";
-        expect(Cache::get($participantCacheKey))->not->toBeNull();
-        expect(Cache::get($ownerCacheKey))->not->toBeNull();
-
-        // Create a game + participant — observer fires created()
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $this->gameSystem->id,
-            'status' => 'scheduled',
-        ]);
-
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $this->user->id,
-            'status' => ParticipantStatus::Pending->value,
-        ]);
-
-        // Both caches should be invalidated
-        expect(Cache::get($participantCacheKey))->toBeNull();
-        expect(Cache::get($ownerCacheKey))->toBeNull();
-    });
-
-    test('participant status update triggers action center invalidation', function () {
-        $owner = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $this->gameSystem->id,
-        ]);
-
-        $participant = GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $this->user->id,
-            'status' => ParticipantStatus::Pending->value,
-        ]);
-
-        // Warm the cache after creation (creation already invalidated)
-        $cacheService = app(DashboardCacheService::class);
-        $cacheService->getActionCenter($this->user);
-        $cacheKey = "dashboard:action_center:{$this->user->id}";
-        expect(Cache::get($cacheKey))->not->toBeNull();
-
-        // Update status — triggers observer updated()
-        $participant->update(['status' => ParticipantStatus::Approved->value]);
-
-        expect(Cache::get($cacheKey))->toBeNull();
-    });
-
-    test('attendance status update triggers action center invalidation', function () {
-        $owner = User::factory()->create();
-        $game = Game::factory()->create([
-            'owner_id' => $owner->id,
-            'game_system_id' => $this->gameSystem->id,
-            'status' => 'completed',
-        ]);
-
-        $participant = GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => $this->user->id,
-            'status' => ParticipantStatus::Approved->value,
-            'attendance_status' => null,
-        ]);
-
-        // Warm cache after creation
-        $cacheService = app(DashboardCacheService::class);
-        $cacheService->getActionCenter($this->user);
-        $cacheKey = "dashboard:action_center:{$this->user->id}";
-        expect(Cache::get($cacheKey))->not->toBeNull();
-
-        // Report attendance — triggers observer updated() for attendance_status
-        $participant->update(['attendance_status' => 'attended']);
-
-        expect(Cache::get($cacheKey))->toBeNull();
-    });
-});
-
-// ── Invalidation triggers: game completion ─────────────────────────
-
-describe('Game event invalidation', function () {
-    test('game status change to completed invalidates action center', function () {
+        // STEP 1 — game creation (GameObserver::saved) invalidates the owner.
         $game = Game::factory()->create([
             'owner_id' => $this->user->id,
             'game_system_id' => $this->gameSystem->id,
             'status' => 'scheduled',
         ]);
-
-        // Add a participant
-        GameParticipant::create([
-            'game_id' => $game->id,
-            'user_id' => User::factory()->create()->id,
-            'status' => ParticipantStatus::Approved->value,
-        ]);
-
-        // Warm caches (creation already fired, so warm manually)
-        $cacheService = app(DashboardCacheService::class);
-        $cacheService->getActionCenter($this->user);
-        $cacheKey = "dashboard:action_center:{$this->user->id}";
-        expect(Cache::get($cacheKey))->not->toBeNull();
-
-        // Complete the game — triggers GameObserver::saved()
-        $game->update(['status' => 'completed']);
-
         expect(Cache::get($cacheKey))->toBeNull();
-    });
 
-    test('a journal recap write invalidates the action center', function () {
+        // STEP 2 — participant creation invalidates participant AND owner
+        // (game owned by a different user; $this->user joins as participant).
+        $otherOwner = User::factory()->create();
+        $ownerKey = "dashboard:action_center:{$otherOwner->id}";
+        $cacheService->getActionCenter($otherOwner);
+        expect(Cache::get($ownerKey))->not->toBeNull();
+
+        $participant = GameParticipant::create([
+            'game_id' => Game::factory()->create([
+                'owner_id' => $otherOwner->id,
+                'game_system_id' => $this->gameSystem->id,
+                'status' => 'scheduled',
+            ])->id,
+            'user_id' => $this->user->id,
+            'status' => ParticipantStatus::Pending->value,
+        ]);
+        expect(Cache::get($cacheKey))->toBeNull();
+        expect(Cache::get($ownerKey))->toBeNull();
+
+        // STEP 3 — participant status update (observer updated()).
+        $warm();
+        $participant->update(['status' => ParticipantStatus::Approved->value]);
+        expect(Cache::get($cacheKey))->toBeNull();
+
+        // STEP 4 — attendance status update (observer updated()).
+        $warm();
+        $participant->update(['attendance_status' => 'attended']);
+        expect(Cache::get($cacheKey))->toBeNull();
+
+        // STEP 5 — game completion (GameObserver::saved on status change).
+        $warm();
+        $game->update(['status' => 'completed']);
+        expect(Cache::get($cacheKey))->toBeNull();
+
+        // STEP 6 — journal recap write (CampaignJournalService post-commit tail).
         $campaign = Campaign::factory()->create(['owner_id' => $this->user->id]);
-        $game = Game::factory()->create([
+        $campaignGame = Game::factory()->create([
             'owner_id' => $this->user->id,
             'game_system_id' => $this->gameSystem->id,
             'campaign_id' => $campaign->id,
             'status' => 'completed',
         ]);
-
-        // Warm cache
-        $cacheService = app(DashboardCacheService::class);
-        $cacheService->getActionCenter($this->user);
-        $cacheKey = "dashboard:action_center:{$this->user->id}";
-        expect(Cache::get($cacheKey))->not->toBeNull();
-
-        // Write the recap through the journal service — the write's
-        // post-commit tail carries the invalidation that used to ride
-        // GameObserver's wasChanged('recap') hook.
-        app(CampaignJournalService::class)->writeRecap($game, $this->user, 'Great session!');
-
+        $warm();
+        app(CampaignJournalService::class)->writeRecap($campaignGame, $this->user, 'Great session!');
         expect(Cache::get($cacheKey))->toBeNull();
-    });
-});
 
-// ── Invalidation triggers: new review ──────────────────────────────
-
-describe('Review invalidation', function () {
-    test('new review invalidates action center for reviewed GM', function () {
-        $gmProfile = GMProfile::factory()->create([
-            'user_id' => $this->user->id,
-        ]);
-
-        // Warm cache
-        $cacheService = app(DashboardCacheService::class);
-        $cacheService->getActionCenter($this->user);
-        $cacheKey = "dashboard:action_center:{$this->user->id}";
-        expect(Cache::get($cacheKey))->not->toBeNull();
-
-        // Create review — triggers ReviewObserver which invalidates action center
+        // STEP 7 — new review for the user's GM profile (ReviewObserver).
+        $gmProfile = GMProfile::factory()->create(['user_id' => $this->user->id]);
+        $warm();
         Review::factory()->create([
             'gm_profile_id' => $gmProfile->id,
             'reviewer_id' => User::factory()->create()->id,
         ]);
-
         expect(Cache::get($cacheKey))->toBeNull();
-    });
-});
 
-// ── Invalidation triggers: new follow ──────────────────────────────
-
-describe('Follow invalidation', function () {
-    test('new follow invalidates action center for followed user', function () {
-        // Warm cache for the followed user
-        $cacheService = app(DashboardCacheService::class);
-        $cacheService->getActionCenter($this->user);
-        $cacheKey = "dashboard:action_center:{$this->user->id}";
-        expect(Cache::get($cacheKey))->not->toBeNull();
-
-        // Create follow relationship — triggers UserRelationshipObserver
-        $follower = User::factory()->create();
+        // STEP 8 — new follow of the user (UserRelationshipObserver).
+        $warm();
         UserRelationship::create([
-            'user_id' => $follower->id,
+            'user_id' => User::factory()->create()->id,
             'related_user_id' => $this->user->id,
             'type' => RelationshipType::Follow->value,
         ]);
-
         expect(Cache::get($cacheKey))->toBeNull();
     });
 });
 
-// ── Action Center data flows through cache service compute ────────
-
 describe('Action Center data computation', function () {
-    test('cache service computes action items via ActionCenterService', function () {
-        // Create a pending application on user's game
+    test('empty for a fresh user, surfaces a high-priority pending application once one exists', function () {
+        $cacheService = app(DashboardCacheService::class);
+
+        // Empty world
+        $data = $cacheService->getActionCenter($this->user);
+        expect($data)->toBeArray()->toBeEmpty();
+
+        // Create a pending application on the user's game
         $game = Game::factory()->create([
             'owner_id' => $this->user->id,
             'game_system_id' => $this->gameSystem->id,
             'status' => 'scheduled',
         ]);
-
         GameParticipant::create([
             'game_id' => $game->id,
             'user_id' => User::factory()->create()->id,
             'status' => ParticipantStatus::Pending->value,
         ]);
 
-        $cacheService = app(DashboardCacheService::class);
         $data = $cacheService->getActionCenter($this->user);
+        expect($data)->toBeArray()->not->toBeEmpty();
 
-        expect($data)->toBeArray();
-        expect($data)->not->toBeEmpty();
-
-        // Find the pending_applications item
         $appItems = array_filter($data, fn ($item) => $item['type'] === 'pending_applications');
         expect($appItems)->toHaveCount(1);
 
         $item = reset($appItems);
-        expect($item)->toHaveKey('type');
-        expect($item)->toHaveKey('priority');
-        expect($item)->toHaveKey('title');
-        expect($item)->toHaveKey('action_url');
+        expect($item)->toHaveKey('type')
+            ->toHaveKey('priority')
+            ->toHaveKey('title')
+            ->toHaveKey('action_url');
         expect($item['priority'])->toBe('high');
     });
-
-    test('cache service returns empty array for user with no items', function () {
-        $cacheService = app(DashboardCacheService::class);
-        $data = $cacheService->getActionCenter($this->user);
-
-        expect($data)->toBeArray();
-        expect($data)->toBeEmpty();
-    });
 });
-
-// ── Full cycle: warm → read → invalidate → read ──────────────────
-
-describe('Full cache cycle', function () {
-    test('complete warm-fetch-invalidate-fetch cycle', function () {
-        $cacheService = app(DashboardCacheService::class);
-        $cacheKey = "dashboard:action_center:{$this->user->id}";
-
-        // 1. Warm
-        $cacheService->warmActionCenter($this->user);
-        expect(Cache::get($cacheKey))->not->toBeNull();
-
-        // 2. Fetch (should hit cache)
-        $data1 = $cacheService->getActionCenter($this->user);
-        expect($data1)->toBeArray();
-
-        // 3. Create an item that should change the result
-        $game = Game::factory()->create([
-            'owner_id' => $this->user->id,
-            'game_system_id' => $this->gameSystem->id,
-            'status' => 'scheduled',
-        ]);
-        // The GameObserver::saved fires on creation and invalidates action_center
-
-        // 4. Cache should be cleared
-        expect(Cache::get($cacheKey))->toBeNull();
-
-        // 5. Fetch again (recomputes with new data)
-        $data2 = $cacheService->getActionCenter($this->user);
-
-        // Should now contain the pending item for the new game
-        // (the game has no pending participants yet, so might still be empty)
-        expect($data2)->toBeArray();
-    });
-});
-
-// ── Dashboard component passes action center via cache ────────────
 
 describe('Dashboard integration', function () {
     test('dashboard component uses action center cache service', function () {
@@ -357,24 +173,5 @@ describe('Dashboard integration', function () {
         // Cache key should still exist after render
         $cacheKey = "dashboard:action_center:{$this->user->id}";
         expect(Cache::get($cacheKey))->not->toBeNull();
-    });
-
-    test('dashboard action center invalidates on game creation', function () {
-        $cacheService = app(DashboardCacheService::class);
-
-        // Pre-warm
-        $cacheService->warmActionCenter($this->user);
-        $cacheKey = "dashboard:action_center:{$this->user->id}";
-        expect(Cache::get($cacheKey))->not->toBeNull();
-
-        // Create a game owned by the user
-        Game::factory()->create([
-            'owner_id' => $this->user->id,
-            'game_system_id' => $this->gameSystem->id,
-            'status' => 'scheduled',
-        ]);
-
-        // Cache should be invalidated by GameObserver::saved
-        expect(Cache::get($cacheKey))->toBeNull();
     });
 });

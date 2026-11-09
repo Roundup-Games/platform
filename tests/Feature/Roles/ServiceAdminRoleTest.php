@@ -5,6 +5,13 @@ use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\PermissionRegistrar;
 
+/*
+ * M077/S01 consolidation: 24 one-assertion permission tests → 4 flow tests
+ * (one per role). The shared beforeEach world is unchanged; every original
+ * assertion is preserved verbatim inside its role's flow, with the original
+ * test name carried as a comment per check.
+ */
+
 beforeEach(function () {
     seedRoles();
 
@@ -26,124 +33,84 @@ beforeEach(function () {
     $this->regularUser = User::factory()->create();
 });
 
-// ── Service Admin ────────────────────────────────────
-
 describe('Service Admin', function () {
-    test('can access Filament admin panel', function () {
+    test('service admin permission matrix (flow)', function () {
         $panel = Filament::getPanel('admin');
+
+        // can access Filament admin panel
         expect($this->serviceAdmin->canAccessPanel($panel))->toBeTrue();
-    });
-
-    test('has manage tickets permission', function () {
+        // has manage tickets permission
         expect($this->serviceAdmin->hasPermissionTo('manage tickets'))->toBeTrue();
-    });
-
-    test('has view dashboard permission', function () {
+        // has view dashboard permission
         expect($this->serviceAdmin->hasPermissionTo('view dashboard'))->toBeTrue();
-    });
-
-    test('has view user permission', function () {
+        // has view user permission
         expect($this->serviceAdmin->hasPermissionTo('view user'))->toBeTrue();
-    });
-
-    test('passes escalated-agent gate', function () {
+        // passes escalated-agent gate
         expect(Gate::forUser($this->serviceAdmin)->allows('escalated-agent'))->toBeTrue();
-    });
-
-    test('does not pass escalated-admin gate', function () {
+        // does not pass escalated-admin gate
         expect(Gate::forUser($this->serviceAdmin)->allows('escalated-admin'))->toBeFalse();
-    });
-
-    test('cannot delete games', function () {
+        // cannot delete games
         expect($this->serviceAdmin->hasPermissionTo('delete game'))->toBeFalse();
-    });
-
-    test('cannot manage settings', function () {
+        // cannot manage settings
         expect($this->serviceAdmin->hasPermissionTo('manage settings'))->toBeFalse();
-    });
-
-    test('cannot manage roles', function () {
+        // cannot manage roles
         expect($this->serviceAdmin->hasPermissionTo('manage roles'))->toBeFalse();
-    });
-
-    test('cannot view audit log', function () {
+        // cannot view audit log
         expect($this->serviceAdmin->hasPermissionTo('view audit log'))->toBeFalse();
     });
 });
 
-// ── Games Admin ──────────────────────────────────────
-
 describe('Games Admin', function () {
-    test('can access Filament admin panel', function () {
+    test('games admin permission matrix (flow)', function () {
         $panel = Filament::getPanel('admin');
+
+        // can access Filament admin panel
         expect($this->gamesAdmin->canAccessPanel($panel))->toBeTrue();
-    });
-
-    test('has view dashboard permission', function () {
+        // has view dashboard permission
         expect($this->gamesAdmin->hasPermissionTo('view dashboard'))->toBeTrue();
-    });
-
-    test('can manage games', function () {
+        // can manage games (create/update/delete)
         expect($this->gamesAdmin->hasPermissionTo('create game'))->toBeTrue();
         expect($this->gamesAdmin->hasPermissionTo('update game'))->toBeTrue();
         expect($this->gamesAdmin->hasPermissionTo('delete game'))->toBeTrue();
-    });
-
-    test('does not have manage tickets permission', function () {
+        // does not have manage tickets permission
         expect($this->gamesAdmin->hasPermissionTo('manage tickets'))->toBeFalse();
-    });
-
-    test('does not pass escalated-agent gate', function () {
+        // does not pass escalated-agent gate
         expect(Gate::forUser($this->gamesAdmin)->allows('escalated-agent'))->toBeFalse();
-    });
-
-    test('does not pass escalated-admin gate', function () {
+        // does not pass escalated-admin gate
         expect(Gate::forUser($this->gamesAdmin)->allows('escalated-admin'))->toBeFalse();
     });
 });
 
-// ── Platform Admin ───────────────────────────────────
-
 describe('Platform Admin', function () {
-    test('can access Filament admin panel', function () {
+    test('platform admin permission matrix (flow)', function () {
         $panel = Filament::getPanel('admin');
-        expect($this->platformAdmin->canAccessPanel($panel))->toBeTrue();
-    });
 
-    test('has all permissions including manage tickets', function () {
+        // can access Filament admin panel
+        expect($this->platformAdmin->canAccessPanel($panel))->toBeTrue();
+        // has all permissions including manage tickets
         expect($this->platformAdmin->hasPermissionTo('manage tickets'))->toBeTrue();
         expect($this->platformAdmin->hasPermissionTo('manage settings'))->toBeTrue();
         expect($this->platformAdmin->hasPermissionTo('manage roles'))->toBeTrue();
         expect($this->platformAdmin->hasPermissionTo('view audit log'))->toBeTrue();
         expect($this->platformAdmin->hasPermissionTo('delete game'))->toBeTrue();
-    });
-
-    test('passes escalated-agent gate', function () {
+        // passes escalated-agent gate
         expect(Gate::forUser($this->platformAdmin)->allows('escalated-agent'))->toBeTrue();
-    });
-
-    test('passes escalated-admin gate', function () {
+        // passes escalated-admin gate
         expect(Gate::forUser($this->platformAdmin)->allows('escalated-admin'))->toBeTrue();
     });
 });
 
-// ── Regular User ─────────────────────────────────────
-
 describe('Regular User', function () {
-    test('cannot access Filament admin panel', function () {
+    test('regular user permission matrix (flow)', function () {
         $panel = Filament::getPanel('admin');
+
+        // cannot access Filament admin panel
         expect($this->regularUser->canAccessPanel($panel))->toBeFalse();
-    });
-
-    test('does not pass escalated-agent gate', function () {
+        // does not pass escalated-agent gate
         expect(Gate::forUser($this->regularUser)->allows('escalated-agent'))->toBeFalse();
-    });
-
-    test('does not pass escalated-admin gate', function () {
+        // does not pass escalated-admin gate
         expect(Gate::forUser($this->regularUser)->allows('escalated-admin'))->toBeFalse();
-    });
-
-    test('does not have manage tickets permission', function () {
+        // does not have manage tickets permission
         expect($this->regularUser->hasPermissionTo('manage tickets'))->toBeFalse();
     });
 });

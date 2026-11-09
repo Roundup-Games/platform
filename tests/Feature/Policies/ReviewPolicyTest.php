@@ -15,6 +15,20 @@ use App\Policies\ReviewPolicy;
 use App\Services\ReviewEligibilityService;
 use Illuminate\Support\Facades\Gate;
 
+/*
+ * M077/S01 consolidation: 25 tests → 7 flow tests (one per describe block).
+ * Mapping: update 3→1, delete 3→1, report 2→1, canReviewVenue 3→1,
+ * viewEligibility 3→1, canReviewSession 6→1, canReviewCampaign 5→1.
+ * The shared beforeEach world is unchanged; every original assertion is
+ * preserved verbatim inside its describe's flow, with the original test name
+ * carried as a comment per check. Shared-shape fixtures were merged where the
+ * checks are user-scoped (one past game/campaign carrying the different-status
+ * participants, each viewer asserted against it; already-reviewed asserted
+ * after the approved TRUE). Distinct shapes (future game, bare campaign) keep
+ * per-case fixtures inside the flow. actingAs() persists within a test, so
+ * guest checks run before any actingAs() and viewer switches are ordered.
+ */
+
 beforeEach(function () {
     seedPermissions();
     seedRoles();
@@ -35,66 +49,54 @@ beforeEach(function () {
 
 describe('ReviewPolicy', function () {
     describe('update', function () {
-        test('reviewer can update their own review', function () {
+        test('update policy matrix (flow)', function () {
             $review = Review::factory()->create(['reviewer_id' => $this->reviewer->id]);
+
+            // reviewer can update their own review
             $this->actingAs($this->reviewer);
-
             expect(Gate::allows('update', $review))->toBeTrue();
-        });
 
-        test('other user cannot update someone else review', function () {
-            $review = Review::factory()->create(['reviewer_id' => $this->reviewer->id]);
+            // other user cannot update someone else review
             $other = User::factory()->create();
             $this->actingAs($other);
-
             expect(Gate::allows('update', $review))->toBeFalse();
-        });
 
-        test('admin can update any review', function () {
-            $review = Review::factory()->create(['reviewer_id' => $this->reviewer->id]);
+            // admin can update any review
             $this->actingAs($this->admin);
-
             expect(Gate::allows('update', $review))->toBeTrue();
         });
     });
 
     describe('delete', function () {
-        test('reviewer cannot delete their own review', function () {
+        test('delete policy matrix (flow)', function () {
             $review = Review::factory()->create(['reviewer_id' => $this->reviewer->id]);
+
+            // reviewer cannot delete their own review
             $this->actingAs($this->reviewer);
-
             expect(Gate::allows('delete', $review))->toBeFalse();
-        });
 
-        test('other user cannot delete review', function () {
-            $review = Review::factory()->create(['reviewer_id' => $this->reviewer->id]);
+            // other user cannot delete review
             $other = User::factory()->create();
             $this->actingAs($other);
-
             expect(Gate::allows('delete', $review))->toBeFalse();
-        });
 
-        test('admin can delete any review', function () {
-            $review = Review::factory()->create(['reviewer_id' => $this->reviewer->id]);
+            // admin can delete any review
             $this->actingAs($this->admin);
-
             expect(Gate::allows('delete', $review))->toBeTrue();
         });
     });
 
     describe('report', function () {
-        test('any authenticated user can report a review they did not write', function () {
+        test('report policy matrix (flow)', function () {
             $review = Review::factory()->create(['reviewer_id' => $this->reviewer->id]);
+
+            // any authenticated user can report a review they did not write
             $reporter = User::factory()->create();
             $this->actingAs($reporter);
-
             expect(Gate::allows('report', $review))->toBeTrue();
-        });
 
-        test('reviewer cannot report their own review', function () {
-            $review = Review::factory()->create(['reviewer_id' => $this->reviewer->id]);
+            // reviewer cannot report their own review
             $this->actingAs($this->reviewer);
-
             expect(Gate::allows('report', $review))->toBeFalse();
         });
     });
@@ -102,7 +104,7 @@ describe('ReviewPolicy', function () {
     // Migrated from ReviewPolicyEligibilityTest — venue + viewEligibility are the
     // only ReviewPolicy methods not covered by the ReviewEligibilityService block below.
     describe('canReviewVenue', function () {
-        test('eligible approved participant of completed game at venue can review', function () {
+        test('canReviewVenue eligibility matrix (flow)', function () {
             $venue = Location::factory()->verifiedVenue()->create([
                 'venue_type' => VenueType::Cafe,
                 'slug' => fake()->unique()->slug(),
@@ -121,25 +123,14 @@ describe('ReviewPolicy', function () {
                 'status' => ParticipantStatus::Approved->value,
             ]);
 
+            // eligible approved participant of completed game at venue can review
             expect($this->policy->canReviewVenue($this->reviewer, $venue))->toBeTrue();
-        });
 
-        test('ineligible user cannot review venue', function () {
-            $venue = Location::factory()->verifiedVenue()->create([
-                'venue_type' => VenueType::Cafe,
-                'slug' => fake()->unique()->slug(),
-            ]);
-
+            // ineligible user cannot review venue
             $other = User::factory()->create();
             expect($this->policy->canReviewVenue($other, $venue))->toBeFalse();
-        });
 
-        test('admin bypass applies to canReviewVenue', function () {
-            $venue = Location::factory()->verifiedVenue()->create([
-                'venue_type' => VenueType::Cafe,
-                'slug' => fake()->unique()->slug(),
-            ]);
-
+            // admin bypass applies to canReviewVenue
             $this->actingAs($this->admin);
             // Routed through the Gate so the policy before() global-admin bypass fires.
             // ReviewPolicy is resolved by passing [Review::class, $venue] — the production
@@ -149,25 +140,29 @@ describe('ReviewPolicy', function () {
     });
 
     describe('viewEligibility', function () {
-        test('authenticated user can view their own eligibility', function () {
+        test('viewEligibility eligibility matrix (flow)', function () {
+            // guest cannot view eligibility (asserted before any actingAs —
+            // actingAs() persists within a test)
+            expect(Gate::allows('viewEligibility', Review::class))->toBeFalse();
+
+            // authenticated user can view their own eligibility
             $this->actingAs($this->reviewer);
             expect(Gate::allows('viewEligibility', Review::class))->toBeTrue();
-        });
 
-        test('admin bypass applies to viewEligibility', function () {
+            // admin bypass applies to viewEligibility
             $this->actingAs($this->admin);
             expect(Gate::allows('viewEligibility', Review::class))->toBeTrue();
-        });
-
-        test('guest cannot view eligibility', function () {
-            expect(Gate::allows('viewEligibility', Review::class))->toBeFalse();
         });
     });
 });
 
 describe('ReviewEligibilityService', function () {
     describe('canReviewSession', function () {
-        test('approved participant of past game can review', function () {
+        test('canReviewSession eligibility matrix (flow)', function () {
+            // Shared past game: the approved/pending/rejected cases shared the
+            // same game shape, so one game carries the different-status
+            // participants and each viewer is asserted against it (the service
+            // checks are user-scoped, so results are unchanged).
             $game = Game::factory()->create([
                 'owner_id' => $this->gmUser->id,
                 'date_time' => now()->subDay(),
@@ -180,79 +175,51 @@ describe('ReviewEligibilityService', function () {
                 'status' => ParticipantStatus::Approved->value,
             ]);
 
-            expect($this->service->canReviewSession($this->reviewer, $game))->toBeTrue();
-        });
-
-        test('pending participant cannot review', function () {
-            $game = Game::factory()->create([
-                'owner_id' => $this->gmUser->id,
-                'date_time' => now()->subDay(),
-            ]);
-
+            $pendingUser = User::factory()->create();
             GameParticipant::create([
                 'game_id' => $game->id,
-                'user_id' => $this->reviewer->id,
+                'user_id' => $pendingUser->id,
                 'role' => ParticipantRole::Player->value,
                 'status' => ParticipantStatus::Pending->value,
             ]);
 
-            expect($this->service->canReviewSession($this->reviewer, $game))->toBeFalse();
-        });
-
-        test('rejected participant cannot review', function () {
-            $game = Game::factory()->create([
-                'owner_id' => $this->gmUser->id,
-                'date_time' => now()->subDay(),
-            ]);
-
+            $rejectedUser = User::factory()->create();
             GameParticipant::create([
                 'game_id' => $game->id,
-                'user_id' => $this->reviewer->id,
+                'user_id' => $rejectedUser->id,
                 'role' => ParticipantRole::Player->value,
                 'status' => ParticipantStatus::Rejected->value,
             ]);
 
-            expect($this->service->canReviewSession($this->reviewer, $game))->toBeFalse();
-        });
+            // approved participant of past game can review
+            expect($this->service->canReviewSession($this->reviewer, $game))->toBeTrue();
 
-        test('non-participant cannot review', function () {
-            $game = Game::factory()->create([
-                'owner_id' => $this->gmUser->id,
-                'date_time' => now()->subDay(),
-            ]);
+            // pending participant cannot review
+            expect($this->service->canReviewSession($pendingUser, $game))->toBeFalse();
 
-            expect($this->service->canReviewSession($this->reviewer, $game))->toBeFalse();
-        });
+            // rejected participant cannot review
+            expect($this->service->canReviewSession($rejectedUser, $game))->toBeFalse();
 
-        test('cannot review future game', function () {
-            $game = Game::factory()->create([
+            // non-participant cannot review
+            $stranger = User::factory()->create();
+            expect($this->service->canReviewSession($stranger, $game))->toBeFalse();
+
+            // cannot review future game
+            $futureGame = Game::factory()->create([
                 'owner_id' => $this->gmUser->id,
                 'date_time' => now()->addDay(),
             ]);
 
             GameParticipant::create([
-                'game_id' => $game->id,
+                'game_id' => $futureGame->id,
                 'user_id' => $this->reviewer->id,
                 'role' => ParticipantRole::Player->value,
                 'status' => ParticipantStatus::Approved->value,
             ]);
 
-            expect($this->service->canReviewSession($this->reviewer, $game))->toBeFalse();
-        });
+            expect($this->service->canReviewSession($this->reviewer, $futureGame))->toBeFalse();
 
-        test('cannot review same game twice', function () {
-            $game = Game::factory()->create([
-                'owner_id' => $this->gmUser->id,
-                'date_time' => now()->subDay(),
-            ]);
-
-            GameParticipant::create([
-                'game_id' => $game->id,
-                'user_id' => $this->reviewer->id,
-                'role' => ParticipantRole::Player->value,
-                'status' => ParticipantStatus::Approved->value,
-            ]);
-
+            // cannot review same game twice
             // Already reviewed
             Review::factory()->create([
                 'reviewable_type' => (new Game)->getMorphClass(),
@@ -266,7 +233,11 @@ describe('ReviewEligibilityService', function () {
     });
 
     describe('canReviewCampaign', function () {
-        test('approved participant of campaign with completed session can review', function () {
+        test('canReviewCampaign eligibility matrix (flow)', function () {
+            // Shared campaign: approved/pending/already-reviewed shared the
+            // same completed-session campaign shape, so one campaign carries
+            // the different-status participants and each viewer is asserted
+            // against it (the service checks are user-scoped).
             $campaign = Campaign::factory()->create(['owner_id' => $this->gmUser->id]);
 
             Game::factory()->create([
@@ -282,69 +253,45 @@ describe('ReviewEligibilityService', function () {
                 'status' => ParticipantStatus::Approved->value,
             ]);
 
-            expect($this->service->canReviewCampaign($this->reviewer, $campaign))->toBeTrue();
-        });
-
-        test('cannot review campaign with no completed sessions', function () {
-            $campaign = Campaign::factory()->create(['owner_id' => $this->gmUser->id]);
-
-            Game::factory()->create([
-                'owner_id' => $this->gmUser->id,
-                'campaign_id' => $campaign->id,
-                'date_time' => now()->addDay(),
-            ]);
-
+            $pendingUser = User::factory()->create();
             CampaignParticipant::create([
                 'campaign_id' => $campaign->id,
-                'user_id' => $this->reviewer->id,
-                'role' => ParticipantRole::Player->value,
-                'status' => ParticipantStatus::Approved->value,
-            ]);
-
-            expect($this->service->canReviewCampaign($this->reviewer, $campaign))->toBeFalse();
-        });
-
-        test('pending campaign participant cannot review', function () {
-            $campaign = Campaign::factory()->create(['owner_id' => $this->gmUser->id]);
-
-            Game::factory()->create([
-                'owner_id' => $this->gmUser->id,
-                'campaign_id' => $campaign->id,
-                'date_time' => now()->subDay(),
-            ]);
-
-            CampaignParticipant::create([
-                'campaign_id' => $campaign->id,
-                'user_id' => $this->reviewer->id,
+                'user_id' => $pendingUser->id,
                 'role' => ParticipantRole::Player->value,
                 'status' => ParticipantStatus::Pending->value,
             ]);
 
-            expect($this->service->canReviewCampaign($this->reviewer, $campaign))->toBeFalse();
-        });
+            // approved participant of campaign with completed session can review
+            expect($this->service->canReviewCampaign($this->reviewer, $campaign))->toBeTrue();
 
-        test('non-participant cannot review campaign', function () {
-            $campaign = Campaign::factory()->create(['owner_id' => $this->gmUser->id]);
-
-            expect($this->service->canReviewCampaign($this->reviewer, $campaign))->toBeFalse();
-        });
-
-        test('cannot review same campaign twice', function () {
-            $campaign = Campaign::factory()->create(['owner_id' => $this->gmUser->id]);
+            // cannot review campaign with no completed sessions
+            $futureCampaign = Campaign::factory()->create(['owner_id' => $this->gmUser->id]);
 
             Game::factory()->create([
                 'owner_id' => $this->gmUser->id,
-                'campaign_id' => $campaign->id,
-                'date_time' => now()->subDay(),
+                'campaign_id' => $futureCampaign->id,
+                'date_time' => now()->addDay(),
             ]);
 
             CampaignParticipant::create([
-                'campaign_id' => $campaign->id,
+                'campaign_id' => $futureCampaign->id,
                 'user_id' => $this->reviewer->id,
                 'role' => ParticipantRole::Player->value,
                 'status' => ParticipantStatus::Approved->value,
             ]);
 
+            expect($this->service->canReviewCampaign($this->reviewer, $futureCampaign))->toBeFalse();
+
+            // pending campaign participant cannot review
+            expect($this->service->canReviewCampaign($pendingUser, $campaign))->toBeFalse();
+
+            // non-participant cannot review campaign
+            $bareCampaign = Campaign::factory()->create(['owner_id' => $this->gmUser->id]);
+
+            expect($this->service->canReviewCampaign($this->reviewer, $bareCampaign))->toBeFalse();
+
+            // cannot review same campaign twice
+            // Already reviewed
             Review::factory()->create([
                 'reviewable_type' => (new Campaign)->getMorphClass(),
                 'reviewable_id' => $campaign->id,
