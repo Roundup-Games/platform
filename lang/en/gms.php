@@ -11,6 +11,11 @@ return [
     'field_any_rating' => 'Any Rating',
     'action_clear_filters' => 'Clear Filters',
     'content_no_gms_found' => 'No Game Masters found',
+    // ── Evergreen directory intro (GEO citability): self-contained
+    //    description of what the directory IS and what profiles are
+    //    built from. Wording-agnostic tests (K004).
+    'content_gm_directory_intro_1' => 'The Game Master Directory lists the GMs and hosts who run public sessions on Roundup Games. Each profile shows the systems a GM runs, their reliability tier, earned badges, and the public sessions they currently offer.',
+    'content_gm_directory_intro_2' => 'Filter by game system to find GMs for a specific campaign or one-shot. GM profiles are built from real platform activity — attendance history, campaign journals, and badge awards — so what you see reflects tables that actually happened.',
     'content_try_adjusting_filters' => 'Try adjusting your search or filters.',
     'content_showing_gms_of_total' => 'Showing :shown of :total Game Masters',
     // SEO

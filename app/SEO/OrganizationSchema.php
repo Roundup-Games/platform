@@ -21,6 +21,8 @@ class OrganizationSchema extends CustomSchemaFluent
 
     public function initializeMarkup(SEOData $SEOData): void
     {
+        $profiles = config('company.social_profiles');
+
         $this->data = collect([
             '@context' => 'https://schema.org',
             '@type' => 'Organization',
@@ -28,9 +30,10 @@ class OrganizationSchema extends CustomSchemaFluent
             'url' => config('app.url'),
             'logo' => secure_url('icons/pwa-512x512.png'),
             'description' => $SEOData->description ?? ((is_string($dn = config('company.display_name')) ? $dn : '').' is a non-profit project — incorporating as a gGmbH in Berlin — helping communities organize and join local, in-person tabletop game sessions — board games, RPGs, and card games.'),
-            'sameAs' => [
-                'https://github.com/roundup-games/platform',
-            ],
+            'sameAs' => array_values(array_filter(
+                is_array($profiles) ? $profiles : [],
+                fn ($profile): bool => is_string($profile) && $profile !== ''
+            )),
             'nonprofitStatus' => 'https://schema.org/NonprofitType/NonprofitOrganization',
             'areaServed' => ['@type' => 'City', 'name' => 'Berlin'],
             'contactPoint' => [

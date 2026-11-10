@@ -29,6 +29,12 @@
             <p class="mt-3 max-w-3xl text-on-surface-variant">
                 {{ __('city-hubs.content_index_intro') }}
             </p>
+
+            {{-- Evergreen secondary paragraph (GEO citability) — what
+                 lives inside a hub and how the directory grows. --}}
+            <p class="mt-3 max-w-3xl text-on-surface-variant">
+                {{ __('city-hubs.content_index_intro_secondary') }}
+            </p>
         </div>
     </section>
 

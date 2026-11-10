@@ -116,4 +116,9 @@
             <p>{{ __('billing.content_all_payments_processed_securely_via_paddle') }}</p>
         </div>
     </div>
+        {{-- Content-stewardship temporal signal (GEO E-E-A-T) — date lives in config/content-reviews.php --}}
+        <div class="pb-12">
+            <x-content-review-note page="pricing" />
+        </div>
+    </div>
 </div>

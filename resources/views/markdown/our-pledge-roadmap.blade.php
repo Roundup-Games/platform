@@ -48,3 +48,6 @@
 {!! __('roadmap.content_delivered_intro') !!}
 
 [{!! __('pages.content_commitment_roadmap_action') !!}]({!! route('pledge.roadmap', 'en', false) !!})
+
+----
+@include('markdown.partials.reviewed-note', ['page' => 'our-pledge/roadmap'])

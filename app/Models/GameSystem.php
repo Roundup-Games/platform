@@ -260,6 +260,24 @@ class GameSystem extends Model implements HasMedia, TicketSubject
         return $this->type === 'ttrpg';
     }
 
+    /**
+     * Canonical BoardGameGeek URL for this catalog entry, when it is a
+     * BGG-synced row: https://boardgamegeek.com/{bgg_type}/{bgg_id}
+     * (bgg_type is the BGG subtype path — boardgame, boardgameexpansion).
+     *
+     * Backs the source attribution under the About-this-Game description
+     * (E-E-A-T: descriptions are synced from BoardGameGeek, so the page
+     * credits and links the source rather than claiming authorship).
+     */
+    public function bggUrl(): ?string
+    {
+        if ($this->bgg_id === null || $this->bgg_id <= 0 || ! is_string($this->bgg_type) || $this->bgg_type === '') {
+            return null;
+        }
+
+        return 'https://boardgamegeek.com/'.$this->bgg_type.'/'.$this->bgg_id;
+    }
+
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('cover')

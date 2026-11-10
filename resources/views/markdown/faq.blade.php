@@ -54,3 +54,6 @@
 @endforeach
 @endforeach
 {!! __('faq.content_faq_still_stuck') !!} [{!! __('faq.action_contact_us') !!}]({!! route('contact', 'en', false) !!})
+
+----
+@include('markdown.partials.reviewed-note', ['page' => 'faq'])

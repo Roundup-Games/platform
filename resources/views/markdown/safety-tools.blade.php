@@ -64,3 +64,6 @@
 ## {!! __('safety.content_using_safety_tools_on_roundup') !!}
 
 {!! __('safety.content_when_you_create_a_game') !!}
+
+----
+@include('markdown.partials.reviewed-note', ['page' => 'safety-tools'])

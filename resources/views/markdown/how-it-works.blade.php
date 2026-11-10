@@ -53,3 +53,6 @@
 {!! __('pages.content_safety_bridge_trust') !!} {!! __('pages.content_safety_bridge_nonprofit') !!}
 
 [{!! __('pages.action_learn_about_our_pledge') !!}]({!! route('pledge', 'en', false) !!})
+
+----
+@include('markdown.partials.reviewed-note', ['page' => 'how-it-works'])

@@ -138,29 +138,33 @@ class LlmsTxtService
 
     /**
      * One-line note per inventory label (the `: note` half of each row).
-     * EN-only: llms.txt is a single English file by design.
+     * EN-only: llms.txt is a single English file by design. Written in the
+     * roundup voice (docs/STYLE-GUIDE.md §1) — contractions, you/we,
+     * concrete nouns — while staying one line each for token economy;
+     * terminology follows the glossary canon (Join/Apply, Game Master
+     * spelled out here as first use, enumerated entities per D264).
      *
      * @var array<string, string>
      */
     private const NOTES = [
-        'Home' => 'Landing page with current platform activity and entry points to discovery.',
-        'Discover' => 'Search and filter upcoming public games and campaigns.',
-        'Board games' => 'Discovery scoped to board games.',
-        'Adventures' => 'Discovery scoped to tabletop RPG campaigns and one-shots.',
-        'Game systems' => 'Browseable index of the game systems used on the platform.',
-        'City hubs' => 'Local overviews of upcoming public games and venues per city.',
-        'GM directory' => 'Directory of game masters and hosts offering public games.',
-        'Badges' => 'Gallery of every badge players can earn, grouped by category and rarity.',
+        'Home' => 'What\'s happening on the platform and where to go next.',
+        'Discover' => 'Browse upcoming public games and campaigns by distance, language, or game system.',
+        'Board games' => 'Board game discovery — one-evening games at cafés, game stores, and home tables.',
+        'Adventures' => 'The TTRPG side of discovery: campaigns, one-shots, and everything in between.',
+        'Game systems' => 'The catalog of games our sessions run on — board games, RPGs, and card games, with data from BoardGameGeek.',
+        'City hubs' => 'A local scene on one page: a city\'s upcoming public games and the venues hosting them.',
+        'GM directory' => 'Game Masters and hosts who run public games, with the systems they run and their track records.',
+        'Badges' => 'Every badge players can earn — what it celebrates and how rare it is.',
         'About' => 'Who runs Roundup Games and why.',
-        'How it works' => 'How joining, applying, and hosting games works.',
-        'For organizers' => 'Tools and workflows for hosting games and campaigns.',
-        'Pricing' => 'What is free to use and what paid plans add.',
+        'How it works' => 'How joining, applying, and hosting games works, step by step.',
+        'For organizers' => 'Tools and workflows for hosts running games, campaigns, and events.',
+        'Pricing' => 'What\'s free to use and what supporter memberships add.',
         'FAQ' => 'Frequently asked questions.',
-        'Safety tools' => 'Built-in safety tools for game communication and moderation.',
+        'Safety tools' => 'The built-in safety toolkit — X-Card, Lines & Veils, and more — for every kind of table.',
         'Code of conduct' => 'Community rules, the moderation consequences ladder, and the report and appeal path.',
-        'Our pledge' => 'The platform\'s commitments to its community.',
-        'Algorithms' => 'How search and discovery ranking works, documented in the open.',
-        'Roadmap' => 'Public roadmap of delivered and planned work.',
+        'Our pledge' => 'Our commitments to you: no investors, open code, algorithms in the open.',
+        'Algorithms' => 'How discovery and ranking work, documented in the open — with the actual formulas.',
+        'Roadmap' => 'Delivered receipts and future ideas — no promises, the full history is public.',
         'Contact' => 'How to reach the team.',
     ];
 
@@ -172,10 +176,16 @@ class LlmsTxtService
     private const OPTIONAL_HEADING = 'Optional';
 
     /** One-line blockquote under the H1 (v2 spec position). */
-    private const SUMMARY_LINE = 'Free-to-use platform for discovering and hosting tabletop games, from board game sessions to long-running RPG campaigns.';
+    private const SUMMARY_LINE = 'Find and host in-person tabletop games — from one-evening board games to long-running RPG campaigns. Free to use, run by a small non-profit team in Berlin.';
 
-    /** Short info paragraph: what the platform is, free-to-use, Berlin-based. */
-    private const INFO_PARAGRAPH = 'Roundup Games is a free-to-use platform where players find and host tabletop games: one-off board game sessions and ongoing RPG campaigns. Organizers publish games with open or application-based seats, and the platform provides safety tools, transparent discovery algorithms, and a public roadmap. It is run by a small, Berlin-based team.';
+    /**
+     * Short info paragraph (one line — the v2 info block). Written in the
+     * roundup voice (docs/STYLE-GUIDE.md §1): warm, plain-spoken, you/we,
+     * contractions on — and terminology-clean per the glossary canon:
+     * Host (not organizer) for games, enumerated entities (no "game
+     * sessions", D264), Join/Apply embodied in prose.
+     */
+    private const INFO_PARAGRAPH = 'Roundup Games is where players find and host in-person tabletop games: one-off board game nights and long-running RPG campaigns alike. Hosts publish games with open seats you join directly or application-based seats they review, and safety tools are built into the platform. Discovery ranking is documented in the open, the roadmap is public, and it\'s free to use — run by a small, non-profit team in Berlin.';
 
     public function __construct(
         private readonly CityDirectoryService $cityDirectory,
@@ -268,7 +278,7 @@ class LlmsTxtService
                 '- [%s](%s): %s',
                 $label.' (markdown)',
                 $baseUrl.'/en/'.$page.'.md',
-                sprintf('Plain-markdown alternate of the %s page.', $label),
+                sprintf('The %s page as clean markdown — same content, no chrome.', $label),
             );
         }
 

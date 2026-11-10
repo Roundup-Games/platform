@@ -225,4 +225,9 @@
 
     {{-- ── CTA (organizer audience — shared component) ───────── --}}
     <x-cta-block variant="organizer" />
+
+    {{-- Content-stewardship temporal signal (GEO E-E-A-T) — date lives in config/content-reviews.php --}}
+    <div class="max-w-3xl mx-auto px-4 pb-12">
+        <x-content-review-note page="for-organizers" />
+    </div>
 </x-public-layout>

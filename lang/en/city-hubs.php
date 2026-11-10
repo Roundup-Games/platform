@@ -24,6 +24,9 @@ return [
     'heading_city_hubs_index' => 'Tabletop gaming by city',
 
     'content_index_intro' => 'City hubs bundle a local scene\'s public activity into one page: upcoming games, campaigns, and events, plus the verified venues to play at. Hubs go live automatically once a city has enough upcoming public activity or verified venues — the directory grows as local scenes do.',
+    // ── Evergreen secondary paragraph (GEO citability): what lives
+    //    inside a hub and how the set grows. K004: wording-agnostic tests.
+    'content_index_intro_secondary' => 'Open a hub to see a city\'s upcoming public sessions and the venues hosting them — the fastest way to follow a local scene week by week. As new cities cross the activity threshold, they appear here automatically.',
 
     'label_featured' => 'Featured',
 

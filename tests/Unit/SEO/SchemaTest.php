@@ -13,11 +13,13 @@ describe('OrganizationSchema', function () {
             ->toBe('https://schema.org/NonprofitType/NonprofitOrganization');
     });
 
-    it('includes GitHub in sameAs', function () {
+    it('mirrors the config-sourced social profile list in sameAs', function () {
         $schema = new OrganizationSchema(new SEOData);
         $data = $schema->generateInner();
 
-        expect($data->get('sameAs'))->toContain('https://github.com/roundup-games/platform');
+        // K004: the schema reads config('company.social_profiles') — the
+        // pin compares against the config, never literals.
+        expect($data->get('sameAs'))->toEqual(array_values(config('company.social_profiles')));
     });
 
     it('serves Berlin as a City (the only active hub)', function () {

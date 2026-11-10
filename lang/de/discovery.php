@@ -42,6 +42,17 @@ return [
     'content_tactical' => 'Taktisch',
     'content_type_word_to_confirm' => 'Tippe :word zur Bestätigung',
     'content_what_s_happening_near_you' => 'Was passiert in deiner Nähe?',
+    // ── Evergreen Hub-Intros (GEO-Zitierfähigkeit): antwortfirste,
+    //    in sich geschlossene Texte, die auch ohne Live-Inventar
+    //    funktionieren. Formulierungen dürfen frei ändern (Tests sind
+    //    formulierungsagnostisch, K004).
+    'content_location_gate_heading' => 'Finde Runden in deiner Nähe',
+    'content_discover_intro_1' => 'Discover ist der Ausgangspunkt, um persönliche Tabletop-Runden auf Roundup Games zu finden. Hosts veröffentlichen Brettspielabende, One-Shot-Abenteuer und laufende Kampagnen — mit offenen Plätzen oder per Bewerbung. Jede Runde zeigt Datum, Veranstaltungsort, freie Plätze und die aktivierten Safety-Tools, bevor du beitrittst oder dich bewirbst.',
+    'content_discover_intro_2' => 'Zwei Ansichten decken die Plattform ab: Brettspiele für einzelne Runden am Tisch und Abenteuer für RPG-Kampagnen und One-Shots. Beide filtern nach Entfernung, Sprache, Erfahrungsniveau und Spielsystem — und jede Stadt mit genug öffentlicher Aktivität bekommt zusätzlich einen Stadt-Hub, der die lokale Szene bündelt. Neue Runden erscheinen, sobald Hosts sie veröffentlichen.',
+    'content_board_games_intro_1' => 'Brettspiele bündelt jede öffentliche Brettspiel-Runde der Plattform — einzelne Abendrunden mit Strategie-, Party- und Familienspielen in Cafés, Spieleläden und an privaten Tischen. Filtere nach Entfernung, Datum, Sprache, Komplexität oder einem bestimmten Spielsystem — oder suche direkt nach Namen.',
+    'content_board_games_intro_2' => 'Jede Runde zeigt freie Plätze und wie das Beitreten funktioniert: Offene Runden kannst du direkt beitreten, bei anderen läuft eine Bewerbung, die der Host prüft. Ist eine Runde voll, kommst du auf die Warteliste oder die Ersatzbank und rückst automatisch nach, wenn ein Platz frei wird.',
+    'content_adventures_intro_1' => 'Abenteuer bündelt die öffentlichen Tabletop-RPG-Runden der Plattform: langlaufende Kampagnen und in sich geschlossene One-Shots — vom Dungeon-Crawl bis zum narrativen System. Filtere nach Entfernung, Sprache, Erfahrungsniveau oder Spielsystem oder suche nach Namen, um den richtigen Tisch zu finden.',
+    'content_adventures_intro_2' => 'Kampagnen zeigen ihren Rhythmus und die bisherige Geschichte, One-Shots brauchen außer dem Abend keine Verpflichtung. Das Beitreten folgt denselben zwei Wegen wie überall auf Roundup: direkter Beitritt bei offenen Tischen, Bewerbung bei kuratierten — und jeder RPG-Tisch nennt vorab seine Safety-Tools.',
     'field_any_date' => 'Jedes Datum',
     'field_any_distance' => 'Jede Entfernung',
     'field_any_price' => 'Jeder Preis',

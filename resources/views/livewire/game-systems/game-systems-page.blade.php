@@ -1,6 +1,16 @@
 <div x-data="{ filterPanelOpen: false }">
     <x-hero :title="__('games.action_explore_game_systems')" :subtitle="__('games.content_game_systems_knowledge_base_subtitle')" />
 
+    {{-- ── Evergreen intro (GEO citability) ───────────────────
+         Answer-first, self-contained description of the catalog —
+         cite-worthy with a catalog of any size. --}}
+    <section class="py-8 bg-surface">
+        <div class="max-w-3xl mx-auto px-4 space-y-4 text-on-surface-variant leading-relaxed">
+            <p>{{ __('games.content_game_systems_intro_1') }}</p>
+            <p>{{ __('games.content_game_systems_intro_2') }}</p>
+        </div>
+    </section>
+
     {{-- ── Mobile filter backdrop ─────────────────────────────────────── --}}
     <div x-show="filterPanelOpen"
          x-transition:enter="transition-opacity ease-out duration-200"

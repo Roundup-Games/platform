@@ -14,7 +14,10 @@
     </div>
 
     <h3 class="text-xl font-heading font-semibold text-on-surface mb-2">
-        {{ __("discovery.content_what_s_happening_near_you") }}
+        {{-- GEO heading-hygiene: distinct key from the home page's H2
+             section heading — the old shared key duplicated "What's
+             happening near you?" across H2 and H3 on the homepage. --}}
+        {{ __("discovery.content_location_gate_heading") }}
     </h3>
     <p class="text-on-surface-variant max-w-md mx-auto mb-6">
         {{ __('games.content_share_your_location_to_discover') }}

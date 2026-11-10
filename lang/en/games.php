@@ -20,6 +20,8 @@ return [
     'content_application_submitted_the_game_owner' => 'Application submitted! The host will review it.',
     'content_base_game' => 'Base Game',
     'content_bgg_rating' => 'BGG Rating',
+    'content_description_source_bgg' => 'Description synchronized from BoardGameGeek.',
+    'action_view_on_boardgamegeek' => 'View on BoardGameGeek',
     'content_boardgamegeek_rank_rank' => 'BoardGameGeek Rank #:rank',
     'content_bring_your_games_to_the_table' => 'Bring your games to the table',
     'content_check_back_soon_for_new_adventures' => 'Check back soon for new adventures!',
@@ -140,6 +142,11 @@ return [
     // M066/S07/T02: guest-friendly framing — the catalog is the games our
     // sessions run on, not an internal knowledge base.
     'content_game_systems_knowledge_base_subtitle' => 'Browse the games our sessions run on — board games, RPGs, and card games.',
+    // ── Evergreen catalog intro (GEO citability): describes what the
+    //    catalog IS and where its data comes from — self-contained even
+    //    with a small catalog. Wording-agnostic tests (K004).
+    'content_game_systems_intro_1' => 'Game Systems is the platform\'s catalog of the games its sessions run on: board games, tabletop RPGs, and card games. Each entry carries player count, playtime, complexity, and categories — the facts you need to decide whether a session fits before you join.',
+    'content_game_systems_intro_2' => 'Catalog data is synchronized from BoardGameGeek and credited on every entry, and hosts attach the systems their sessions will play. Browse alphabetically or filter by category and mechanic to explore what the community plays.',
     'seo_title_game_systems' => 'Browse Board Games, RPGs & Card Games',
     'seo_title_game_system_detail' => ':name — Find Groups & Sessions',
     'seo_description_game_systems' => 'Browse the games our sessions run on — board games, RPGs, and card games. Filter by category, mechanics, player count, and complexity.',

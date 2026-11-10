@@ -252,4 +252,9 @@
             </div>
         </div>
     </section>
+
+    {{-- Content-stewardship temporal signal (GEO E-E-A-T) — date lives in config/content-reviews.php --}}
+    <div class="max-w-3xl mx-auto px-4 pb-12">
+        <x-content-review-note page="our-pledge/roadmap" />
+    </div>
 </x-public-layout>

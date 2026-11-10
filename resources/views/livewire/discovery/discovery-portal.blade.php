@@ -7,6 +7,16 @@
         </div>
     </section>
 
+    {{-- ── Evergreen intro (GEO citability) ───────────────────
+         Answer-first, self-contained description of what Discover is —
+         cite-worthy with zero live inventory. --}}
+    <section class="py-10 sm:py-12 bg-surface">
+        <div class="max-w-3xl mx-auto px-4 space-y-4 text-on-surface-variant leading-relaxed">
+            <p>{{ __('discovery.content_discover_intro_1') }}</p>
+            <p>{{ __('discovery.content_discover_intro_2') }}</p>
+        </div>
+    </section>
+
     {{-- ── Track Cards ──────────────────────────────────────────── --}}
     <div class="max-w-4xl mx-auto px-4 py-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
         {{-- Board Game Night card --}}

@@ -287,6 +287,7 @@ if (! function_exists('format_date')) {
             'datetime' => $date->isoFormat($is24Hour ? 'D. MMMM YYYY, HH:mm' : 'MMM D, YYYY [at] h:mm A'),
             'weekday_datetime' => $date->isoFormat($is24Hour ? 'ddd, D. MMM, HH:mm' : 'ddd, MMM D, HH:mm'),
             'short_month_day' => $date->isoFormat($is24Hour ? 'D. MMMM YYYY' : 'MMM D, YYYY'),
+            'month_year' => $date->isoFormat($is24Hour ? 'MMMM YYYY' : 'MMM YYYY'),
             default => $date->isoFormat($is24Hour ? 'D. MMMM YYYY' : 'MMM D, YYYY'),
         };
     }

@@ -4,6 +4,15 @@
                         <div class="prose prose-sm max-w-none text-on-surface-variant prose-headings:text-on-surface prose-a:text-primary whitespace-pre-line">
                             {!! nl2br(e(html_entity_decode($system->description ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'))) !!}
                         </div>
+                        {{-- Source attribution: descriptions are synced from
+                             BoardGameGeek — credit and link the source (E-E-A-T:
+                             cite the origin instead of implying authorship). --}}
+                        @if($system->bggUrl())
+                            <p class="mt-2 text-xs text-on-surface-variant">
+                                {{ __('games.content_description_source_bgg') }}
+                                <a href="{{ $system->bggUrl() }}" target="_blank" rel="noopener noreferrer" class="underline hover:text-primary">{{ __('games.action_view_on_boardgamegeek') }}</a>
+                            </p>
+                        @endif
                     </section>
                 @endif
 

@@ -45,3 +45,6 @@
 
 - [{!! __('pages.content_commitment_algorithms_title') !!}]({!! route('pledge.algorithms', 'en', false) !!}) — {!! __('pages.content_commitment_algorithms_body') !!}
 - [{!! __('pages.content_commitment_roadmap_title') !!}]({!! route('pledge.roadmap', 'en', false) !!}) — {!! __('pages.content_commitment_roadmap_body') !!}
+
+----
+@include('markdown.partials.reviewed-note', ['page' => 'about'])

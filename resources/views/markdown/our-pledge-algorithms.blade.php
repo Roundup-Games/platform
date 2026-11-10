@@ -43,3 +43,6 @@
 @endforeach
 
 {!! __('pages.content_pledge_algo_cta_heading') !!}: [{!! __('pages.content_pledge_open_github') !!}](https://github.com/roundup-games/platform)
+
+----
+@include('markdown.partials.reviewed-note', ['page' => 'our-pledge/algorithms'])

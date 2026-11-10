@@ -25,6 +25,10 @@ return [
     'heading_city_hubs_index' => 'Tabletop-Spiele nach Stadt',
 
     'content_index_intro' => 'Stadt-Hubs bündeln die öffentliche Aktivität einer lokalen Szene auf einer Seite: anstehende Spielrunden, Kampagnen und Events plus verifizierte Veranstaltungsorte zum Spielen. Hubs gehen automatisch live, sobald eine Stadt genug anstehende öffentliche Aktivität oder verifizierte Veranstaltungsorte hat — das Verzeichnis wächst mit den lokalen Szenen.',
+    // ── Evergreen zweiter Absatz (GEO-Zitierfähigkeit): was ein Hub
+    //    enthält und wie die Liste wächst. K004: formulierungsagnostische
+    //    Tests.
+    'content_index_intro_secondary' => 'Öffne einen Hub, um die anstehenden öffentlichen Runden einer Stadt und ihre Veranstaltungsorte zu sehen — der schnellste Weg, eine lokale Szene Woche für Woche zu verfolgen. Sobald neue Städte die Aktivitätsschwelle erreichen, erscheinen sie hier automatisch.',
 
     'label_featured' => 'Empfohlen',
 

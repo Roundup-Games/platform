@@ -49,6 +49,26 @@ return [
     ],
 
     /*
+    |--------------------------------------------------------------------------
+    | Social / entity profiles (Organization schema sameAs)
+    |--------------------------------------------------------------------------
+    |
+    | The single source of truth for the sameAs links in the Organization
+    | JSON-LD (app/SEO/OrganizationSchema.php). Every entry must be a real
+    | profile the project controls — never a placeholder for an entity that
+    | does not exist yet (entity-linking honesty; see the D179 canon).
+    |
+    | To extend when Wave 2 entities come online, append in creation order:
+    |   - Wikidata:      https://www.wikidata.org/wiki/QXXXXXXX
+    |   - LinkedIn:      https://www.linkedin.com/company/roundup-games
+    |   - YouTube:       https://www.youtube.com/@RoundupGames
+    | Schema tests assert against this list (config-derived, K004).
+    */
+    'social_profiles' => [
+        'https://github.com/roundup-games/platform',
+    ],
+
+    /*
     | Registration details. Empty until incorporation is complete.
     | Templates conditionally hide registration fields when these are blank.
     */

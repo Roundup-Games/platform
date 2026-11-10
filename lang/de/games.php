@@ -21,6 +21,8 @@ return [
     'content_application_submitted_the_game_owner' => 'Bewerbung eingereicht! Der Host wird sie prüfen.',
     'content_base_game' => 'Basisspiel',
     'content_bgg_rating' => 'BGG-Bewertung',
+    'content_description_source_bgg' => 'Beschreibung mit BoardGameGeek synchronisiert.',
+    'action_view_on_boardgamegeek' => 'Auf BoardGameGeek ansehen',
     'content_boardgamegeek_rank_rank' => 'BoardGameGeek-Rang #:rank',
     'content_bring_your_games_to_the_table' => 'Bring deine Spiele an den Tisch',
     'content_check_back_soon_for_new_adventures' => 'Schau bald wieder vorbei für neue Abenteuer!',
@@ -129,6 +131,12 @@ return [
     // M066/S07/T02: gastfreundliches Framing — der Katalog sind die Spiele,
     // auf denen unsere Runden aufbauen, keine interne Wissensdatenbank.
     'content_game_systems_knowledge_base_subtitle' => 'Stöbere in den Spielen, auf denen unsere Runden aufbauen — Brettspiele, RPGs und Kartenspiele.',
+    // ── Evergreen Katalog-Intro (GEO-Zitierfähigkeit): beschreibt, was
+    //    der Katalog IST und woher seine Daten kommen — funktioniert
+    //    auch mit kleinem Katalog allein. Formulierungsagnostische
+    //    Tests (K004).
+    'content_game_systems_intro_1' => 'Spielsysteme ist der Katalog der Plattform für die Spiele, auf denen ihre Runden aufbauen: Brettspiele, Tabletop-RPGs und Kartenspiele. Jeder Eintrag zeigt Spieleranzahl, Spieldauer, Komplexität und Kategorien — die Fakten, an denen du erkennst, ob eine Runde zu dir passt.',
+    'content_game_systems_intro_2' => 'Die Katalogdaten werden mit BoardGameGeek synchronisiert und auf jedem Eintrag als Quelle genannt; Hosts hinterlegen die Systeme, die in ihren Runden gespielt werden. Stöbere alphabetisch oder filtere nach Kategorie und Mechanik.',
     'seo_title_game_systems' => 'Spielsysteme: Brettspiele, RPGs & mehr',
     'seo_title_game_system_detail' => ':name — Runden und Gruppen finden',
     'seo_description_game_systems' => 'Stöbere in den Spielen unserer Runden — Brettspiele, RPGs und Kartenspiele. Filtere nach Kategorie, Mechaniken, Spielerzahl und Komplexität.',

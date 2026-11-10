@@ -55,3 +55,6 @@
 {!! __('billing.content_all_memberships_auto_renew_cancel') !!}
 
 {!! __('billing.content_all_payments_processed_securely_via_paddle') !!}
+
+----
+@include('markdown.partials.reviewed-note', ['page' => 'pricing'])

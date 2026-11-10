@@ -51,6 +51,7 @@ use App\Policies\Escalated\TicketPolicy;
 use App\Policies\GameBulletinPolicy;
 use App\SEO\BreadcrumbBuilder;
 use App\SEO\SeoText;
+use App\SEO\WebSiteSchema;
 use App\Services\AttendanceService;
 use App\Services\CityDirectoryService;
 use App\Services\Discord\DiscordWebhookClient;
@@ -533,6 +534,13 @@ class AppServiceProvider extends ServiceProvider
                     $SEOData->schema->markup[$class] = $builders;
                 }
             }
+
+            // WebSite + SearchAction JSON-LD — automatically injected on all
+            // pages (same choke point as BreadcrumbList): the sitewide site
+            // identity + server-rendered search-surface advertisement for
+            // search engines and AI agents (see WebSiteSchema for the honesty
+            // contract on the SearchAction target).
+            $SEOData->schema->markup[WebSiteSchema::class][] = fn (WebSiteSchema $s) => $s;
 
             return $SEOData;
         });

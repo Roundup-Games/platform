@@ -35,3 +35,6 @@
 {!! __('events.content_from_weekly_board_game_nights') !!}
 
 [{!! __('pages.content_host_story_heading') !!}]({!! route('how-it-works', 'en', false) !!}) · [{!! __('pages.action_see_pricing') !!}]({!! route('pricing', 'en', false) !!})
+
+----
+@include('markdown.partials.reviewed-note', ['page' => 'for-organizers'])

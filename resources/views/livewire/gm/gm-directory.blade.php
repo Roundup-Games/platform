@@ -17,6 +17,16 @@
         </div>
     </section>
 
+    {{-- ── Evergreen intro (GEO citability) ───────────────────
+         Answer-first, self-contained description of the directory —
+         cite-worthy with zero live inventory. --}}
+    <section class="py-8 bg-surface">
+        <div class="max-w-3xl mx-auto px-4 space-y-4 text-on-surface-variant leading-relaxed">
+            <p>{{ __('gms.content_gm_directory_intro_1') }}</p>
+            <p>{{ __('gms.content_gm_directory_intro_2') }}</p>
+        </div>
+    </section>
+
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
         {{-- ── Filter Section ─────────────────────────────────────── --}}
         <div class="space-y-4 mb-6">

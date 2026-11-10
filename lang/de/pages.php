@@ -11,6 +11,12 @@ return [
     'content_commitment_algorithms_action' => 'Algorithmen erkunden',
     'content_commitment_algorithms_body' => 'Unsere Matching- und Empfehlungsalgorithmen sind Open Source. Sieh genau, wie sie funktionieren.',
     'content_commitment_algorithms_title' => 'Offene Algorithmen & Code',
+    // ── Redaktionssignal für Inhalte (GEO E-E-A-T): Die Komponente
+    //    content-review-note rendert „Zuletzt geprüft: <Monat Jahr>“ aus
+    //    config/content-reviews.php — ein echtes Prüfdatum, gepflegt im
+    //    selben Commit wie der Inhalt, nie automatisch aktualisiert
+    //    (Ehrlichkeits-Kanon D179).
+    'content_last_reviewed' => 'Zuletzt geprüft',
     'content_commitment_roadmap_action' => 'Den Weg voraus erkunden',
     'content_commitment_roadmap_body' => 'Wohin die Reise geht und was wir bereits ausgeliefert haben — Ideen im Offenen, ohne Daten, ohne Versprechen.',
     'content_commitment_roadmap_title' => 'Der Weg voraus',

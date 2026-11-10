@@ -10,6 +10,12 @@ return [
     'content_commitment_algorithms_action' => 'Explore Algorithms',
     'content_commitment_algorithms_body' => 'Our matching and recommendation algorithms are open source. See exactly how they work.',
     'content_commitment_algorithms_title' => 'Open Algorithms & Code',
+    // ── Content-stewardship temporal signal (GEO E-E-A-T): the
+    //    content-review-note component renders "Last reviewed: <month
+    //    year>" from config/content-reviews.php — a real review date
+    //    maintained in the same commit as the content, never
+    //    auto-refreshed (D179 honesty canon).
+    'content_last_reviewed' => 'Last reviewed',
     'content_commitment_roadmap_action' => 'Explore the Road Ahead',
     'content_commitment_roadmap_body' => 'Where we\'re heading and what we\'ve already shipped — ideas in the open, no dates, no promises.',
     'content_commitment_roadmap_title' => 'The Road Ahead',

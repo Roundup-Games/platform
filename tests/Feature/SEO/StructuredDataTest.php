@@ -7,6 +7,7 @@ use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\Team;
 use App\Models\User;
+use App\SEO\WebSiteSchema;
 use Spatie\Permission\Models\Role;
 
 use function Pest\Laravel\actingAs;
@@ -335,6 +336,64 @@ describe('JSON-LD Structural Validation', function () {
         expect($org['contactPoint']['contactType'])->toBe('customer support');
         expect($org['contactPoint']['email'])->toBe(config('company.contact.support'));
     });
+
+    it('Organization sameAs is exactly the config-sourced profile list', function () {
+        $response = get(route('home'));
+        $response->assertOk();
+
+        $org = findSchemaByType(extractJsonLdSchemas($response->content()), 'Organization');
+        expect($org)->not->toBeNull('Missing Organization schema on homepage');
+
+        // K004: the schema mirrors config('company.social_profiles') — a
+        // new profile (Wikidata, LinkedIn…) is a config addition, and this
+        // pin proves the schema never claims an entity the config does not.
+        $expected = array_values(array_filter(
+            config('company.social_profiles'),
+            fn ($profile): bool => is_string($profile) && $profile !== ''
+        ));
+
+        expect($org['sameAs'])->toEqual($expected)
+            ->toContain(config('company.social_profiles')[0]);
+    });
+
+    it('emits sitewide WebSite schema with one functional SearchAction per locale', function (string $path) {
+        $response = get($path);
+        $response->assertOk();
+
+        $website = findSchemaByType(extractJsonLdSchemas($response->content()), 'WebSite');
+        expect($website)->not->toBeNull('Missing WebSite schema on '.$path);
+
+        $name = config('seo.site_name', config('company.display_name'));
+        expect($website['name'])->toBe($name)
+            ->and($website['url'])->toBe(rtrim((string) config('app.url'), '/'));
+
+        // One action per available locale, each pointing at the named
+        // search route with the ?q= template the discovery components
+        // read server-side.
+        $locales = config('app.available_locales', ['en']);
+        $actions = $website['potentialAction'];
+        expect($actions)->toHaveCount(is_array($locales) ? count($locales) : 1);
+
+        $base = rtrim((string) config('app.url'), '/');
+        foreach ($actions as $action) {
+            expect($action['@type'])->toBe('SearchAction')
+                ->and($action['target']['@type'])->toBe('EntryPoint')
+                ->and($action['query-input'])->toBe('required name=search_term_string');
+
+            $locale = $action['target']['inLanguage'];
+            expect($locales)->toContain($locale);
+            expect($action['target']['urlTemplate'])->toBe(
+                $base.route(WebSiteSchema::SEARCH_ROUTE, ['locale' => $locale], false)
+                    .'?'.WebSiteSchema::SEARCH_PARAM.'={search_term_string}'
+            );
+
+            // Honesty pin: the advertised target must be a live, GET-able
+            // search surface — an EntryPoint that 404s (or 302s) is a lie
+            // to both users and agents.
+            get(str_replace('{search_term_string}', 'catan', $action['target']['urlTemplate']))
+                ->assertOk();
+        }
+    })->with(['home' => ['/en'], 'pillar page' => ['/en/faq'], 'game-systems index' => ['/en/game-systems']]);
 
     it('User page emits valid Person JSON-LD', function () {
         Role::firstOrCreate([
