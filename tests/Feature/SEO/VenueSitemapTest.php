@@ -132,7 +132,11 @@ describe('Venues Sitemap — exclusion (the safety contract)', function () {
         expect($content)->not->toContain($private->slug);
         expect($content)->not->toContain($unverified->slug);
         expect($content)->not->toContain($other->slug);
-        expect($content)->not->toContain('mixed-other');
+
+        // A slug-less venue has no reachable URL — SitemapController's
+        // whereNotNull('slug') must keep its empty-slug entry out of the
+        // index (a bare "/venue/</loc>" loc would otherwise leak).
+        expect($content)->not->toContain('/venue/</loc>');
     });
 });
 

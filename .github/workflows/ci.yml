@@ -265,8 +265,8 @@ jobs:
             echo "deferred=changed" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          ddl=$(git diff --name-only "$BASE"..HEAD -- database/migrations database/schema | wc -l | tr -d ' ')
-          deferred=$(git diff --name-only "$BASE"..HEAD -- app/Console/Dev app/Services/BggSyncService.php app/Services/GameSystemRequestService.php app/Filament resources/views/filament tests/Feature/Console/DemoSeedCommandTest.php tests/Feature/Console/DemoEnvironmentGuardTest.php tests/Feature/Badges/DemoCohortProofTest.php tests/Feature/Services/BggSyncTest.php tests/Feature/Services/GameSystemRequestServiceBggSyncTest.php tests/Feature/Services/BggSyncServiceTaxonomyTest.php tests/Feature/Console/BggWeeklySyncTest.php tests/Feature/Filament/AdminResourceSmokeTest.php tests/Feature/Filament/SignupAttributionUatTest.php tests/Feature/Filament/ScheduledTasksPageTest.php | wc -l | tr -d ' ')
+          ddl=$(git diff --name-only "$BASE"..HEAD -- database/migrations database/schema tests/Feature/Migrations | wc -l | tr -d ' ')
+          deferred=$(git diff --name-only "$BASE"..HEAD -- app/Console/Dev app/Services/BggSyncService.php app/Services/GameSystemRequestService.php app/Filament resources/views/filament tests/Feature/Console/DemoSeedCommandTest.php tests/Feature/Console/DemoEnvironmentGuardTest.php tests/Feature/Badges/DemoCohortProofTest.php tests/Feature/Services/BggSyncTest.php tests/Feature/Services/GameSystemRequestServiceBggSyncTest.php tests/Feature/Services/BggSyncServiceTaxonomyTest.php tests/Feature/Console/BggWeeklySyncTest.php tests/Feature/Filament/AdminResourceSmokeTest.php tests/Feature/Filament/SignupAttributionUatTest.php tests/Feature/Filament/ScheduledTasksPageTest.php tests/Pest.php | wc -l | tr -d ' ')
           if [ "$ddl" -gt 0 ]; then echo "ddl=changed" >> "$GITHUB_OUTPUT"; else echo "ddl=unchanged" >> "$GITHUB_OUTPUT"; fi
           if [ "$deferred" -gt 0 ]; then echo "deferred=changed" >> "$GITHUB_OUTPUT"; else echo "deferred=unchanged" >> "$GITHUB_OUTPUT"; fi
 

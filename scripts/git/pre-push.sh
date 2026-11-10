@@ -106,7 +106,7 @@ paths_changed_in_push() {
     return 1
 }
 
-ddl_paths=(database/migrations database/schema)
+ddl_paths=(database/migrations database/schema tests/Feature/Migrations)
 deferred_paths=(
     app/Console/Dev
     app/Services/BggSyncService.php
@@ -123,6 +123,9 @@ deferred_paths=(
     tests/Feature/Filament/AdminResourceSmokeTest.php
     tests/Feature/Filament/SignupAttributionUatTest.php
     tests/Feature/Filament/ScheduledTasksPageTest.php
+    # tests/Pest.php carries the nightly-group bindings — a membership change
+    # (new deferred file) must run the group at push time, not wait for cron.
+    tests/Pest.php
 )
 
 run_ddl_tail=0
