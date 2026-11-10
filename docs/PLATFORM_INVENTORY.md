@@ -79,18 +79,23 @@ All public pages are locale-prefixed (`/{locale}/...`), SEO-optimized with sitem
 | Event Detail | `/events/{slug}` | Full event page with announcements, registration counts | ✅ Complete |
 | Team Directory | `/teams` | Public team listing with search and sort | ✅ Complete |
 | Team Detail | `/teams/{slug}` | Team profile with active roster | ✅ Complete |
-| GM Directory | `/gms` | Game Master directory filterable by specialization, game system, rating; sortable by rated/reviewed/sessions/newest | ✅ Complete |
+| GM Directory | `/gms` | Game Master directory filterable by specialization, game system, rating; sortable by rated/reviewed/sessions/newest; evergreen intro copy in both locales | ✅ Complete |
+| City Hubs Index | `/cities` | Directory of live city hubs — a hub appears automatically when a city's public activity around verified venues crosses the qualifying threshold | ✅ Complete |
+| City Hub | `/cities/{slug}` | Per-city landing page bundling upcoming public games, campaigns, events, and verified venues for a local scene | ✅ Complete |
 | Public Profiles | `/u/{slug}` | Public user profiles with visibility-scoped content | ✅ Complete |
 
 ### 1.3 SEO & Performance Infrastructure
 
 | Feature | Implementation | Status |
 |---------|---------------|--------|
-| XML Sitemap | 7 sitemap types (static, game-systems, events, games, campaigns, teams, profiles) | ✅ Complete |
+| XML Sitemap | 8 sitemap types (static, game-systems, events, games, campaigns, profiles, venues, cities) | ✅ Complete |
 | SEO Metadata | Per-entity overrides (title, description, image, canonical URL, robots directives) on 7 content types | ✅ Complete |
 | CDN Caching | Public pages cached 60s client / 300s CDN, with private-page exclusion list | ✅ Complete |
 | Cloudflare Integration | Cache rule sync command for route-based cache policies | ✅ Complete |
-| Structured Data | SEO foundation with schema.org markup | ✅ Complete |
+| Structured Data | schema.org markup: Organization (truthful Berlin-only areaServed, config-sourced sameAs/contactPoint), BreadcrumbList sitewide, FAQPage (FAQ + algorithms pages), WebSite + per-locale SearchAction sitewide | ✅ Complete |
+| Agent surfaces (GEO) | llmstxt.org v2 `/llms.txt` map — generated with live stats, cached 1h, link-resolution-walked by tests; markdown alternates for the 9 EN pillar pages (`/en/{page}.md`, canonical Link header); `rel=describedby` site-wide; answer-crawler robots.txt posture (GPTBot, Claude family, Perplexity family, Google-Extended, Applebot, Amazonbot, Bytespider); per-entry BoardGameGeek source attribution on game-system pages | ✅ Complete |
+| GEO measurement | Search Performance admin page: GSC digest trend, Core Web Vitals per template, IndexNow state, and an AI-surfaces section (GSC API gap statement, manual monthly spot-check checklist, first-party `/llms.txt` fetch telemetry in hourly buckets) | ✅ Complete |
+| Temporal trust signals | "Last reviewed" notes on evergreen pillar pages and their markdown mirrors, single-sourced from `config/content-reviews.php` | ✅ Complete |
 
 ### 1.4 Utility Endpoints
 
@@ -178,6 +183,8 @@ All public pages are locale-prefixed (`/{locale}/...`), SEO-optimized with sitem
 | Add Session to Campaign | Create new Game (session) linked to campaign, pre-populates roster | ✅ Complete |
 | Recurrence | Weekly, bi-weekly, monthly scheduling | ✅ Complete |
 | Visibility | Same 3-tier model as games (Public / Protected / Private) | ✅ Complete |
+| Campaign Charter | Signable, versioned table agreement: boundaries, safety tools, table policies, AI & digital-tools consent, commitments — with private player answers; charter publish/amend fans out notifications to approved participants. Safety core free; unlimited charters/templates with membership | ✅ Complete |
+| Campaign Journal | Per-campaign journal (recaps, goals, character arcs) with Previously On catch-up digests and spoiler-safe recruitment summaries | ✅ Complete |
 
 ### 3.3 Waitlist System
 
@@ -287,10 +294,18 @@ All public pages are locale-prefixed (`/{locale}/...`), SEO-optimized with sitem
 | Feature | Description | Status |
 |---------|-------------|--------|
 | GM Directory | Public directory filterable by specialization, game system, rating | ✅ Complete |
-| GM Workspace | Authenticated workspace: upcoming sessions, recent reviews, player stats, active campaigns, session zero surveys, link analytics | ✅ Complete |
+| GM Workspace | Authenticated workspace: upcoming sessions, recent reviews, player stats, active campaigns, charter surveys (Session Zero practice), link analytics | ✅ Complete |
 | GM Profile | Role-gated profile with bio, specializations, social links, stats | ✅ Complete |
-| Session Zero Surveys | Safety tool selection, lines & veils, tone/genre, house rules, content warnings, player expectations. Shareable UUID link. | ✅ Complete |
+| Campaign Charter surveys | Safety tool selection, lines & veils, tone/genre, house rules, content warnings, player expectations — the Session Zero practice inside the Campaign Charter flow. Shareable UUID link | ✅ Complete |
 | GM Role Management | Automatic GM role activation/revocation tied to subscription lifecycle | ✅ Complete |
+
+### 4.5 Badges
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| Badge definitions | Admin-managed badge definitions (category, rarity, criteria) — badges are grounded in real platform history, never points-based | ✅ Complete |
+| Badge awards | Earned from real events (first hosted table, completed journaled campaign, reliability milestones) — displayed on profiles | ✅ Complete |
+| Public badge gallery | `/badges` — public gallery of every earnable badge, grouped by category and rarity | ✅ Complete |
 
 ---
 

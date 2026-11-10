@@ -43,4 +43,6 @@ return [
     'content_delivered_events_body' => 'Events über mehrere Runden, mit Online-Ticketzahlung und Co-Organisatoren, die sich die Arbeit der Organisation teilen können.',
     'heading_delivered_algorithms' => 'Eine transparente Algorithmen-Seite',
     'content_delivered_algorithms_body' => 'Jeder Matching- und Bewertungsalgorithmus in klarer Sprache dokumentiert — mit den echten Formeln und Links zum Open-Source-Code.',
+    'heading_delivered_agent_map' => 'Eine Karte für KI-Assistenten',
+    'content_delivered_agent_map_body' => 'Unsere llms.txt — ein öffentlicher Index der Plattform, geschrieben für KI-Assistenten — regeneriert sich jetzt selbst mit Live-Aktivitätszahlen und einem Test, der bei toten Links fehlschlägt. Jede Leitseite gibt es zusätzlich als saubere Markdown-Fassung, die Entdecken-Seiten erklären sich in klaren Worten — und die großen KI-Crawler sind ausdrücklich willkommen.',
 ];

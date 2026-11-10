@@ -43,4 +43,6 @@ return [
     'content_delivered_events_body' => 'Events spanning multiple games, with online ticket payment and co-organizers who can share the work of running them.',
     'heading_delivered_algorithms' => 'A Transparent Algorithms Page',
     'content_delivered_algorithms_body' => 'Every matching and scoring algorithm documented in plain language, with the actual formulas and links to the open-source code.',
+    'heading_delivered_agent_map' => 'A Map for AI Assistants',
+    'content_delivered_agent_map_body' => 'Our llms.txt — a public index of the platform, written for AI assistants — now regenerates itself with live activity stats and a test that fails on any dead link. Every pillar page ships a clean markdown edition, the discovery pages explain themselves in plain language, and the major AI crawlers are explicitly welcome.',
 ];

@@ -2,6 +2,8 @@
 
 The platform for organizing tabletop gaming sessions — board games, RPGs, and card games. Users create and join game sessions, campaigns, and events; hosts manage participants through a waitlist/bench system with reliability scoring.
 
+> **Two glossaries, two jobs:** this file is the *developer's* ubiquitous language (entity seams, state machines, cache vocabulary). User-facing terminology — the words that appear in UI copy, with one canonical term per locale and a ban-list — lives in [`docs/GLOSSARY.md`](docs/GLOSSARY.md), with editorial voice mechanics in [`docs/STYLE-GUIDE.md`](docs/STYLE-GUIDE.md). When they interact, both apply.
+
 ## Language
 
 ### Participants & Sessions
@@ -43,6 +45,36 @@ _Avoid_: precompute, refresh (refresh implies re-read; warm implies compute-and-
 **Dashboard cache**:
 The module that owns cache keys, TTLs, and invalidation rules for Dashboard sections. Computers live on sibling services; the cache module invokes them via a `remember` primitive.
 _Avoid_: the dashboard service (ambiguous — there are several), cache layer
+
+## Events & places
+
+**Event**:
+A registered, ticketed get-together that hosts multiple tables. Has divisions, registration windows, co-organizers, and its own ticketing. Distinct from a Game or Campaign (the word is entity-reserved in copy).
+_Avoid_: using "event" generically for games or campaigns
+
+**Table**:
+A game session hosted under an event umbrella. Event-scoped — not a synonym for a standalone Game.
+
+**Venue**:
+A verified public place to play — café, game store, library. Venues are community-proposed and claimable; verified venues unlock public visibility and city-hub eligibility.
+
+**City hub**:
+The per-city landing page bundling a local scene's public activity. A hub goes live automatically once `CityDirectoryService`'s qualifying guard passes (enough upcoming public activity around verified venues) — the guard is the single source of truth for both the directory and `LlmsTxtService`'s city count.
+
+## Campaign content
+
+**Campaign Charter**:
+The signable, versioned table agreement for a campaign: boundaries, safety tools, table policies, AI & digital-tools consent, and commitments, with private player answers. Publishing or amending fans out charter notifications to approved participants. The safety core is free; unlimited charters/templates ship with membership.
+_Avoid_: "Session Zero builder" as a feature name (Session Zero remains the safety *practice*)
+
+**Campaign journal**:
+Per-campaign record of recaps, goals, and character arcs. Feeds **Previously On** digests (catch-up summaries before the next session) and spoiler-safe recruitment summaries.
+
+**Recap**:
+The host-written summary published after a session (distinct from the participant-answered **Debriefing** questionnaire).
+
+**Badge**:
+An award grounded in real platform history (attendance, hosting, journaling milestones) — never points-based. Badge definitions are admin-managed; earned badges display on profiles and in the public gallery.
 
 ## Flagged ambiguities
 

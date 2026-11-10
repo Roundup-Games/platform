@@ -10,10 +10,12 @@ Open-source, non-profit platform for finding, joining, and organizing in-person 
 
 - **Games & campaigns** — one-shot games or recurring campaigns with sessions; public/protected/private visibility; application, invitation, waitlist, and bench flows with confirmation windows and signup cutoffs.
 - **Events** — multi-day events with divisions, registration windows, early-bird pricing, announcements, and team/individual registration modes.
-- **Discovery** — proximity-based search for board games and TTRPG adventures; filterable by game system, experience, vibe, safety tools, language, price, and complexity.
-- **Game system catalog** — public pages per system (categories, mechanics, designers, publishers, active sessions), synced from BoardGameGeek plus a TTRPG seed, with a community request flow.
+- **Discovery** — proximity-based search for board games and TTRPG adventures; filterable by game system, experience, vibe, safety tools, language, price, and complexity; city hubs bundle a local scene's public activity per city.
+- **Game system catalog** — public pages per system (categories, mechanics, designers, publishers, active sessions), synced from BoardGameGeek plus a TTRPG seed, with a community request flow and per-entry source attribution.
 - **People & social graph** — follow/block relationships, friend-based invitations, public profiles with field-level privacy, and taste-matching (Jaccard similarity on shared preferences).
-- **GM directory & workspace** — GM profiles with specializations and star ratings; subscriber-only workspace including a Session Zero builder and debriefing tooling.
+- **GM directory & workspace** — GM profiles with specializations and star ratings; subscriber workspace with professional tooling. The Campaign Charter — signable, versioned table agreements covering boundaries, safety tools, and commitments — is free at its safety core for every table.
+- **Campaign journal** — living per-campaign journal (recaps, goals, character arcs) with Previously On digests and spoiler-safe recruitment summaries.
+- **Badges** — earned badges grounded in real platform history (no points to farm), displayed on profiles with a public gallery.
 - **Attendance & reliability** — peer-reported attendance with grief-resistant scoring (weight stacking, corroboration, volume quarantine), auto-completion, nudges, dispute resolution, and reliability tiers.
 - **Teams** — team rosters with captain/coach/player/substitute roles, invites, and promotion flows.
 - **Venues** — community-proposed and claimable commercial venues with public directory pages.
@@ -22,7 +24,7 @@ Open-source, non-profit platform for finding, joining, and organizing in-person 
 - **PWA** — installable, offline support, web push session reminders, personal iCal calendar feed.
 - **Billing** — Paddle subscriptions and one-time charges (the GM workspace is subscriber-funded).
 - **Support & admin** — Escalated-powered helpdesk with SLA automations; Filament admin panel with resources, reports, exports, and scheduled-task visibility.
-- **Platform ops** — PostHog analytics (consent-aware), SEO with sitemaps and structured data, Cloudflare CDN cache-rule sync, user data exports and privacy anonymization jobs.
+- **Platform ops** — PostHog analytics (consent-aware), SEO with sitemaps and structured data, agent-facing surfaces (llmstxt.org v2 `/llms.txt` map, markdown alternates for pillar pages, answer-crawler posture), Cloudflare CDN cache-rule sync, user data exports and privacy anonymization jobs.
 
 ## Architecture
 
@@ -112,7 +114,7 @@ composer test         # full suite, parallel
 php artisan test --filter='GameTest|CampaignTest'
 ```
 
-Tag critical-path tests with `->group('smoke')` (see [CONTRIBUTING.md](CONTRIBUTING.md)). CI additionally enforces Pint style, Eloquent best practices (`composer practices`), Larastan, and translation parity (`php artisan i18n:check`).
+Tag critical-path tests with `->group('smoke')` (see [CONTRIBUTING.md](CONTRIBUTING.md)). CI additionally enforces Pint style, Eloquent best practices (`composer practices`), Larastan, and translation parity (`php artisan i18n:check`) — `composer ci-mirror` runs the full static mirror locally.
 
 ## Deployment
 
@@ -120,13 +122,15 @@ Tag critical-path tests with `->group('smoke')` (see [CONTRIBUTING.md](CONTRIBUT
 
 **CDN:** public pages are edge-cached at Cloudflare; cache rules are derived from Laravel routes and synced with `composer deploy:cdn` (needs `CF_ZONE_ID` + `CF_API_TOKEN`). Authenticated traffic always bypasses cache.
 
-**Docker:**
+**Docker (self-host / production):**
 
 ```bash
-docker compose up -d app worker
+docker compose --profile live up -d app worker
 ```
 
-The `app` container serves on port 8199 and runs migrations on boot; the `worker` container runs Horizon (queue) and the scheduler — no nginx/fpm.
+The `app` container serves on port 8199 and runs migrations on boot; the `worker` container runs Horizon (queue) and the scheduler — no nginx/fpm. Every steady-state service carries the `live` Compose profile as a guardrail: a bare `docker compose up -d` selects nothing and errors instead of half-recreating a production stack.
+
+**Our production deploys** run blue/green on a homelab host: `git push homelab main` triggers a post-receive hook that pulls the pinned image, health-gates a fresh slot, flips the edge upstream, and retires the old one (see `scripts/deploy/homelab.sh`; the `bluegreen` profile exists only during deploys).
 
 ## Project Documentation
 

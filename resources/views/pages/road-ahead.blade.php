@@ -145,6 +145,21 @@
                 </p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                {{-- Agent surfaces (M078) — most recent receipt first --}}
+                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">smart_toy</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('roadmap.heading_delivered_agent_map') }}</h3>
+                            <p class="text-sm text-on-surface-variant leading-relaxed">
+                                {{ __('roadmap.content_delivered_agent_map_body') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- The Campaign Charter (M070) --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
