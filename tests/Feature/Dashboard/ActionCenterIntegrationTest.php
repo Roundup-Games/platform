@@ -60,21 +60,29 @@ describe('Action Center invalidation triggers', function () {
 
         // STEP 2 — participant creation invalidates participant AND owner
         // (game owned by a different user; $this->user joins as participant).
+        // The host game is created BEFORE either key is warmed: creating a
+        // game invalidates its owner's key (GameObserver::saved →
+        // invalidateActionCenterForGameEvent), so an inline factory inside the
+        // GameParticipant::create() argument would null $ownerKey before the
+        // participant observer fires and make the final owner assertion
+        // vacuous (mutation-verified: dropping the observer's owner-leg kept
+        // the inline-creation shape green).
         $otherOwner = User::factory()->create();
         $ownerKey = "dashboard:action_center:{$otherOwner->id}";
+        $otherGame = Game::factory()->create([
+            'owner_id' => $otherOwner->id,
+            'game_system_id' => $this->gameSystem->id,
+            'status' => 'scheduled',
+        ]);
         $cacheService->getActionCenter($otherOwner);
         expect(Cache::get($ownerKey))->not->toBeNull();
-        // Re-warm BOTH keys: STEP 1 nulled $cacheKey, and asserting null on
-        // an already-null key would pass even if the participant-side
+        // Re-warm $cacheKey too: STEP 1 nulled it, and asserting null on an
+        // already-null key would pass even if the participant-side
         // invalidation never fired (M077 review fix — old test warmed both).
         $warm();
 
         $participant = GameParticipant::create([
-            'game_id' => Game::factory()->create([
-                'owner_id' => $otherOwner->id,
-                'game_system_id' => $this->gameSystem->id,
-                'status' => 'scheduled',
-            ])->id,
+            'game_id' => $otherGame->id,
             'user_id' => $this->user->id,
             'status' => ParticipantStatus::Pending->value,
         ]);
