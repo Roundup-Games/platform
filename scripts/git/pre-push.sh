@@ -58,10 +58,16 @@ fi
 origin_main_sha="$(git rev-parse origin/main 2>/dev/null || true)"
 # Capture the pushed refspecs once — the homelab skip guard and the M077
 # path gates (below) both consume them; stdin can only be read once.
-mapfile -t pushed_lines
+# mapfile is bash ≥ 4; macOS still ships bash 3.2 as /bin/bash, so drain
+# stdin with a portable while-read loop instead (same semantics: one
+# array element per stdin line, trailing newline stripped).
+pushed_lines=()
+while IFS= read -r _line; do
+    pushed_lines+=("$_line")
+done
 if [[ "$remote" == "homelab" && -n "$origin_main_sha" ]]; then
     pushed_shas=()
-    for line in "${pushed_lines[@]}"; do
+    for line in ${pushed_lines[@]+"${pushed_lines[@]}"}; do
         read -r _local_ref local_sha _remote_ref _remote_sha <<< "$line"
         [[ -n "$local_sha" ]] && pushed_shas+=("$local_sha")
     done
@@ -93,7 +99,7 @@ paths_changed_in_push() {
     local patterns=("$@")
     [[ "${#pushed_lines[@]}" -gt 0 ]] || return 0
     local line local_sha remote_sha
-    for line in "${pushed_lines[@]}"; do
+    for line in ${pushed_lines[@]+"${pushed_lines[@]}"}; do
         read -r _local_ref local_sha _remote_ref remote_sha <<< "$line"
         [[ -n "$local_sha" && -n "$remote_sha" ]] || return 0
         if [[ "$remote_sha" =~ ^0+$ ]]; then return 0; fi   # new branch — fail safe
