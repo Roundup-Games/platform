@@ -88,6 +88,7 @@ services:
     stop_grace_period: 30s
     networks:
       - roundup
+      - proxynet
 
   app-green:
     # GREEN slot — identical to `app` except the name. Enabled only via
@@ -112,6 +113,7 @@ services:
     stop_grace_period: 30s
     networks:
       - roundup
+      - proxynet
 
   edge:
     # The one stable origin the Cloudflare Tunnel points at (:8199).
@@ -163,6 +165,7 @@ services:
       - app_storage:/var/www/html/storage
     networks:
       - roundup
+      - proxynet
     # Worker has no nginx/fpm (stripped in the Dockerfile worker stage), so the
     # image's default HTTP healthcheck always fails with 'unhealthy'. Probe what
     # the worker actually does: Horizon is processing the queue.
@@ -207,6 +210,7 @@ services:
     entrypoint: ["/bin/sh", "-c", "crond -f -l 2"]
     networks:
       - roundup
+      - proxynet
 
 volumes:
   app_storage:
@@ -215,14 +219,26 @@ volumes:
 networks:
   roundup:
     driver: bridge
-    # Stable, host-referencable name: Redis and Postgres (Unraid-managed
-    # containers on this host) attach to this network so the app resolves
-    # them by container name (REDIS_HOST=Redis, DB_HOST=postgresql17) —
-    # never by host LAN IP (MEM1147: reboot windows + restart=no caused
-    # ~4.9K connection-refused errors). Those containers must also run
-    # with --restart unless-stopped. NOTE: docker network connect is
-    # runtime state — re-attach after recreating Redis/Postgres on the
-    # Unraid side, or add this network to their templates:
-    #   docker network connect roundup-games-laravel_roundup Redis
-    #   docker network connect roundup-games-laravel_roundup postgresql17
+    # Stable, host-referencable name for the stack-internal graph
+    # (edge -> app slots). Container-name resolution for the app's
+    # dependencies (REDIS_HOST=Redis, DB_HOST=postgresql17) does NOT come
+    # from this network — see `proxynet` below.
     name: roundup-games-laravel_roundup
+  proxynet:
+    # Unraid-managed Redis (`Redis`) and Postgres (`postgresql17`) live on
+    # this shared host bridge network; app / app-green / worker / backup
+    # join it so they resolve those containers by name — never by host LAN
+    # IP (MEM1147: reboot windows + restart=no caused ~4.9K
+    # connection-refused errors). Direction matters for durability: the
+    # 2026-11-10 incident had Redis/Postgres transitively attached to the
+    # `roundup` network via `docker network connect` — pure runtime state
+    # that an Unraid-side recreation silently drops (both containers were
+    # recreated ~08:58 UTC and DNS died with them → site-wide 500s).
+    # proxynet, by contrast, is those containers' PRIMARY network from
+    # their Unraid templates: they always come back on it. Joining it here
+    # makes name resolution survive any recreation without manual
+    # re-attach steps. Trade-off: app containers become resolvable by
+    # other proxynet members (trusted LAN; edge remains the only public
+    # path).
+    external: true
+    name: proxynet
