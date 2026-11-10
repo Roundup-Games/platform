@@ -67,11 +67,13 @@ describe('VenueDetail 404 gate', function () {
     });
 
     it('is not reachable when slug is null (no route match)', function () {
-        // A verified commercial venue with a null slug has no reachable public URL:
-        // the /venue/{slug} route requires a non-empty slug segment.
-        createVerifiedVenue(['slug' => null, 'name' => 'Null Slug Venue']);
-
-        // /en/venue (no slug segment) does not match venues.detail -> 404
+        // A slug-less venue has no reachable public URL: /venue/{slug} requires
+        // a non-empty slug segment, so the bare /en/venue path matches no route.
+        // (No fixture needed — this pins routing, not DB state. Note the
+        // Location saving hook auto-slugs eligible venues anyway, so a null-slug
+        // row cannot even be produced through normal creation; the sitemap's
+        // whereNotNull('slug') defense against legacy rows is pinned in
+        // VenueSitemapTest's combined exclusion test.)
         get('/en/venue')
             ->assertNotFound();
     });

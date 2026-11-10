@@ -110,8 +110,15 @@ ddl_paths=(database/migrations database/schema tests/Feature/Migrations)
 deferred_paths=(
     app/Console/Dev
     app/Services/BggSyncService.php
+    app/Services/BggClient.php
+    app/Services/BggXmlParser.php
     app/Services/GameSystemRequestService.php
+    # routes/console.php carries the bgg:weekly-sync closure (no command
+    # class exists) and the Schedule definitions ScheduledTasksPage renders.
+    routes/console.php
     app/Filament
+    app/Providers/Filament
+    app/Support/Scheduling
     resources/views/filament
     tests/Feature/Console/DemoSeedCommandTest.php
     tests/Feature/Console/DemoEnvironmentGuardTest.php

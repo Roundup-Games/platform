@@ -121,10 +121,21 @@ describe('VenueLink component', function () {
             'null location' => fn () => null,
         ];
 
+        $noNameLeak = [
+            'private (unverified) location' => 'Secret Hideaway',
+            'verified-but-Other venue type (excluded by the authority)' => 'Misc Venue',
+        ];
+
         foreach ($cases as $label => $makeLocation) {
             $rendered = Blade::render('<x-venue-link :location="$location" />', ['location' => $makeLocation()]);
 
-            expect($rendered)->not->toContain('href=')->not->toContain('/venue/');
+            // No anchor, no URL — and for named non-linkable locations, no
+            // name either: the contract is "no orphan chip", not just no link
+            // (an inert plain-text name would pass a URL-only assert).
+            $expectation = expect($rendered)->not->toContain('href=')->not->toContain('/venue/');
+            if (isset($noNameLeak[$label])) {
+                $expectation->not->toContain($noNameLeak[$label]);
+            }
         }
     });
 });
@@ -164,7 +175,39 @@ describe('game header venue link', function () {
 });
 
 // ═══════════════════════════════════════════════════════════
+// WIRE-IN: SESSION CARD (the demo entry point)
+// ═══════════════════════════════════════════════════════════
 
-// M077/S01: the session-card wire-in pair was cut — it exercises the same
-// <x-venue-link> component path as the game-header pair above; one wire-in
-// surface pins the integration.
+// M077 review (post-closeout): this pair was originally cut as "same
+// component path as the game-header pair", but session-card carries its OWN
+// guard (@if($entity->relationLoaded('linkedLocation') && …)) — a distinct
+// blade surface that no other test renders with a linked venue. Restored.
+describe('session card venue link', function () {
+    it('shows the venue link for a verified-venue session', function () {
+        $venue = venueLinkCreateVenue(['name' => 'Board Game Bar']);
+        $game = venueLinkCreateGame($venue);
+        $game->load(['gameSystems', 'linkedLocation']);
+
+        $rendered = view('livewire.components.partials.session-card', [
+            'entity' => $game,
+            'type' => 'session',
+        ])->render();
+
+        $expectedUrl = route('venues.detail', ['locale' => 'en', 'slug' => $venue->slug]);
+        expect($rendered)->toContain($expectedUrl)->toContain('Board Game Bar');
+    });
+
+    it('omits the venue link for a private-home session (no name chip)', function () {
+        $location = venueLinkCreatePrivateLocation(['name' => 'Living Room Host']);
+        $game = venueLinkCreateGame($location);
+        $game->load(['gameSystems', 'linkedLocation']);
+
+        $rendered = view('livewire.components.partials.session-card', [
+            'entity' => $game,
+            'type' => 'session',
+        ])->render();
+
+        // No venue anchor and no leak of the private location's name as a link.
+        expect($rendered)->not->toContain('/venue/')->not->toContain('Living Room Host');
+    });
+});

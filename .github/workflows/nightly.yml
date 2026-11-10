@@ -8,6 +8,13 @@ name: Nightly
 # suite nightly so a deferred surface cannot rot silently for more than a day.
 # Path-triggered runs in ci.yml cover the same surfaces when their app-side
 # code changes, so breakage is usually caught at PR time anyway.
+#
+# FAILURE VISIBILITY (M077 review): scheduled runs have no watching human —
+# GitHub emails the last committer of this file when a cron run fails, and
+# that is currently the ONLY notification. Until an ops channel (webhook →
+# email/Discord) is wired, treat that email as the rot-bound tripwire: if it
+# is filtered or missed, deferred-cluster rot exceeds the one-day bound
+# invisibly. Wiring a durable notifier is an open follow-up.
 
 on:
   schedule:

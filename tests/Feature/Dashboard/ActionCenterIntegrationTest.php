@@ -64,6 +64,10 @@ describe('Action Center invalidation triggers', function () {
         $ownerKey = "dashboard:action_center:{$otherOwner->id}";
         $cacheService->getActionCenter($otherOwner);
         expect(Cache::get($ownerKey))->not->toBeNull();
+        // Re-warm BOTH keys: STEP 1 nulled $cacheKey, and asserting null on
+        // an already-null key would pass even if the participant-side
+        // invalidation never fired (M077 review fix — old test warmed both).
+        $warm();
 
         $participant = GameParticipant::create([
             'game_id' => Game::factory()->create([

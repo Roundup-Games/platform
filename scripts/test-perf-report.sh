@@ -169,7 +169,14 @@ for chunk in "$@"; do
             ;;
         par)
             unset TEST_PROFILE TEST_PROFILE_FILE
-            run_chunk par run-par.log vendor/bin/pest --parallel --log-junit "$R/junit-par.xml"
+            # Two-phase shape (M075/M077 parity — same as CI/pre-push): the
+            # ddl-serial group runs REAL DDL that deadlocks sibling --parallel
+            # workers on the shared DB (SQLSTATE 40P01, 2026-11-01), so it is
+            # excluded from the parallel phase and run as a serial tail. The
+            # nightly group stays INCLUDED here on purpose: this measures the
+            # full-suite wall, not the default-path wall (D270 — walls are
+            # informational; junit-seq chunks carry the per-file signal).
+            run_chunk par run-par.log bash -c 'vendor/bin/pest --parallel --exclude-group=ddl-serial --log-junit "$1" && vendor/bin/pest --group=ddl-serial' _ "$R/junit-par.xml"
             ;;
         analyze)
             # Smoke-group membership for the subset-timing table.

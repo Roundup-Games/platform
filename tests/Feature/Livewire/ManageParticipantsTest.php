@@ -75,6 +75,9 @@ test('owner does not appear even when multiple approved players exist', function
     $approvedParticipants->each(function ($p) {
         expect($p->role)->not->toBe(ParticipantRole::Owner);
     });
+    // Template pin (M077 review): the section header renders the approved
+    // count excluding the owner — (2) here; 3 would mean the owner leaked in.
+    $component->assertSee('(2)');
 });
 
 test('owner name does not appear in approved participants section', function () {

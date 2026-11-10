@@ -119,8 +119,15 @@ describe('Venues Sitemap — exclusion (the safety contract)', function () {
         $slugless = Location::factory()->verifiedVenue()->create([
             'is_verified' => true,
             'venue_type' => VenueType::Cafe,
-            'slug' => null,
         ]);
+        // The Location saving hook auto-slugs every public-venue-page-eligible
+        // location, so a null slug cannot survive model creation — force the
+        // legacy / data-corruption null-slug state at the DB level (mass update
+        // bypasses model events). Pin the precondition: without it the
+        // exclusion assertion below passes vacuously (the venue would simply
+        // be a normally-slugged row the sitemap rightly includes).
+        Location::where('id', $slugless->id)->update(['slug' => null]);
+        expect($slugless->fresh()->slug)->toBeNull('fixture regression: the slug-less state must hold at the DB level');
 
         $content = get('/sitemap-venues.xml')->content();
 

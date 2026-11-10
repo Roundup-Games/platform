@@ -11,8 +11,9 @@ use Illuminate\Support\Str;
  * M077/S01 consolidation: 11 dataset templates × 2 entity types (22 cases,
  * each with its own boot) → 3 flow tests that loop the entity type in-test.
  * Every original template is preserved verbatim as a labeled step; per-case
- * entity creation is unchanged. The stranger-grant case runs last in the
- * grants flow because actingAs() persists within a test.
+ * entity creation is unchanged. The stranger-grant case runs last in each
+ * iteration because actingAs() persists within a test — each iteration
+ * opens with auth()->forgetGuards() so the guest steps stay guest.
  */
 
 beforeEach(function () {
@@ -44,6 +45,13 @@ function createShareableEntity(string $type, array $overrides = []): array
 describe('Share token grants (flow)', function () {
     it('a valid share token grants access across entity types, visibilities, and lifecycles', function () {
         foreach (['game', 'campaign'] as $type) {
+            // actingAs() persists for the rest of the test — the stranger
+            // step at the END of the previous iteration leaves an
+            // authenticated user on the guard. Reset to guest so every
+            // iteration's "guest access" steps run as an actual guest
+            // (the old suite proved the guest branch for BOTH entity types).
+            auth()->forgetGuards();
+
             // grants guest access with valid share token (protected)
             $token = (string) Str::uuid();
             ['entity' => $entity] = createShareableEntity($type, [
@@ -127,7 +135,7 @@ describe('Share token denials (flow)', function () {
                 'share_token' => (string) Str::uuid(),
                 'share_token_expires_at' => now()->addDays(7),
             ]);
-            request()->merge(['share' => null]); // cleared: no share param in request
+            request()->merge(['share' => null]); // null share param: same branch as an absent param (hasValidShareToken guards $token === null)
             expect(Gate::allows('view', $noTokenEntity))->toBeFalse();
 
             // denies access when entity has no share_token set
