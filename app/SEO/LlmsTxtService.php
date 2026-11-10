@@ -13,6 +13,7 @@ use App\Services\CityDirectoryService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -241,11 +242,15 @@ class LlmsTxtService
             self::INFO_PARAGRAPH,
             '',
             sprintf(
-                'Current activity: %d upcoming public games, %d active public campaigns, %d game systems, %d active city hubs. Data as of %s.',
+                'Right now: %d upcoming public %s, %d active public %s, %d game %s, %d active city %s. Data as of %s.',
                 $stats['upcoming_public_games'],
+                Str::plural('game', $stats['upcoming_public_games']),
                 $stats['active_public_campaigns'],
+                Str::plural('campaign', $stats['active_public_campaigns']),
                 $stats['game_systems'],
+                Str::plural('system', $stats['game_systems']),
                 $stats['active_cities'],
+                Str::plural('hub', $stats['active_cities']),
                 $stats['as_of'],
             ),
             '',
