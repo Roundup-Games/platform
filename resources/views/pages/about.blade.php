@@ -1,5 +1,10 @@
 <x-public-layout>
 
+    {{-- Advertise this page's hand-authored /en/about.md mirror (M078/S04/T02). --}}
+    @push('head-links')
+        @include('markdown.partials.alternate-link', ['page' => 'about'])
+    @endpush
+
     {{-- ── Hero ─────────────────────────────────────────────── --}}
     <section class="relative bg-primary text-on-primary overflow-hidden">
         <div class="absolute inset-0 opacity-10">

@@ -402,6 +402,13 @@ it('serves a robots.txt with sitemap directive and open crawler policy', functio
     // routed through Laravel), so pin the deployed artifact directly.
     $body = (string) file_get_contents(public_path('robots.txt'));
 
+    // Exact-row pins (trimmed lines) so e.g. 'User-agent: Applebot' can never
+    // be vacuously satisfied by the 'Applebot-Extended' row.
+    $agentRows = array_map(
+        fn (string $line) => trim($line),
+        preg_split('/\r?\n/', $body) ?: [],
+    );
+
     expect($body)
         ->toContain('Sitemap: https://roundup.games/sitemap.xml')
         ->toContain('User-agent: *')
@@ -410,4 +417,12 @@ it('serves a robots.txt with sitemap directive and open crawler policy', functio
         ->toContain('User-agent: GPTBot')
         ->toContain('User-agent: ClaudeBot')
         ->toContain('User-agent: PerplexityBot');
+
+    // AI answer/search crawlers (M078/S02/T02): the answer-bot posture
+    // freeze — each row must exist exactly as written.
+    expect($agentRows)
+        ->toContain('User-agent: Claude-SearchBot')
+        ->toContain('User-agent: Claude-User')
+        ->toContain('User-agent: Perplexity-User')
+        ->toContain('User-agent: Applebot');
 });

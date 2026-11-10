@@ -25,7 +25,9 @@ use App\Http\Controllers\ExportDownloadController;
 use App\Http\Controllers\ICalFeedController;
 use App\Http\Controllers\IndexNowKeyController;
 use App\Http\Controllers\InviteOptoutController;
+use App\Http\Controllers\LlmsTxtController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\MarkdownAlternateController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaddleBillingController;
 use App\Http\Controllers\PaddleWebhookController;
@@ -224,6 +226,15 @@ Route::get('/sitemap-{type}.xml', [SitemapController::class, 'show'])
     // no longer indexable. Constraint mirrors SeoCacheService::SITEMAP_TYPES.
     ->where('type', 'static|game-systems|events|games|campaigns|profiles|venues|cities');
 
+// ── llms.txt (llmstxt.org v2 map) ────────────────────
+// Generated + cached by LlmsTxtService — deliberately NOT a static
+// public/llms.txt: the webserver serves static files before Laravel
+// routing, which would shadow this route and freeze the hand-written
+// body. Registered beside the sitemap routes, before the locale-prefixed
+// group and the bare-path /{path} catch-all, so the exact path can never
+// fall through to the locale-redirect fallback (pinned by LlmsTxtTest).
+Route::get('/llms.txt', LlmsTxtController::class);
+
 // ── Legacy API Redirects (backward compatibility) ────
 // Old /api/* routes redirect to /api/v1/* equivalents.
 // Registered here only for GET routes (permanentRedirect).
@@ -233,6 +244,23 @@ Route::get('/sitemap-{type}.xml', [SitemapController::class, 'show'])
 
 Route::permanentRedirect('/api/geocode', '/api/v1/geocode');
 Route::permanentRedirect('/api/push/vapid-public-key', '/api/v1/push/vapid-public-key');
+
+// ── Markdown alternates for the EN pillar pages (M078/S04) ──
+// Clean hand-authored markdown mirrors of the nine pinned pillars at
+// /en/{page}.md, for LLM/agent consumption (the per-page "optional"
+// section of the llms.txt v2 map). Lives OUTSIDE the {locale} group on
+// purpose: only EN pillars get an alternate, so the dedicated literal
+// 'en' prefix keeps every other locale's .md paths unroutable (404) by
+// construction, and no set.locale middleware is needed — the markdown
+// is stateless. The where() whitelist is derived from the controller's
+// PAGES map (single source of truth), registered before the
+// locale-prefixed group and the /{path} catch-all so the .md paths can
+// never fall through to the locale-redirect fallback.
+Route::prefix('en')->group(function () {
+    Route::get('{page}.md', MarkdownAlternateController::class)
+        ->where('page', implode('|', array_keys(MarkdownAlternateController::PAGES)))
+        ->name('markdown.alternate');
+});
 
 // ── Locale-prefixed routes ─────────────────────────────
 

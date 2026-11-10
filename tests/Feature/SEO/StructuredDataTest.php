@@ -313,6 +313,29 @@ describe('JSON-LD Structural Validation', function () {
         expect($breadcrumb)->not->toBeNull('Missing BreadcrumbList');
     });
 
+    it('Homepage Organization JSON-LD is truthful: Berlin areaServed and config-sourced contactPoint', function () {
+        $response = get(route('home'));
+        $response->assertOk();
+
+        $schemas = extractJsonLdSchemas($response->content());
+        expect($schemas)->not->toBeEmpty('No JSON-LD scripts found on homepage');
+
+        $org = findSchemaByType($schemas, 'Organization');
+        expect($org)->not->toBeNull('Missing Organization schema on homepage');
+
+        // areaServed: Berlin is the platform's only active hub (truthfulness
+        // audit) — the schema must not claim Worldwide.
+        expect($org)->toHaveKey('areaServed');
+        expect($org['areaServed']['@type'])->toBe('City');
+        expect($org['areaServed']['name'])->toBe('Berlin');
+
+        // contactPoint: sourced from config, never hardcoded in the schema.
+        expect($org)->toHaveKey('contactPoint');
+        expect($org['contactPoint']['@type'])->toBe('ContactPoint');
+        expect($org['contactPoint']['contactType'])->toBe('customer support');
+        expect($org['contactPoint']['email'])->toBe(config('company.contact.support'));
+    });
+
     it('User page emits valid Person JSON-LD', function () {
         Role::firstOrCreate([
             'name' => 'Game Master',

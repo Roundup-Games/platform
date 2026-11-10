@@ -9,6 +9,9 @@
 
     {!! seo() !!}
 
+    {{-- Agent discoverability (llmstxt.org v2): absolute /llms.txt URL, config-derived host — never request-derived, so tests and proxies stay deterministic. --}}
+    <link rel="describedby" href="{{ rtrim((string) config('app.url'), '/') }}/llms.txt">
+
     {{-- Favicons --}}
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
@@ -45,6 +48,11 @@
 
     {{-- PWA update toast translations (read by app.js). @js() produces safely-escaped JSON — addslashes() does not escape </script> or U+2028/29. --}}
     <script>window.__pwaUpdateToast=@js(['message' => __('common.content_update_available'), 'action' => __('common.field_update')]);window.__pwaOfflineToast=@js(['queued' => __('common.offline_action_queued'), 'offline' => __('common.offline_action_offline')]);</script>
+
+    {{-- Per-page head links (M078/S04/T02): pillar pages @push their
+         markdown alternate here — nothing request-derived, just static
+         <link> tags flushed before Vite/Livewire loads. --}}
+    @stack('head-links')
 
     @stack('preload')
 

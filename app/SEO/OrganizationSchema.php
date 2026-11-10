@@ -32,7 +32,12 @@ class OrganizationSchema extends CustomSchemaFluent
                 'https://github.com/roundup-games/platform',
             ],
             'nonprofitStatus' => 'https://schema.org/NonprofitType/NonprofitOrganization',
-            'areaServed' => 'Worldwide',
+            'areaServed' => ['@type' => 'City', 'name' => 'Berlin'],
+            'contactPoint' => [
+                '@type' => 'ContactPoint',
+                'contactType' => 'customer support',
+                'email' => config('company.contact.support'),
+            ],
         ]);
     }
 

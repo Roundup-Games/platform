@@ -1,3 +1,8 @@
+{{-- Advertise this page's hand-authored /en/pricing.md mirror (M078/S04/T02). Full-page Livewire component: the view renders before the layout, so the @push lands on the head-links stack of components/public-layout.blade.php. --}}
+@push('head-links')
+    @include('markdown.partials.alternate-link', ['page' => 'pricing'])
+@endpush
+
 <div class="py-8">
     <div class="max-w-5xl mx-auto space-y-8">
 

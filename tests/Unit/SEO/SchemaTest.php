@@ -20,11 +20,21 @@ describe('OrganizationSchema', function () {
         expect($data->get('sameAs'))->toContain('https://github.com/roundup-games/platform');
     });
 
-    it('includes areaServed', function () {
+    it('serves Berlin as a City (the only active hub)', function () {
         $schema = new OrganizationSchema(new SEOData);
         $data = $schema->generateInner();
 
-        expect($data->get('areaServed'))->toBe('Worldwide');
+        expect($data->get('areaServed'))->toBe(['@type' => 'City', 'name' => 'Berlin']);
+    });
+
+    it('includes a config-sourced customer support contactPoint', function () {
+        $schema = new OrganizationSchema(new SEOData);
+        $data = $schema->generateInner();
+
+        $contactPoint = $data->get('contactPoint');
+        expect($contactPoint['@type'])->toBe('ContactPoint');
+        expect($contactPoint['contactType'])->toBe('customer support');
+        expect($contactPoint['email'])->toBe(config('company.contact.support'));
     });
 
     it('uses non-profit description as fallback when no SEOData description', function () {

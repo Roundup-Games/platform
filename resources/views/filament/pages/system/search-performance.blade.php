@@ -169,4 +169,57 @@
             </p>
         </x-filament::section>
     @endif
+
+    {{--
+        AI Surfaces (78-05-T01): the generative-engine measurement gap —
+        the GSC Search Analytics API that feeds the weekly digest exposes
+        no AI-surface metrics, and Google's Generative AI performance
+        report is Search Console UI-only — plus the manual monthly
+        spot-check checklist, the agent-crawler posture links, and the
+        llms.txt fetch count: first-party telemetry (T02) from hourly
+        cache buckets incremented on every /llms.txt serve, summed
+        over the last 7 days.
+    --}}
+    <x-filament::section>
+        <x-slot:heading>AI Surfaces</x-slot:heading>
+        <div class="space-y-4 text-sm text-gray-500 dark:text-gray-400">
+            <div>
+                <p class="font-medium text-gray-900 dark:text-gray-100">Measurement gap — GSC API has no AI-surface metrics</p>
+                <p class="mt-1">
+                    The Search Analytics API that feeds the weekly digest exposes no
+                    generative-engine metrics. Google's
+                    <a href="https://support.google.com/webmasters/answer/16984139" target="_blank" rel="noopener" class="underline">Generative AI performance report</a>
+                    (AI Overviews / AI Mode impressions) is Search Console UI-only — it
+                    cannot be pulled automatically. Google's
+                    <a href="https://developers.google.com/search/docs/fundamentals/ai-optimization-guide" target="_blank" rel="noopener" class="underline">AI optimization guide</a>
+                    is the canonical what-to-do reference.
+                </p>
+            </div>
+            <div>
+                <p class="font-medium text-gray-900 dark:text-gray-100">Manual monthly spot-check</p>
+                <ul class="mt-1 list-disc space-y-1 pl-5">
+                    <li>Run brand + seed queries in ChatGPT, Google AI Overviews, and Perplexity.</li>
+                    <li>Note what surfaces (citations, summaries, nothing) in team notes.</li>
+                    <li>Text list only — no automation for this check.</li>
+                </ul>
+            </div>
+            <div>
+                <p class="font-medium text-gray-900 dark:text-gray-100">Agent-crawler posture</p>
+                <p class="mt-1">
+                    <a href="{{ $aiSurfaces['llmsTxtUrl'] }}" class="underline">{{ $aiSurfaces['llmsTxtUrl'] }}</a>
+                    ·
+                    <a href="{{ $aiSurfaces['robotsTxtUrl'] }}" class="underline">{{ $aiSurfaces['robotsTxtUrl'] }}</a>
+                </p>
+            </div>
+            <div>
+                <p class="font-medium text-gray-900 dark:text-gray-100">llms.txt fetches (last 7 days)</p>
+                <p class="mt-1 text-2xl font-semibold">
+                    {{ number_format($aiSurfaces['fetchesLast7Days']) }}
+                </p>
+                <p class="mt-1 text-xs">
+                    First-party count — incremented on every /llms.txt serve, summed from hourly cache buckets.
+                </p>
+            </div>
+        </div>
+    </x-filament::section>
 </x-filament-panels::page>

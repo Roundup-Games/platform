@@ -1,5 +1,10 @@
 <x-public-layout>
 
+    {{-- Advertise this page's hand-authored /en/faq.md mirror (M078/S04/T02). --}}
+    @push('head-links')
+        @include('markdown.partials.alternate-link', ['page' => 'faq'])
+    @endpush
+
     <x-hero :title="__('faq.heading_faq')" :subtitle="__('faq.content_faq_hero_subtitle', ['brand' => config('company.display_name')])" />
 
     <section class="py-16 sm:py-20 bg-surface">

@@ -23,13 +23,25 @@ Disallow:
 User-agent: Claude-Web
 Disallow:
 
+User-agent: Claude-SearchBot
+Disallow:
+
+User-agent: Claude-User
+Disallow:
+
 User-agent: anthropic-ai
 Disallow:
 
 User-agent: PerplexityBot
 Disallow:
 
+User-agent: Perplexity-User
+Disallow:
+
 User-agent: Google-Extended
+Disallow:
+
+User-agent: Applebot
 Disallow:
 
 User-agent: Applebot-Extended

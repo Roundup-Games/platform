@@ -4,6 +4,7 @@ namespace App\Filament\Pages\System;
 
 use App\Models\CwvMeasurement;
 use App\Models\GscSnapshot;
+use App\SEO\LlmsTxtService;
 use Filament\Pages\Page;
 use Illuminate\Support\Carbon;
 
@@ -42,6 +43,31 @@ class SearchPerformancePage extends Page
             'latest' => GscSnapshot::query()->latest('range_end')->first(),
             'trend' => GscSnapshot::query()->orderBy('range_end')->limit(12)->get(),
             'cwv' => $this->latestCwvPerTemplate(),
+            'aiSurfaces' => $this->aiSurfacesData(),
+        ];
+    }
+
+    /**
+     * AI-surfaces section payload (78-05-T01/T02): the documented GSC
+     * API gap context, agent-crawler posture links on the canonical
+     * base URL, and the llms.txt fetch total — first-party telemetry
+     * (hourly cache buckets incremented by the /llms.txt serve path,
+     * summed over the last 7 days by LlmsTxtService).
+     *
+     * @return array{llmsTxtUrl: string, robotsTxtUrl: string, fetchesLast7Days: int}
+     */
+    private function aiSurfacesData(): array
+    {
+        // Request-independent base URL, config-driven exactly like
+        // LlmsTxtService::baseUrl() — never url(), whose host follows
+        // the incoming request.
+        $url = config('app.url');
+        $base = is_string($url) && $url !== '' ? rtrim($url, '/') : 'https://roundup.games';
+
+        return [
+            'llmsTxtUrl' => $base.'/llms.txt',
+            'robotsTxtUrl' => $base.'/robots.txt',
+            'fetchesLast7Days' => app(LlmsTxtService::class)->fetchCountsLast7Days(),
         ];
     }
 
