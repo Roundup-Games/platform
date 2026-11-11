@@ -163,6 +163,25 @@ describe('Contact Form Validation', function () {
         ])
             ->assertSessionHasErrors(['message']);
     });
+
+    it('stores a ticket instead of a 500 when input is invalid UTF-8', function () {
+        // "\xED\xA0\xBD" is a lone UTF-16 surrogate (half an emoji) that
+        // Postgres rejects with SQLSTATE 22021.
+        post(route('contact.submit'), [
+            'name' => "Broken \xED\xA0\xBD Name",
+            'email' => 'utf8@example.com',
+            'subject' => "Broken \xED\xA0\xBD subject",
+            'message' => "Broken \xED\xA0\xBD message",
+        ])
+            ->assertRedirect(route('contact'))
+            ->assertSessionHasNoErrors();
+
+        $ticket = Ticket::where('guest_email', 'utf8@example.com')->first();
+        expect($ticket)->not->toBeNull();
+        expect(mb_check_encoding($ticket->guest_name, 'UTF-8'))->toBeTrue();
+        expect(mb_check_encoding($ticket->subject, 'UTF-8'))->toBeTrue();
+        expect(mb_check_encoding($ticket->description, 'UTF-8'))->toBeTrue();
+    });
 });
 
 // ── Success Feedback ───────────────────────────────────

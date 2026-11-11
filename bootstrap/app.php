@@ -7,6 +7,7 @@ use App\Http\Middleware\EnsureProfileComplete;
 use App\Http\Middleware\EnsureUserNotDisabled;
 use App\Http\Middleware\PostHogIdentifyUsers;
 use App\Http\Middleware\ProcessShareIntent;
+use App\Http\Middleware\ScrubInvalidUtf8;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\TrackAppVisit;
 use App\Http\Middleware\VerifyDiscordInteractionSignature;
@@ -47,6 +48,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'discord/interactions',
         ]);
 
+        $middleware->append(ScrubInvalidUtf8::class);
         $middleware->append(EnsureLocaleDefaults::class);
         $middleware->append(CaptureFirstTouch::class);
         $middleware->append(CachePublicPages::class);
