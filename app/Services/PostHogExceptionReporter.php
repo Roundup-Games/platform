@@ -257,6 +257,10 @@ class PostHogExceptionReporter
             '/server at "[^"]*"/i' => 'server at "*"',
             '/host "[^"]*"/i' => 'host "*"',
             '/port \d+/i' => 'port *',
+            // Collapse the elapsed time in cURL connect/timeout errors
+            // ("after 4001 ms", "after 30001 milliseconds"), so the retries
+            // of one network blip share one fingerprint.
+            '/after \d+ (ms|milliseconds)\b/i' => 'after * $1',
             // Collapse blank lines left by the removals above.
             '/\v+/' => "\n",
         ];

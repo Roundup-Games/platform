@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\AlertableError;
+use App\Traits\BacksOffMailRetries;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -24,7 +25,7 @@ use Illuminate\Queue\SerializesModels;
  */
 class ObservabilityAlertMail extends Mailable implements ShouldQueue
 {
-    use Queueable, SerializesModels;
+    use BacksOffMailRetries, Queueable, SerializesModels;
 
     /**
      * @param  string  $type  'alert' (scan page) or 'digest' (daily summary).

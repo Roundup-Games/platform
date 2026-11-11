@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Traits\BacksOffMailRetries;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -11,7 +12,7 @@ use Illuminate\Queue\SerializesModels;
 
 class EntityInvitationEmail extends Mailable implements ShouldQueue
 {
-    use Queueable;
+    use BacksOffMailRetries, Queueable;
     use SerializesModels;
 
     public function __construct(

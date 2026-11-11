@@ -258,6 +258,33 @@ describe('QueryException fingerprint normalization', function () {
     });
 });
 
+describe('cURL error fingerprint normalization', function () {
+    it('groups connect failures that differ only by the elapsed time', function () {
+        Auth::logout();
+        $reporter = app(PostHogExceptionReporter::class);
+
+        // Retries of one network blip: the first attempt hits the connect
+        // timeout, the next ones fail at once.
+        foreach ([4001, 0] as $elapsed) {
+            $reporter->report(new RuntimeException(
+                "cURL error 7: Failed to connect to api.resend.com port 443 after {$elapsed} ms: Couldn't connect to server",
+            ));
+        }
+        $reporter->report(new RuntimeException('cURL error 28: Connection timed out after 30001 milliseconds'));
+        $reporter->report(new RuntimeException('cURL error 28: Connection timed out after 5000 milliseconds'));
+
+        $fingerprints = array_map(
+            fn (array $call) => $call['properties']['$exception_fingerprint'],
+            $this->posthogClient->capturedCalls,
+        );
+        expect($fingerprints[0])->toBe($fingerprints[1])
+            ->and($fingerprints[2])->toBe($fingerprints[3])
+            ->and($fingerprints[0])->not->toBe($fingerprints[2])
+            ->and($this->posthogClient->capturedCalls[0]['properties']['$exception_list'][0]['value'])
+            ->toContain('port * after * ms');
+    });
+});
+
 it('falls back to a placeholder distinct id when the session store is unreachable', function () {
     // During a database outage the DB-backed session read throws — the reporter
     // must still capture instead of becoming a second failure.
