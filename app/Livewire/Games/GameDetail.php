@@ -18,7 +18,7 @@ use App\Models\SessionZeroSurvey;
 use App\Models\ShortLink;
 use App\Services\AttendanceService;
 use App\Services\CapacityService;
-use App\Services\Charter\CharterSigningService;
+use App\Services\Charter\CharterService;
 use App\Services\DebriefingService;
 use App\Services\EntityJoinGate;
 use App\Services\ParticipantLifecycle;
@@ -1022,25 +1022,74 @@ class GameDetail extends Component
     }
 
     /**
-     * The campaign-charter card context (the session-zero card's
-     * replacement, M070/S05 cull): campaign games surface their
-     * charter — active ones with signing progress, drafts with a
-     * continue affordance for the owner — while one-shots and
-     * charter-less campaigns return a null charter (the owner CTA is
-     * rendered from it).
-     *
-     * @return array{charter: ?SessionZeroSurvey, percent: int}
+     * Whether the viewer owns the campaign this session belongs to (null
+     * for one-shots) — the ownership the charter surfaces authorize against
+     * (CampaignPolicy::manageCharter), NOT the session game's owner_id: a
+     * campaign session's game row is normally owned by the campaign owner,
+     * but the charter composer this card links to would 403 anyone else.
      */
     #[Computed]
-    public function campaignCharterState(): array
+    public function isCampaignOwner(): bool
     {
-        $charter = $this->game->campaign?->charter()->first();
+        $id = $this->viewerId();
+        $campaign = $this->game->campaign;
 
-        if ($charter === null || ! $charter->isActive()) {
-            return ['charter' => $charter, 'percent' => 0];
+        return $id !== null && $campaign !== null && $campaign->owner_id === $id;
+    }
+
+    /**
+     * Whether the viewer is an APPROVED participant of the campaign this
+     * session belongs to — the same member gate the charter's signature
+     * panel applies (error_not_participant). Deliberately campaign-level:
+     * a waitlisted or game-only participant cannot sign, so the discovery
+     * card must not point them at a dead end.
+     */
+    private function viewerIsApprovedCampaignParticipant(): bool
+    {
+        $id = $this->viewerId();
+        $campaign = $this->game->campaign;
+
+        return $id !== null && $campaign !== null
+            && $campaign->participants()
+                ->where('user_id', $id)
+                ->where('status', ParticipantStatus::Approved->value)
+                ->exists();
+    }
+
+    /**
+     * The campaign's charter in ANY lifecycle state, or null for one-shots
+     * and charter-less campaigns. Owner-only affordances (draft continue,
+     * create CTA) render from it.
+     */
+    #[Computed]
+    public function campaignCharter(): ?SessionZeroSurvey
+    {
+        $campaign = $this->game->campaign;
+
+        return $campaign !== null ? CharterService::charterFor($campaign) : null;
+    }
+
+    /**
+     * The PUBLISHED charter a viewer may discover on this session page
+     * (spec §4 discovery surface, D238): only the campaign owner or an
+     * APPROVED campaign participant — the exact audience the campaign
+     * page card admits (CampaignDetail::participantCharter()) — and only
+     * a published charter (active or archived). Drafts stay owner-only,
+     * and one-shots, charter-less campaigns, guests, and non-privileged
+     * viewers all get null so nothing about a charter's existence leaks.
+     */
+    #[Computed]
+    public function sessionCharter(): ?SessionZeroSurvey
+    {
+        $charter = $this->campaignCharter();
+
+        if ($charter === null || $charter->isDraft()) {
+            return null;
         }
 
-        return ['charter' => $charter, 'percent' => CharterSigningService::signingProgress($charter)['percent']];
+        return $this->isCampaignOwner() || $this->viewerIsApprovedCampaignParticipant()
+            ? $charter
+            : null;
     }
 
     /**
@@ -1088,7 +1137,6 @@ class GameDetail extends Component
         ]);
         $this->game->load(['participants.user', 'applications.user']);
 
-        $cc = $this->campaignCharterState();
         $db = $this->debriefingState();
 
         return view('livewire.games.game-detail', [
@@ -1101,8 +1149,9 @@ class GameDetail extends Component
             'hasExistingApplication' => $this->hasExistingApplication(),
             'reviews' => $this->reviews(),
             'canReview' => $this->canReview(),
-            'campaignCharter' => $cc['charter'],
-            'campaignCharterPercent' => $cc['percent'],
+            'campaignCharter' => $this->campaignCharter(),
+            'sessionCharter' => $this->sessionCharter(),
+            'isCampaignOwner' => $this->isCampaignOwner(),
             'isGameFull' => $this->isGameFull(),
             'canJoinWaitlist' => $this->canJoinWaitlist(),
             'userWaitlistParticipant' => $this->userWaitlistParticipant(),
