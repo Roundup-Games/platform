@@ -45,4 +45,6 @@ return [
     'content_delivered_algorithms_body' => 'Every matching and scoring algorithm documented in plain language, with the actual formulas and links to the open-source code.',
     'heading_delivered_agent_map' => 'A Map for AI Assistants',
     'content_delivered_agent_map_body' => 'Our llms.txt — a public index of the platform, written for AI assistants — now regenerates itself with live activity stats and a test that fails on any dead link. Every pillar page ships a clean markdown edition, the discovery pages explain themselves in plain language, and the major AI crawlers are explicitly welcome.',
+    'heading_delivered_agent_at_table' => 'Your AI Agent at the Table',
+    'content_delivered_agent_at_table_body' => 'Your personal AI assistant can now act for you: the platform speaks MCP, the open standard for AI agents, so you can connect the assistant you already use. You issue each agent its own token in Settings — a read-only companion, participant, or GM workspace — and can revoke it any time. The agent acts only as you, under the same eligibility rules, rate limits, and audit trail as the website: it can find open games and join or apply for you, and active Game Masters can let it handle rosters, attendance, charters, and recaps.',
 ];
