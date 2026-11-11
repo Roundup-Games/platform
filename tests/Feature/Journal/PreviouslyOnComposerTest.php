@@ -9,6 +9,7 @@ use App\Models\CampaignJournalEntry;
 use App\Models\CampaignParticipant;
 use App\Models\CharacterStateChange;
 use App\Models\Game;
+use App\Models\GameBulletin;
 use App\Models\PreviouslyOnDraft;
 use App\Models\User;
 use App\Services\PreviouslyOnService;
@@ -716,4 +717,95 @@ test('a canceled session takes its unpublished draft with it, and publish still 
     expect($refusal->getMessage())->toBe(__('journal.error_session_not_publishable', [], 'en'))
         ->and($next->bulletins()->count())->toBe(0)
         ->and($orphan->fresh()->published_at)->toBeNull();
+});
+
+// ── supersedeAndRecompose (D240: supersede-and-reissue) ─
+
+test('a superseded draft republishes as a fresh bulletin — the one-click reissue path', function () {
+    app()->setLocale('en');
+    $service = app(PreviouslyOnService::class);
+    [$owner, $campaign, $completed, $next] = previouslyOnCampaign();
+
+    previouslyOnRecap($completed, 'the digest recap');
+
+    $draft = $service->upsertUnpublished($campaign, $next);
+    $first = $service->publish($draft, $owner);
+
+    // The GM reschedules after publishing: the save-driven supersede
+    // retires the first bulletin and unstamps the draft.
+    $newWhen = now()->addDays(9)->startOfHour();
+    $next->update(['date_time' => $newWhen]);
+
+    expect($first->fresh()->expires_at->lessThanOrEqualTo(now()))->toBeTrue()
+        ->and($draft->fresh()->published_at)->toBeNull();
+
+    // One click reissues: a SECOND bulletin (fresh content carrying the
+    // new date, fresh 7-day expiry off it), the draft restamped and
+    // relinked to the new bulletin — the audit link flipped, not kept.
+    $second = $service->publish($draft->fresh(), $owner);
+
+    expect(GameBulletin::query()->count())->toBe(2)
+        ->and($second->id)->not->toBe($first->id)
+        ->and($second->content)->toContain(format_date($newWhen, 'weekday_datetime'))
+        ->and($second->expires_at->timestamp)->toBe($newWhen->copy()->addDays(7)->timestamp)
+        ->and($draft->fresh()->published_at)->not->toBeNull()
+        ->and($draft->fresh()->published_bulletin_id)->toBe($second->id);
+});
+
+test('a racing repeat supersede stands down on the cleared stamp — no double expiry, no compose churn', function () {
+    $service = app(PreviouslyOnService::class);
+    [$owner, $campaign, $completed, $next] = previouslyOnCampaign();
+
+    previouslyOnRecap($completed, 'the digest recap');
+
+    $draft = $service->upsertUnpublished($campaign, $next);
+    $bulletin = $service->publish($draft, $owner);
+
+    // First supersede retires the bulletin and unstamps the draft.
+    $result = $service->supersedeAndRecompose($campaign, $next);
+    expect($result)->toBeInstanceOf(PreviouslyOnDraft::class)
+        ->and($result->id)->toBe($draft->id);
+
+    $retiredAt = $bulletin->fresh()->expires_at;
+    $bodyAfterSupersede = $result->body;
+
+    // The racing repeat (a queued retry or a concurrent edit of the
+    // same save): the draft is no longer published, so the second run
+    // stands down under the same locks — the bulletin's expiry is not
+    // bumped again and the draft is left exactly as the winner left it.
+    $second = $service->supersedeAndRecompose($campaign, $next);
+
+    expect($second)->toBeNull()
+        ->and($bulletin->fresh()->expires_at->timestamp)->toBe($retiredAt->timestamp)
+        ->and($draft->fresh()->body)->toBe($bodyAfterSupersede)
+        ->and(PreviouslyOnDraft::query()->count())->toBe(1);
+});
+
+test('supersedeAndRecompose stands down for a non-scheduled session or a foreign campaign draft', function () {
+    $service = app(PreviouslyOnService::class);
+    [, , $completed, $next] = previouslyOnCampaign();
+
+    previouslyOnRecap($completed, 'the digest recap');
+
+    // A published draft on a completed session (the normal end-of-life
+    // state — the completion sweep owns its expiry): a direct call must
+    // not unstamp or recompose anything.
+    $completedDraft = PreviouslyOnDraft::factory()->forSession($completed->campaign, $completed)->create([
+        'published_at' => now(),
+        'body' => 'frozen',
+    ]);
+
+    expect($service->supersedeAndRecompose($completed->campaign, $completed))->toBeNull()
+        ->and($completedDraft->fresh()->published_at)->not->toBeNull()
+        ->and($completedDraft->fresh()->body)->toBe('frozen');
+
+    // A draft whose campaign does not match the handed-in campaign: a
+    // data-corruption guard, zero rows written.
+    [, $foreignCampaign, , $foreignNext] = previouslyOnCampaign();
+    $foreignDraft = PreviouslyOnDraft::factory()->forSession($foreignCampaign, $foreignNext)->create([
+        'published_at' => now(),
+    ]);
+
+    expect($service->supersedeAndRecompose($completed->campaign, $foreignNext))->toBeNull()
+        ->and($foreignDraft->fresh()->published_at)->not->toBeNull();
 });

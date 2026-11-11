@@ -109,6 +109,7 @@ return [
     'action_refresh_previously_on' => 'Refresh draft',
     'flash_previously_on_refreshed' => 'Draft refreshed from the journal.',
     'content_previously_on_audience' => 'Delivered to all approved participants of this session, including one-off guests.',
+    'content_previously_on_superseded' => 'This session was rescheduled or its location changed after the digest was published, so the previous bulletin was retired. Review the updated draft and publish it again.',
     'title_previously_on_gate' => 'Previously On is a member feature',
     'content_previously_on_gate' => 'GM members get an automatic Previously On digest before every session — recap, goals, and loose threads from your campaign journal. View your membership options to unlock it.',
     'action_view_membership' => 'View membership',

@@ -45,23 +45,27 @@ class GameObserver
         // switch so the existing sync-queue suite is unaffected.
         $this->maybeDispatchDiscordPublish($game);
 
-        // D230 Previously-On projection: an unpublished draft is a
+        // D230/D240 Previously-On projection: an unpublished draft is a
         // projection of its session's state — a moved date/venue
-        // recomposes it in place (the CTA carries that date), and a
-        // canceled/completed session takes its unpublished draft with
-        // it. Isolated: composition NEVER blocks the save.
+        // recomposes it in place (the CTA carries that date), a canceled/
+        // completed session takes its unpublished draft with it, and a
+        // material edit of a PUBLISHED digest supersedes it (bulletin
+        // retired, draft recomposed for one-click reissue). Isolated:
+        // composition NEVER blocks the save.
         $this->syncPreviouslyOnDraft($game);
     }
 
     /**
-     * Keep the campaign's unpublished Previously-On draft in step with a
-     * saved session (D230). Two transitions recompose EXISTING drafts —
-     * an edit of the draft's own session (date/venue feed the CTA), and
-     * an edit that reorders WHICH session is chronologically next (the
+     * Keep the campaign's Previously-On draft in step with a saved
+     * session (D230). Two transitions recompose EXISTING drafts — an
+     * edit of the draft's own session (date/venue feed the CTA), and an
+     * edit that reorders WHICH session is chronologically next (the
      * deposed session's stale draft is superseded by a fresh compose for
      * the new head). Composing brand-new drafts on unrelated edits stays
      * owned by the two product triggers (session creation, the 24h
-     * reminder).
+     * reminder). A MATERIAL edit of a session whose digest is already
+     * published additionally supersedes it (D240): the bulletin expires,
+     * the draft unstamps and recomposes — the GM reissues from the panel.
      */
     private function syncPreviouslyOnDraft(Game $game): void
     {
@@ -101,6 +105,31 @@ class GameObserver
 
         $service = app(PreviouslyOnService::class);
         $nextSession = $service->nextSession($campaign);
+
+        // D240 supersede-and-reissue: the digest body goes stale on
+        // exactly the two session inputs its CTA embeds — date_time and
+        // the location jsonb whose details line it carries. A material
+        // edit of the session holding a PUBLISHED digest retires that
+        // bulletin (expires now, content untouched) and unstamps the
+        // draft for recomposition in one service-owned transaction. A
+        // location_id-only switch never stales the CTA text and never
+        // supersedes; non-material edits (description etc.) never even
+        // reach this hook.
+        if ($game->wasChanged(['date_time', 'location'])
+            && PreviouslyOnDraft::query()
+                ->whereBelongsTo($game)
+                ->whereNotNull('published_at')
+                ->exists()
+        ) {
+            if ($this->supersedeQuietly($service, $campaign, $game) !== null) {
+                return;
+            }
+
+            // Null means the draft was no longer published — a
+            // concurrent edit already superseded it. Fall through: the
+            // unpublished recompose paths below pick this save's change
+            // up instead.
+        }
 
         // Case 1 — the edited session holds the campaign's unpublished
         // draft. While it stays the chronologically-next session, its
@@ -158,6 +187,28 @@ class GameObserver
                 'campaign_id' => $campaign->id,
                 'error' => $e->getMessage(),
             ]);
+        }
+    }
+
+    /**
+     * Supersede a published digest (D240) without ever blocking the
+     * session save: the service's transaction rolls back whole on
+     * failure, leaving the published draft and bulletin intact — the
+     * failure is logged and null handed back so the hook's unpublished
+     * recompose paths still run (composeQuietly isolation precedent).
+     */
+    private function supersedeQuietly(PreviouslyOnService $service, Campaign $campaign, Game $session): ?PreviouslyOnDraft
+    {
+        try {
+            return $service->supersedeAndRecompose($campaign, $session);
+        } catch (\Throwable $e) {
+            Log::warning('previously_on.supersede_failed', [
+                'game_id' => $session->id,
+                'campaign_id' => $campaign->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
         }
     }
 

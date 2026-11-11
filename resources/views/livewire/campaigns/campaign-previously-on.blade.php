@@ -48,6 +48,18 @@
                     {{ __('journal.content_previously_on_description') }}
                 </p>
 
+                {{-- D240 supersede-and-reissue: the leftover bulletin link is
+                     the marker that this draft WAS published before a
+                     material session edit (date/venue) retired it — say why
+                     the panel is back in draft state instead of leaving the
+                     GM wondering where the confirmation went. --}}
+                @if($latestDraft->published_bulletin_id !== null)
+                    <p class="text-xs text-on-surface-variant mb-3 flex items-start gap-1.5" role="status">
+                        <span class="material-symbols-outlined text-sm shrink-0" aria-hidden="true">info</span>
+                        {{ __('journal.content_previously_on_superseded') }}
+                    </p>
+                @endif
+
                 <p class="text-xs text-on-surface-variant mb-3 flex flex-wrap items-center gap-1.5">
                     <span class="inline-flex items-center gap-1 font-medium text-on-surface">
                         <span class="material-symbols-outlined text-sm" aria-hidden="true">event</span>

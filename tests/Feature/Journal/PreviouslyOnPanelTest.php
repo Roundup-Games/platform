@@ -377,3 +377,42 @@ test('the draft panel states the delivery audience and offers refresh (D230/D231
             'datetime',
         )], 'en'));
 });
+
+// ── D240: the supersede hint after a material session edit ─────────
+
+test('a superseded digest flips the panel back to draft state with the reissue hint, never shown for never-published drafts', function () {
+    Notification::fake();
+    Queue::fake();
+
+    [$owner, $campaign, $next] = panelCampaign();
+    panelDraft($campaign, $next, 'PANEL DRAFT supersede me');
+
+    // A never-published draft never carries the supersede hint (the
+    // leftover bulletin link is exactly the marker, and it is null here).
+    Livewire::actingAs($owner)
+        ->test(CampaignPreviouslyOn::class, ['campaign' => $campaign])
+        ->assertSee('PANEL DRAFT supersede me')
+        ->assertDontSee(__('journal.content_previously_on_superseded', [], 'en'))
+        ->call('publish')
+        ->assertHasNoErrors()
+        ->assertSee(__('journal.label_previously_on_published_at', [
+            'date' => format_date(PreviouslyOnDraft::query()->whereBelongsTo($next)->firstOrFail()->published_at, 'datetime'),
+        ], 'en'));
+
+    // A material session edit after publish: the observer's supersede
+    // retires the bulletin and unstamps the draft — the panel flips back
+    // to draft state and EXPLAINS why, instead of silently pretending
+    // nothing was ever published.
+    $next->update(['date_time' => now()->addDays(5)]);
+
+    Livewire::actingAs($owner)
+        ->test(CampaignPreviouslyOn::class, ['campaign' => $campaign])
+        ->assertSee(__('journal.action_publish_previously_on', [], 'en'))
+        ->assertSee(__('journal.content_previously_on_superseded', [], 'en'))
+        ->assertDontSee(__('journal.label_previously_on_published_at', [
+            'date' => format_date(now(), 'datetime'),
+        ], 'en'));
+
+    // The retired bulletin is off the board from the supersede on.
+    expect(GameBulletin::query()->whereBelongsTo($next)->notExpired()->exists())->toBeFalse();
+});

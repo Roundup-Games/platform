@@ -19,7 +19,13 @@ use Illuminate\Support\Carbon;
  * D185 channel matrix — so drafts live here until publish creates exactly
  * one bulletin. One draft per target session (unique game_id): a compose
  * or 24h-reminder refresh UPDATES the unpublished row in place; rows with
- * published_at set are immutable — the composer never touches them.
+ * published_at set are immutable — the composer never touches them. The
+ * D240 supersede-and-reissue seam is the one deliberate exception to that
+ * immutability, and it never edits a published row: it CLEARS the stamp
+ * (published_at = null) so the draft is unpublished again, while
+ * published_bulletin_id survives as the audit link to the retired
+ * bulletin — and the panel's reissue hint — until the next publish
+ * overwrites it atomically with the new bulletin's id.
  *
  * @property string $id
  * @property string $campaign_id
@@ -80,8 +86,11 @@ class PreviouslyOnDraft extends Model
     }
 
     /**
-     * The bulletin the publish created (null while unpublished, and after
-     * the bulletin's deletion — nullOnDelete keeps the audit trail).
+     * The bulletin the publish created (null while unpublished, after the
+     * bulletin's deletion — nullOnDelete keeps the audit trail — and
+     * after the next publish overwrites it; NOT null after a D240
+     * supersede: the link to the retired bulletin survives the cleared
+     * stamp as the reissue marker).
      *
      * @return BelongsTo<GameBulletin, $this>
      */

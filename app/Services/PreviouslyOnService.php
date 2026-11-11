@@ -33,6 +33,13 @@ use Illuminate\Support\Str;
  * (board, in-app/mail/push/Discord per prefs, Discord teasers to session
  * threads when a guild is linked).
  *
+ * D240 supersede-and-reissue: a material edit of a session whose digest
+ * already went out (date_time or the location jsonb feeding the CTA)
+ * retires the published bulletin and hands the draft back to the
+ * composer — supersedeAndRecompose — so the GM reissues with one click
+ * from the panel. The retired bulletin's content stays byte-identical
+ * (D221/D230 immutability: the bulletin is history).
+ *
  * Composition reads the journal only (D220: journal entries are the
  * source of truth — never games.recap, never prep-note or in-character
  * bodies) and keys off campaign_id only (D218: every campaign type gets
@@ -468,6 +475,90 @@ class PreviouslyOnService
             );
 
             return $bulletin;
+        });
+    }
+
+    /**
+     * Supersede-and-reissue seam (D240): a material edit of a session
+     * whose digest is already PUBLISHED — the session moved (date_time)
+     * or its location jsonb changed, exactly the two session inputs the
+     * composed CTA embeds — retires the published bulletin and hands the
+     * draft back to the composer in ONE transaction, so the GM can
+     * reissue with one click from the panel:
+     *
+     *  a. the published GameBulletin expires NOW (expires_at = now())
+     *     with its content untouched — D221/D230 immutability holds, the
+     *     bulletin is history (the board's notExpired scope hides it
+     *     from this moment; the same expiry flip the game-completion
+     *     sweep performs);
+     *  b. the draft's publish stamp clears (published_at = null) so the
+     *     composer may act again. published_bulletin_id is KEPT: the
+     *     audit link to the retired bulletin, and the panel's marker
+     *     that a reissue is pending — until the next publish overwrites
+     *     it atomically with the new bulletin's id;
+     *  c. the now-unpublished draft recomposes from fresh session data
+     *     through the existing compose/supersede path (upsertUnpublished
+     *     — the D230 at-most-one-unpublished-draft invariant), targeting
+     *     the campaign's next session when the edit moved this one
+     *     behind a sibling.
+     *
+     * Race-safe like publish(): the campaign row locks first (every
+     * compose trigger's serialization anchor), then the draft row —
+     * publish() locks only the draft row, so no lock-order inversion
+     * anywhere. A concurrent supersede stands down on the cleared
+     * stamp; a racing publish that committed first is seen under the
+     * lock and superseded — either order converges.
+     *
+     * Stands down with null (zero rows written) when the session's
+     * draft is not published, belongs to another campaign, or its
+     * session left Scheduled — the caller falls back to the plain
+     * unpublished-recompose paths.
+     */
+    public function supersedeAndRecompose(Campaign $campaign, Game $session): ?PreviouslyOnDraft
+    {
+        if ($session->status !== GameStatus::Scheduled) {
+            return null;
+        }
+
+        return DB::transaction(function () use ($campaign, $session): ?PreviouslyOnDraft {
+            // Serialize every compose trigger for this campaign on the
+            // campaign row (upsertUnpublished's anchor), strictly before
+            // the draft-row lock (publish()'s only lock — no inversion).
+            Campaign::query()->whereKey($campaign->id)->lockForUpdate()->first();
+
+            $locked = PreviouslyOnDraft::query()
+                ->whereBelongsTo($session)
+                ->lockForUpdate()
+                ->first();
+
+            if ($locked === null
+                || $locked->published_at === null
+                || $locked->campaign_id !== $campaign->id) {
+                return null;
+            }
+
+            if ($locked->published_bulletin_id !== null) {
+                GameBulletin::query()
+                    ->whereKey($locked->published_bulletin_id)
+                    ->update(['expires_at' => now()]);
+            }
+
+            $retiredBulletinId = $locked->published_bulletin_id;
+
+            $locked->update(['published_at' => null]);
+
+            Log::info('previously_on.superseded', [
+                'campaign_id' => $campaign->id,
+                'game_id' => $session->id,
+                'draft_id' => $locked->id,
+                'bulletin_id' => $retiredBulletinId,
+            ]);
+
+            $next = $this->nextSession($campaign);
+
+            $target = ($next !== null && ! $next->is($session)) ? $next : $session;
+
+            return $this->upsertUnpublished($campaign, $target);
         });
     }
 

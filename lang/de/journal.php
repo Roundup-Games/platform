@@ -109,6 +109,7 @@ return [
     'action_refresh_previously_on' => 'Entwurf aktualisieren',
     'flash_previously_on_refreshed' => 'Entwurf aus dem Journal aktualisiert.',
     'content_previously_on_audience' => 'Wird an alle bestätigten Teilnehmenden dieser Runde zugestellt, auch an einmalige Gäste.',
+    'content_previously_on_superseded' => 'Diese Runde wurde verschoben oder ihr Ort hat sich geändert, nachdem der Rückblick veröffentlicht wurde — der bisherige Eintrag auf der Runden-Pinnwand wurde zurückgezogen. Prüfe den aktualisierten Entwurf und veröffentliche ihn erneut.',
     'title_previously_on_gate' => '„Zuvor in der Kampagne“ ist eine Mitglieder-Funktion',
     'content_previously_on_gate' => 'GM-Mitglieder erhalten vor jeder Runde automatisch einen Rückblick — Recap, Ziele und offene Fäden aus deinem Kampagnen-Journal. Sieh dir die Mitgliedschaft an, um ihn freizuschalten.',
     'action_view_membership' => 'Mitgliedschaft ansehen',

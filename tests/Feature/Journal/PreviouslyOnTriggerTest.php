@@ -545,3 +545,151 @@ test('a composition failure never blocks the session save (observer isolation)',
     expect($session->fresh()->date_time->toDateTimeString())
         ->toBe($movedTo->toDateTimeString());
 });
+
+// ── D240: supersede-and-reissue on material edits after publish ────
+
+test('a reschedule after publish supersedes: the bulletin expires now with a byte-identical body, and a fresh draft carries the new date', function () {
+    app()->setLocale('en');
+    [$owner, $campaign] = previouslyOnTriggerCampaign('the frozen digest body');
+    $session = previouslyOnTriggerAddSession($owner, $campaign, 7);
+    $oldWhen = $session->date_time;
+
+    $service = app(PreviouslyOnService::class);
+    $draft = PreviouslyOnDraft::query()->whereBelongsTo($session)->firstOrFail();
+    $bulletin = $service->publish($draft, $owner);
+    $publishedBody = $bulletin->content;
+
+    // The GM reschedules AFTER the digest already went out (D240's gap).
+    $newWhen = now()->addDays(9)->startOfHour();
+    $session->update(['date_time' => $newWhen]);
+
+    // The retired bulletin: expired immediately (hidden by the board's
+    // notExpired scope from this moment), its content byte-identical —
+    // D221/D230 immutability holds, the bulletin is history.
+    $retired = $bulletin->fresh();
+    expect($retired->content)->toBe($publishedBody)
+        ->and($retired->expires_at)->not->toBeNull()
+        ->and($retired->expires_at->lessThanOrEqualTo(now()))->toBeTrue()
+        ->and(GameBulletin::query()->whereKey($retired->id)->notExpired()->exists())->toBeFalse();
+
+    // The draft is back in compose land: unstamped, recomposed with the
+    // NEW date, the audit link to the retired bulletin kept as the
+    // reissue marker (the panel's supersede hint keys off it).
+    $fresh = $draft->fresh();
+    expect($fresh->published_at)->toBeNull()
+        ->and($fresh->published_bulletin_id)->toBe($retired->id)
+        ->and($fresh->body)->toContain(format_date($newWhen, 'weekday_datetime'))
+        ->and($fresh->body)->not->toContain(format_date($oldWhen, 'weekday_datetime'))
+        // Still exactly one bulletin — the reissue is the GM's click.
+        ->and(GameBulletin::query()->count())->toBe(1);
+});
+
+test('a location-details change after publish supersedes the same way', function () {
+    app()->setLocale('en');
+    [$owner, $campaign] = previouslyOnTriggerCampaign('the frozen venue body');
+    $session = previouslyOnTriggerAddSession($owner, $campaign, 7);
+    $session->update(['location' => ['type' => 'online', 'details' => 'Guild hall, side entrance']]);
+
+    $service = app(PreviouslyOnService::class);
+    $draft = PreviouslyOnDraft::query()->whereBelongsTo($session)->firstOrFail();
+    $bulletin = $service->publish($draft, $owner);
+    $publishedBody = $bulletin->content;
+
+    // The GM corrects the venue address in the location jsonb (no FK
+    // switch) — the CTA's details line is stale, so the digest is too.
+    $session->update(['location' => ['type' => 'online', 'details' => 'Guild hall, main entrance']]);
+
+    $retired = $bulletin->fresh();
+    $fresh = $draft->fresh();
+
+    expect($retired->content)->toBe($publishedBody)
+        ->and($retired->expires_at->lessThanOrEqualTo(now()))->toBeTrue()
+        ->and($fresh->published_at)->toBeNull()
+        ->and($fresh->body)->toContain('Guild hall, main entrance')
+        ->and($fresh->body)->not->toContain('Guild hall, side entrance')
+        ->and(GameBulletin::query()->count())->toBe(1);
+});
+
+test('a description-only edit after publish never supersedes — the bulletin keeps its expiry and the draft stays published', function () {
+    [$owner, $campaign] = previouslyOnTriggerCampaign('frozen body');
+    $session = previouslyOnTriggerAddSession($owner, $campaign, 7);
+
+    $service = app(PreviouslyOnService::class);
+    $draft = PreviouslyOnDraft::query()->whereBelongsTo($session)->firstOrFail();
+    $bulletin = $service->publish($draft, $owner);
+    $expiryBefore = $bulletin->fresh()->expires_at;
+
+    // A non-material edit: nothing the digest CTA embeds changed.
+    $session->update(['description' => ['en' => 'A purely cosmetic edit']]);
+
+    expect($bulletin->fresh()->expires_at->timestamp)->toBe($expiryBefore->timestamp)
+        ->and(GameBulletin::query()->count())->toBe(1)
+        ->and($draft->fresh()->published_at)->not->toBeNull()
+        ->and(PreviouslyOnDraft::query()->count())->toBe(1);
+});
+
+test('a session edit with only an unpublished draft stays on the D230 recompose path — no bulletin involved', function () {
+    app()->setLocale('en');
+    [$owner, $campaign] = previouslyOnTriggerCampaign();
+    $session = previouslyOnTriggerAddSession($owner, $campaign, 7);
+
+    $draft = PreviouslyOnDraft::query()->whereBelongsTo($session)->firstOrFail();
+
+    $newWhen = now()->addDays(10)->startOfHour();
+    $session->update(['date_time' => $newWhen]);
+
+    expect($draft->fresh()->published_at)->toBeNull()
+        ->and($draft->fresh()->body)->toContain(format_date($newWhen, 'weekday_datetime'))
+        ->and(GameBulletin::query()->count())->toBe(0);
+});
+
+test('a published session moved behind a sibling supersedes, and the fresh draft follows the new head', function () {
+    app()->setLocale('en');
+    [$owner, $campaign] = previouslyOnTriggerCampaign('frozen reorder body');
+    $a = previouslyOnTriggerAddSession($owner, $campaign, 7);  // next, holds the published draft
+    $b = previouslyOnTriggerAddSession($owner, $campaign, 14); // later sibling
+
+    $service = app(PreviouslyOnService::class);
+    $draft = PreviouslyOnDraft::query()->whereBelongsTo($a)->firstOrFail();
+    $bulletin = $service->publish($draft, $owner);
+
+    // The GM pushes A (the published draft's session) AFTER B — the
+    // digest's "next session" CTA is stale on two counts now. The
+    // supersede retires the bulletin, and the recompose follows the new
+    // head (B) — the same head-or-self retarget the unpublished Case 1
+    // applies, just inside the supersede's transaction.
+    $a->update(['date_time' => now()->addDays(21)->startOfHour()]);
+
+    $unpublished = PreviouslyOnDraft::query()
+        ->whereBelongsTo($campaign)
+        ->whereNull('published_at')
+        ->get();
+
+    expect($bulletin->fresh()->expires_at->lessThanOrEqualTo(now()))->toBeTrue()
+        ->and($unpublished)->toHaveCount(1)
+        ->and($unpublished->first()->game_id)->toBe($b->id);
+});
+
+test('a supersede failure never blocks the session save (observer isolation)', function () {
+    [$owner, $campaign] = previouslyOnTriggerCampaign('frozen body');
+    $session = previouslyOnTriggerAddSession($owner, $campaign, 7);
+
+    $service = app(PreviouslyOnService::class);
+    $draft = PreviouslyOnDraft::query()->whereBelongsTo($session)->firstOrFail();
+    $service->publish($draft, $owner);
+
+    $this->partialMock(PreviouslyOnService::class)
+        ->shouldReceive('supersedeAndRecompose')
+        ->once()
+        ->andThrow(new RuntimeException('supersede exploded'));
+
+    $movedTo = now()->addDays(10)->startOfHour();
+    $session->update(['date_time' => $movedTo]);
+
+    // The whole supersede transaction rolled back — the draft stays
+    // published, the bulletin stays live — and the reschedule lands.
+    expect($session->fresh()->date_time->toDateTimeString())
+        ->toBe($movedTo->toDateTimeString())
+        ->and($draft->fresh()->published_at)->not->toBeNull()
+        ->and(GameBulletin::query()->count())->toBe(1);
+});
