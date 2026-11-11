@@ -60,6 +60,11 @@ return [
     'content_badge_shelf_feature' => 'Dieses Abzeichen hervorheben',
     'content_badge_shelf_unfeature' => 'Hervorhebung dieses Abzeichens aufheben',
     'content_badge_shelf_limit_reached' => 'Du kannst maximal drei Abzeichen hervorheben — hebe zuerst eines auf, um zu tauschen.',
+    // Autor-Chip der Spiellisten (D237, Spec §2.4): das Title-Attribut, das
+    // benennt, wem das Abzeichen auf einer Listen-Karte gehört — der Chip
+    // selbst zeigt den Abzeichen-Namen, dieses verankert ihn beim GM, wo
+    // keine Namenszeile daneben steht. GM gemäß Glossar.
+    'content_badge_author_chip_title' => 'Abzeichen des GMs: :badge',
     // Galerie (M069 S04 T5, Spec §2.4): Kategorie-Labels lösen sich über
     // BadgeCategory::label() auf; Galerie-Seitencopy + SEO. Die öffentliche
     // /badges-Galerie ist die Entdeckungs- und SEO-Fläche für jede aktive

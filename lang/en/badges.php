@@ -59,6 +59,10 @@ return [
     'content_badge_shelf_feature' => 'Feature this badge',
     'content_badge_shelf_unfeature' => 'Stop featuring this badge',
     'content_badge_shelf_limit_reached' => 'You can feature up to three badges — unfeature one to swap.',
+    // Game-listing author chip (D237, spec §2.4): the title attribute naming
+    // whose badge a listing-card chip is — the chip itself renders the badge
+    // name, this anchors it to the host where no byline sits nearby.
+    'content_badge_author_chip_title' => 'Host badge: :badge',
     // Gallery (M069 S04 T5, spec §2.4): category labels resolve through
     // BadgeCategory::label(); gallery page copy + SEO. The public /badges
     // gallery is the discovery + SEO surface for every active definition.

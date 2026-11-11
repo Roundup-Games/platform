@@ -3,6 +3,7 @@
 namespace App\Livewire\GameSystems;
 
 use App\Models\GameSystem;
+use App\Services\Badges\BadgesDisplayService;
 use App\Services\GameSystemLandingService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -183,9 +184,17 @@ class GameSystemDetail extends Component
         // MEM164: derived values are explicit view data, never lazy Blade
         // resolution. TTL-cached by GameSystemLandingService, so this call and
         // the ItemList JSON-LD built inside seo()->for() above share one query.
+        $upcomingTables = app(GameSystemLandingService::class)->upcomingTables($system);
+
+        // Game-listing author chips (D237) attach on the component's
+        // hydrated set only: badge state stays live (the TTL cache holds
+        // the game set, never badge state) and the SEO ItemList path inside
+        // seo()->for() never pays the chip query.
+        app(BadgesDisplayService::class)->attachAuthorChips($upcomingTables);
+
         return view('livewire.game-systems.game-system-detail', [
             'system' => $system,
-            'upcomingTables' => app(GameSystemLandingService::class)->upcomingTables($system),
+            'upcomingTables' => $upcomingTables,
         ]);
     }
 }

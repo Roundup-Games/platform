@@ -11,6 +11,7 @@ use App\Livewire\Games\GamesPage;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\User;
+use App\Services\Badges\BadgesDisplayService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -99,6 +100,13 @@ class MyGamesBoardService
         $needsAttention = $this->gameScopedActionItems($user);
 
         $activityFeed = app(GameActivityFeedService::class)->getFeed($user, $activityFeedLimit);
+
+        // Game-listing author chips (D237): one batched holds query for the
+        // whole board — the player-view bylines on cards and invitation rows
+        // read $game->author_chip, hosts never see chips on their own cards.
+        app(BadgesDisplayService::class)->attachAuthorChips(
+            $allRelevant->merge($pendingInvitations->map(fn (GameParticipant $invitation): ?Game => $invitation->game)->filter()),
+        );
 
         return [
             'needs_attention' => $needsAttention,

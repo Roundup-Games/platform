@@ -15,6 +15,7 @@ use App\Models\GameSystem;
 use App\Models\GameSystemCategory;
 use App\Models\GameSystemMechanic;
 use App\Models\User;
+use App\Services\Badges\BadgesDisplayService;
 use App\Traits\QueriesTranslatableColumns;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -582,6 +583,13 @@ class DiscoveryQueryService
         // union on their own (the merged modes already produce the union).
         /** @var array{results: LengthAwarePaginator<int, Game|Campaign>, usingFallback: bool} $sectioned */
         $sectioned = $feed;
+
+        // Game-listing author chips (D237): one batched holds query for the
+        // whole page, attached to the games (campaigns pass through).
+        // items() — not getCollection() — because the declared type here is
+        // the paginator CONTRACT; the array holds the same hydrated models
+        // the cards render, so attribute writes land on them either way.
+        app(BadgesDisplayService::class)->attachAuthorChips($sectioned['results']->items());
 
         return $sectioned;
     }
@@ -1207,7 +1215,13 @@ class DiscoveryQueryService
         // recommendations are ordered by match tier, not by date, so the
         // tiebreak has no natural primary key across boosted/fallback tiers.
         /** @var Collection<int, Game|Campaign> $merged */
-        return $this->applyGatheringCap($merged, self::RECOMMENDATION_RAIL_SIZE)['items']->all();
+        $items = $this->applyGatheringCap($merged, self::RECOMMENDATION_RAIL_SIZE)['items'];
+
+        // Recommendation cards share the game-card partial, so they carry
+        // the same author chips as the feed (D237) — one batched lookup.
+        app(BadgesDisplayService::class)->attachAuthorChips($items);
+
+        return $items->all();
     }
 
     // ── Curated filter lists ───────────────────────────

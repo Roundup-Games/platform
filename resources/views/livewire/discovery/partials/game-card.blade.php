@@ -140,6 +140,14 @@
                     {{ trans_choice($isBench ? 'common.content_n_on_bench' : 'common.content_n_waitlisted', $isBench ? ($game->benched_count ?? 0) : ($game->waitlisted_count ?? 0)) }}
                 </span>
             @endif
+
+            {{-- Game-listing author chip (D237, spec §2.4): the host's
+                 whitelisted badge (Compleat-class / subscriber), attached in
+                 bulk by the feeding service — absent when the host holds no
+                 listing-worthy badge. --}}
+            @if(! empty($game->author_chip))
+                <x-author-badge-chip :chip="$game->author_chip" />
+            @endif
         </div>
     </div>
 </a>

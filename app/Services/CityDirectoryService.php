@@ -13,6 +13,7 @@ use App\Models\City;
 use App\Models\Event;
 use App\Models\Game;
 use App\Models\Location;
+use App\Services\Badges\BadgesDisplayService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -250,12 +251,19 @@ class CityDirectoryService
         $campaigns = $this->upcomingCampaignsFor($city->locationIds, $from, $to);
         $events = $this->upcomingEventsFor($city->locationIds, $from, $to);
 
-        return $games
+        $sessions = $games
             ->merge($campaigns)
             ->merge($events)
             ->sortBy(fn (Game|Campaign|Event $item) => $item->hub_sort_at)
             ->take(self::SECTION_LIMIT)
             ->values();
+
+        // Game cards in the mixed grid carry the game-listing author chip
+        // (D237) — one batched holds query per hub render, resolved fresh
+        // each request (only the city resolution above is cached).
+        app(BadgesDisplayService::class)->attachAuthorChips($sessions);
+
+        return $sessions;
     }
 
     /**

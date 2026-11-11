@@ -48,6 +48,9 @@
                     <span class="material-symbols-outlined text-sm" aria-hidden="true">person</span>
                     {{ $game->owner->name }}
                 </span>
+                @if(! empty($game->author_chip))
+                    <x-author-badge-chip :chip="$game->author_chip" />
+                @endif
             @endif
             <span class="flex items-center gap-1">
                 <span class="material-symbols-outlined text-sm" aria-hidden="true">group</span>

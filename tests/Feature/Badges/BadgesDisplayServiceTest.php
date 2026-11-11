@@ -2,6 +2,8 @@
 
 use App\Models\BadgeDefinition;
 use App\Models\BadgeUser;
+use App\Models\Campaign;
+use App\Models\Game;
 use App\Models\User;
 use App\Services\Badges\BadgesDisplayService;
 use Illuminate\Support\Facades\DB;
@@ -148,6 +150,110 @@ describe('empty input', function () {
         DB::disableQueryLog();
 
         expect($top)->toBe([])
+            ->and(DB::getQueryLog())->toBeEmpty();
+    });
+});
+
+// ── Author chip (D237, spec §2.4) ───────────────────────────────────────
+//
+// The game-listing author chip: whitelist reading of "subscriber +
+// Compleat-class only" — only AUTHOR_CHIP_KEYS may appear on a listing
+// card, Compleat-class before subscriber (spec §1.5 no purchasable
+// prestige), same lifecycle exclusions as the directory chip.
+
+describe('author chip selection', function () {
+    it('returns only whitelisted holds and ignores every other badge kind', function () {
+        $user = User::factory()->create();
+
+        BadgeUser::factory()->for($user)->for(displayDefinition('regulars_table', 1))->create();
+        BadgeUser::factory()->for($user)->for(displayDefinition('debut', 2))->create();
+        $compleat = BadgeDefinition::factory()->create([
+            'key' => 'campaign_compleat',
+            'name_key' => 'badges.content_badge_campaign_compleat_name',
+        ]);
+        BadgeUser::factory()->for($user)->for($compleat)->create();
+
+        $chips = app(BadgesDisplayService::class)->authorChipsForUsers([$user->id]);
+
+        expect($chips)->toHaveCount(1)
+            ->and($chips[$user->id]->badge_definition_id)->toBe($compleat->id)
+            ->and($chips[$user->id]->relationLoaded('badgeDefinition'))->toBeTrue();
+    });
+
+    it('prefers the Compleat-class hold over subscriber badges regardless of sort order', function () {
+        $user = User::factory()->create();
+
+        // supporting_member sorts EARLIER (1) than campaign_compleat (50),
+        // so the directory lookup's lowest-sort_order rule would pick the
+        // subscriber — the author chip must take whitelist precedence instead.
+        $subscriber = BadgeDefinition::factory()->create([
+            'key' => 'supporting_member',
+            'name_key' => 'badges.content_badge_supporting_member_name',
+            'sort_order' => 1,
+        ]);
+        $compleat = BadgeDefinition::factory()->create([
+            'key' => 'campaign_compleat',
+            'name_key' => 'badges.content_badge_campaign_compleat_name',
+            'sort_order' => 50,
+        ]);
+
+        BadgeUser::factory()->for($user)->for($subscriber)->create();
+        BadgeUser::factory()->for($user)->for($compleat)->create();
+
+        $chips = app(BadgesDisplayService::class)->authorChipsForUsers([$user->id]);
+
+        expect($chips[$user->id]->badge_definition_id)->toBe($compleat->id);
+    });
+
+    it('excludes revoked and lapsed holds from the author chip', function () {
+        $user = User::factory()->create();
+
+        $lapsedSubscriber = BadgeDefinition::factory()->create([
+            'key' => 'supporting_member',
+            'name_key' => 'badges.content_badge_supporting_member_name',
+        ]);
+        $revokedCompleat = BadgeDefinition::factory()->create([
+            'key' => 'campaign_compleat',
+            'name_key' => 'badges.content_badge_campaign_compleat_name',
+        ]);
+
+        BadgeUser::factory()->for($user)->for($lapsedSubscriber)->lapsed()->create();
+        BadgeUser::factory()->for($user)->for($revokedCompleat)->revoked()->create();
+
+        expect(app(BadgesDisplayService::class)->authorChipsForUsers([$user->id]))->toBeEmpty();
+    });
+
+    it('attaches author_chip to games in one batch, skipping non-game items and owners without holds', function () {
+        $badged = User::factory()->create();
+        $unbadged = User::factory()->create();
+
+        $compleat = BadgeDefinition::factory()->create([
+            'key' => 'campaign_compleat',
+            'name_key' => 'badges.content_badge_campaign_compleat_name',
+        ]);
+        BadgeUser::factory()->for($badged)->for($compleat)->create(['tier' => 'bronze']);
+
+        $badgedGame = Game::factory()->withoutGameSystems()->create(['owner_id' => $badged->id]);
+        $unbadgedGame = Game::factory()->withoutGameSystems()->create(['owner_id' => $unbadged->id]);
+        $campaign = Campaign::factory()->create(['owner_id' => $badged->id]);
+
+        app(BadgesDisplayService::class)->attachAuthorChips([$badgedGame, $unbadgedGame, $campaign]);
+
+        expect($badgedGame->author_chip)->toBeInstanceOf(BadgeUser::class)
+            ->and($badgedGame->author_chip->tier)->toBe('bronze')
+            ->and($unbadgedGame->author_chip)->toBeNull()
+            // The campaign row never gained a dynamic attribute.
+            ->and($campaign->getAttributes())->not->toHaveKey('author_chip');
+    });
+
+    it('returns an empty chip map without querying when no users are given', function () {
+        DB::enableQueryLog();
+
+        $chips = app(BadgesDisplayService::class)->authorChipsForUsers([]);
+
+        DB::disableQueryLog();
+
+        expect($chips)->toBe([])
             ->and(DB::getQueryLog())->toBeEmpty();
     });
 });

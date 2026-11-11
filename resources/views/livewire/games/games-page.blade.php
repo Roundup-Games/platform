@@ -156,6 +156,9 @@
                                             <span class="material-symbols-outlined text-sm" aria-hidden="true">person</span>
                                             {{ $game->owner->name }}
                                         </span>
+                                        @if(! empty($game->author_chip))
+                                            <x-author-badge-chip :chip="$game->author_chip" />
+                                        @endif
                                     @endif
                                 </div>
                             </a>

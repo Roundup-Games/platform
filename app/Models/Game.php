@@ -76,6 +76,7 @@ use Spatie\Translatable\HasTranslations;
  * @property int|null $discoverable_sort_key
  * @property int|null $discoverable_gathering_rank
  * @property float|null $distance_km
+ * @property BadgeUser|null $author_chip runtime attribute attached in bulk by BadgesDisplayService::attachAuthorChips() (D237) — the game-listing author chip hold, null when the host holds no whitelisted badge
  */
 class Game extends Model implements HasMedia, TicketSubject
 {
