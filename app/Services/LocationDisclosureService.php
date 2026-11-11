@@ -12,6 +12,7 @@ use App\Models\GameParticipant;
 use App\Models\Location;
 use App\Models\User;
 use App\Values\DistanceDisplay;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -66,9 +67,92 @@ class LocationDisclosureService
         // so we derive 'blocked' from it instead of calling isBlocked() twice.
         $relationship = $this->resolveRelationship($viewer, $entity);
 
+        return $this->levelFor($location, $viewer, $relationship);
+    }
+
+    /**
+     * Batch address levels for a list of games (M079/S02): the exact
+     * addressLevel() ladder, with the relationship tier resolved in bulk
+     * instead of per row — the viewer's block sets (both directions), their
+     * approved-participant game ids, and the friend/teammate owner set are
+     * each fetched once, so a 25-row agent feed answers in ~4 relationship
+     * queries instead of ~125. List surfaces (games.search, my.sessions)
+     * consume this; the per-entity addressLevel() remains the single
+     * authority for detail surfaces.
+     *
+     * Games must carry their linkedLocation (eager-loaded by both callers);
+     * a lazy-loaded location still works but defeats the point. Unknown ids
+     * and missing keys are absent from the map — callers fall back to None
+     * (fail-closed parity with addressLevel()'s null-location branch).
+     *
+     * @param  iterable<int, mixed>  $games  anything iterable; non-Game entries are skipped
+     * @return array<string, DisclosureLevel> game id => level
+     */
+    public function addressLevelsForGames(iterable $games, ?User $viewer): array
+    {
+        /** @var Collection<int, Game> $list */
+        $list = collect($games)->filter(fn (mixed $game): bool => $game instanceof Game)->values();
+
+        if ($list->isEmpty()) {
+            return [];
+        }
+
+        if ($viewer === null) {
+            return $list->mapWithKeys(fn (Game $game): array => [
+                to_string_id($game->getKey()) => $this->levelFor($game->linkedLocation, null, 'stranger'),
+            ])->all();
+        }
+
+        // Bulk relationship tiers — the same tiers resolveRelationship()
+        // walks per entity, resolved once for the whole batch.
+        $blockedUserIds = $this->social->blockedUserIdsFor($viewer);
+        $approvedGameIds = to_string_id_array(GameParticipant::query()
+            ->whereBelongsTo($viewer)
+            ->where('status', ParticipantStatus::Approved)
+            ->whereIn('game_id', $list->map(fn (Game $game): string => to_string_id($game->getKey())))
+            ->pluck('game_id'));
+        $friendOrTeammateOwnerIds = $this->social->getAllowedOwnerIdsForProtectedContent($viewer);
+
+        return $list->mapWithKeys(function (Game $game) use ($viewer, $blockedUserIds, $approvedGameIds, $friendOrTeammateOwnerIds): array {
+            $owner = $game->owner;
+            $ownerId = $owner !== null ? to_string_id($owner->getKey()) : '';
+            $gameId = to_string_id($game->getKey());
+
+            $relationship = 'stranger';
+
+            if ($ownerId !== '' && in_array($ownerId, $blockedUserIds, true)) {
+                $relationship = 'blocked';
+            } elseif ($owner !== null && $owner->is($viewer)) {
+                $relationship = 'owner';
+            } elseif (in_array($gameId, $approvedGameIds, true)) {
+                $relationship = 'approved_participant';
+            } elseif ($ownerId !== '' && in_array($ownerId, $friendOrTeammateOwnerIds, true)) {
+                $relationship = 'friend_or_teammate';
+            }
+
+            return [$gameId => $this->levelFor($game->linkedLocation, $viewer, $relationship)];
+        })->all();
+    }
+
+    /**
+     * The disclosure ladder shared by every surface: blocked → nothing,
+     * verified commercial venue → exact for every non-blocked viewer,
+     * guests → area, then graduated by relationship to the owner. The
+     * single place the rung order lives, so per-entity resolution and
+     * batch resolution can never drift.
+     */
+    private function levelFor(?Location $location, ?User $viewer, string $relationship): DisclosureLevel
+    {
         // Blocked viewers never see the address — even for a public venue,
         // a block means this owner's content is invisible to them.
         if ($relationship === 'blocked') {
+            return DisclosureLevel::None;
+        }
+
+        // Fail-closed: unresolvable location → never disclose anything.
+        // (The per-entity path warns with entity context before reaching
+        // here; the batch path has no caller-side warning, only the level.)
+        if ($location === null) {
             return DisclosureLevel::None;
         }
 
@@ -77,10 +161,7 @@ class LocationDisclosureService
             return DisclosureLevel::Exact;
         }
 
-        // Guest (unauthenticated) → only the area rung. resolveRelationship()
-        // returns 'stranger' for a null viewer, so this also covers that path,
-        // but the explicit guard documents intent and short-circuits before the
-        // match for clarity.
+        // Guest (unauthenticated) → only the area rung.
         if ($viewer === null) {
             return DisclosureLevel::Area;
         }

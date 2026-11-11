@@ -11,17 +11,11 @@
     {{-- Tab Navigation --}}
     <div class="max-w-2xl mx-auto mb-6 sm:mb-8">
         <nav class="flex gap-1 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none" role="tablist" aria-label="{{ __('settings.aria_settings_sections') }}">
-            @php
-                $tabConfig = [
-                    'privacy' => ['label' => __('profile.content_privacy_settings'), 'icon' => 'shield'],
-                    'notifications' => ['label' => __('notifications.content_notification_preferences'), 'icon' => 'notifications'],
-                    'support' => ['label' => __('profile.title_support_tickets'), 'icon' => 'contact_support'],
-                    'account' => ['label' => __('profile.field_linked_accounts'), 'icon' => 'settings'],
-                ];
-            @endphp
+            @php($tabConfig = $this->tabConfig)
             @foreach($tabConfig as $tabId => $tab)
                 <button
                     @click="setTab('{{ $tabId }}')"
+                    id="tab-{{ $tabId }}"
                     :aria-selected="activeTab === '{{ $tabId }}'"
                     aria-controls="panel-{{ $tabId }}"
                     role="tab"
@@ -119,6 +113,16 @@
                     </button>
                 </div>
             </form>
+        </div>
+
+        {{-- ============================================================ --}}
+        {{-- TAB: Agent Tokens (MCP consumers — M079/S01/T02, D277) --}}
+        {{-- ============================================================ --}}
+        <div x-show="activeTab === 'agents'" x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
+             role="tabpanel" id="panel-agents" aria-labelledby="tab-agents">
+
+            @include('livewire.profile.partials._agent-tokens')
         </div>
 
         {{-- ============================================================ --}}
@@ -229,7 +233,7 @@
                     @endif
 
                     @if($calendarFeedUrl)
-                        <div class="rounded-lg border border-outline-variant p-4 mb-4" x-data="{ copied: false, copy() { navigator.clipboard.writeText($refs.urlInput.value); } }">
+                        <div class="rounded-lg border border-outline-variant p-4 mb-4" x-data="copyButton()">
                             <label for="calendar-feed-url" class="block text-xs font-medium text-on-surface-variant mb-1.5">
                                 {{ __('settings.label_calendar_feed_url') }}
                             </label>
@@ -237,7 +241,7 @@
                                 <input id="calendar-feed-url" x-ref="urlInput" type="text" readonly
                                        value="{{ $calendarFeedUrl }}"
                                        class="flex-1 min-w-0 rounded-lg border border-outline-variant bg-surface px-3 py-2 text-sm text-on-surface font-mono" />
-                                <button type="button" @click="copy(); copied = true; setTimeout(() => copied = false, 1500)"
+                                <button type="button" @click="copy(@js($calendarFeedUrl))"
                                         class="inline-flex items-center gap-1.5 px-3 py-2 bg-surface-container-high text-on-surface rounded-lg hover:bg-surface-container transition-colors text-sm font-medium whitespace-nowrap">
                                     <span class="material-symbols-outlined text-base" aria-hidden="true">content_copy</span>
                                     <span x-show="!copied">{{ __('settings.action_calendar_feed_copy') }}</span>

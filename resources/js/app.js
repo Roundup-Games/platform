@@ -31,11 +31,18 @@ document.addEventListener('DOMContentLoaded', () => {
 //   document.addEventListener('alpine:init', () => { Alpine.data(...) })
 
 document.addEventListener('alpine:init', () => {
+    // The tab allowlist is derived from the rendered page (the tab panels'
+    // id="panel-<tab>" markers) instead of a hardcoded list per component —
+    // a forgotten entry here used to silently kill that tab's deep-links
+    // (settings gained a "support" tab the allowlist never learned about).
+    const tabIdsOnPage = () =>
+        [...document.querySelectorAll('[id^="panel-"]')].map((el) => el.id.slice('panel-'.length));
+
     Alpine.data('profileTabs', () => ({
         activeTab: 'profile',
         init() {
             const hash = window.location.hash?.slice(1);
-            if (hash && ['profile', 'preferences', 'gm_profile'].includes(hash)) {
+            if (hash && tabIdsOnPage().includes(hash)) {
                 this.activeTab = hash;
             }
             this.$watch('activeTab', (val) => { window.location.hash = val; });
@@ -49,13 +56,32 @@ document.addEventListener('alpine:init', () => {
         activeTab: 'privacy',
         init() {
             const hash = window.location.hash?.slice(1);
-            if (hash && ['privacy', 'notifications', 'account'].includes(hash)) {
+            if (hash && tabIdsOnPage().includes(hash)) {
                 this.activeTab = hash;
             }
             this.$watch('activeTab', (val) => { window.location.hash = val; });
         },
         setTab(tab) {
             this.activeTab = tab;
+        }
+    }));
+
+    // Shared copy-to-clipboard button: promise-aware — the "Copied!"
+    // confirmation flips only when the clipboard write actually succeeded
+    // (non-secure contexts, denied permissions, and older Safari reject the
+    // promise; a fire-and-forget handler reported success regardless).
+    Alpine.data('copyButton', () => ({
+        copied: false,
+        copy(text) {
+            navigator.clipboard.writeText(text)
+                .then(() => {
+                    this.copied = true;
+                    setTimeout(() => { this.copied = false; }, 1500);
+                })
+                .catch(() => {
+                    // The selectable readonly source remains the manual
+                    // fallback — no false success feedback.
+                });
         }
     }));
 });

@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -77,6 +78,27 @@ class Show extends Component
     /** Absolute URL of the member's active iCal feed token (D123), or null when none exists. */
     #[Locked]
     public ?string $calendarFeedUrl = null;
+
+    /**
+     * Tab registration for the settings surface — the single list the
+     * tab bar iterates and the panel ids derive from. Sourced here (not
+     * inline in the blade) so sections register exactly like every other
+     * tab: one entry per tab (the Agent Tokens section — M079/S01/T02,
+     * D277 — being the first to join after the page shipped).
+     *
+     * @return array<string, array{label: string, icon: string}>
+     */
+    #[Computed]
+    public function tabConfig(): array
+    {
+        return [
+            'privacy' => ['label' => __('profile.content_privacy_settings'), 'icon' => 'shield'],
+            'notifications' => ['label' => __('notifications.content_notification_preferences'), 'icon' => 'notifications'],
+            'agents' => ['label' => __('settings.title_agent_tokens'), 'icon' => 'smart_toy'],
+            'support' => ['label' => __('profile.title_support_tickets'), 'icon' => 'contact_support'],
+            'account' => ['label' => __('profile.field_linked_accounts'), 'icon' => 'settings'],
+        ];
+    }
 
     public function mount(): void
     {

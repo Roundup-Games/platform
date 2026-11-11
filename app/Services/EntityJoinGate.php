@@ -113,6 +113,22 @@ class EntityJoinGate
     }
 
     /**
+     * Record an agent-surface join attempt and report whether it is
+     * allowed (M079/S02/T02).
+     *
+     * Same per-viewer-per-entity limit and decay as the web buckets, but
+     * its own key prefix: an agent hammering games.join trips the agent
+     * bucket without burning the web surfaces' attempts for the same
+     * user, and vice versa.
+     *
+     * @see EntityJoinGate::attemptUnderJoinRateLimit()
+     */
+    public function allowsMcpJoinAttempt(Game $game, User $viewer): bool
+    {
+        return $this->attemptUnderJoinRateLimit('mcp-join', $game, $viewer);
+    }
+
+    /**
      * The shared direct-join predicate, identical for both surfaces: the
      * viewer must not be the owner, must not already hold a join-blocking
      * participant row, the entity must not be completed or canceled, and —

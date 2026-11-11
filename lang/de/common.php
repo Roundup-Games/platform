@@ -393,6 +393,7 @@ return [
     'content_source_email_invite' => 'E-Mail-Einladung',
     'content_source_short_link' => 'Kurzlink',
     'content_source_discord' => 'Discord',
+    'content_source_mcp_agent' => 'MCP-Agent',
     /*
     |--------------------------------------------------------------------------
     | Policy Update Notice

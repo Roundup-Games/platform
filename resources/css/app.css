@@ -7,6 +7,15 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+    Alpine removes x-cloak on init; without this rule nothing hides the
+    elements before hydration — every x-cloak consumer (tab panels, copy
+    confirmations, conditionals) flashed on first paint.
+*/
+[x-cloak] {
+    display: none !important;
+}
+
 @theme {
   --font-sans:
     Inter, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',

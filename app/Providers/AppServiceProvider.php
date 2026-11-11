@@ -7,12 +7,14 @@ use App\Console\Dev\DemoTeardownCommand;
 use App\Console\Dev\PostHogTestEvent;
 use App\Dto\CitySummary;
 use App\Events\MembershipActivated;
+use App\Http\Middleware\McpAuthentication;
 use App\Listeners\DropDemoDomainMail;
 use App\Listeners\LogMailMessageSent;
 use App\Listeners\LogNotificationDelivery;
 use App\Listeners\RecordScheduledTaskRun;
 use App\Listeners\RecordUserSignIn;
 use App\Listeners\SuppressAutomatedTicketStatusNotifications;
+use App\Mcp\Support\McpAuditTarget;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Models\City;
@@ -199,6 +201,12 @@ class AppServiceProvider extends ServiceProvider
 
         // Escalated customer portal: use Blade renderer instead of default Inertia.
         $this->app->singleton(EscalatedUiRenderer::class, EscalatedBladeRenderer::class);
+
+        // Request-scoped ops audit target (M079/S04): ops tools record the
+        // entity they operate on; McpAuthentication drains it into the
+        // mcp_calls row. Scoped + cleared per request so no state leaks
+        // across requests on long-lived workers.
+        $this->app->scoped(McpAuditTarget::class);
 
         // Centralized PostHog SDK wrapper — single point for enabled checks and SDK delegation.
         $this->app->singleton(PostHogClient::class);
@@ -588,6 +596,14 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('client-errors', function (Request $request) {
             return Limit::perMinute(10)->by($request->user()->id ?? $request->ip());
         });
+
+        // MCP agent surface limiter (M079/S01/T03): per-consumer read and
+        // write buckets keyed on the mcp_clients uuid. McpAuthentication
+        // applies it manually AFTER auth resolves the consumer (order:
+        // auth → rate limit → dispatch) and sets the resolved client + the
+        // request's bucket suffix as request attributes; the Limit pair is
+        // derived from the client's rate_limit_tier here.
+        RateLimiter::for('mcp', fn (Request $request): array => McpAuthentication::limitsFor($request));
 
         // Register custom notification channels
         Notification::extend('push', function ($app) {

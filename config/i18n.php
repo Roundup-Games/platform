@@ -55,6 +55,14 @@ return [
         'venues' => [
             'type_cafe',
         ],
+        'settings' => [
+            // Brand names, never translated (R098 app picker).
+            'label_agent_app_chatgpt',
+            'label_agent_app_claude',
+            'label_agent_app_gemini',
+            // True cognate — "Token" is standard German tech usage.
+            'label_agent_conn_token',
+        ],
         'badges' => [
             // True cognates — the metal names are identical in EN and DE
             // (unlike Silber/Jahr, which differ and stay checked).

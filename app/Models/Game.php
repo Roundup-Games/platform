@@ -584,6 +584,29 @@ class Game extends Model implements HasMedia, TicketSubject
     }
 
     /**
+     * Scheduled future games the user hosts or attends as an approved
+     * participant — the dashboard-schedule participation semantics
+     * (DashboardScheduleService / ActionCenter). Single-sourced so the
+     * MCP read tools (my.sessions, my.dashboard) ride the same predicate
+     * as the web schedule and can never drift from it.
+     *
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeParticipatingSchedule(Builder $query, User $user): Builder
+    {
+        return $query
+            ->where('status', GameStatus::Scheduled->value)
+            ->where('date_time', '>', now())
+            ->where(function (Builder $query) use ($user): Builder {
+                return $query->whereBelongsTo($user, 'owner')
+                    ->orWhereHas('participants', fn ($participants) => $participants
+                        ->whereBelongsTo($user)
+                        ->where('status', ParticipantStatus::Approved->value));
+            });
+    }
+
+    /**
      * Scope to nearby scheduled games in a geohash tile.
      *
      * The shared scaffold behind the dashboard "nearby noteworthy",

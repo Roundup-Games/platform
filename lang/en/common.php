@@ -400,6 +400,7 @@ return [
     'content_source_email_invite' => 'Email Invite',
     'content_source_short_link' => 'Short Link',
     'content_source_discord' => 'Discord',
+    'content_source_mcp_agent' => 'MCP Agent',
     /*
     |--------------------------------------------------------------------------
     | Policy Update Notice

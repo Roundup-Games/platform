@@ -355,12 +355,12 @@ function to_string_id(mixed $value): string
 }
 
 /**
- * Narrow a collection of mixed id values to a string[] array.
+ * Narrow a collection of mixed id values to a list of string ids.
  *
  * The collection shape produced by Eloquent `->pluck()` is a `Collection<int, mixed>`
  * under PHPStan, even when every element is a UUID string in practice. This helper
- * applies `to_string_id()` per element, drops empties, reindexes, and returns a
- * typed `array<int, string>` so downstream `whereIn`/array operations are
+ * applies `to_string_id()` per element, drops empties, reindexes (values()), and
+ * returns a typed `list<string>` so downstream `whereIn`/array operations are
  * PHPStan-clean without per-call-site string[] phpdoc annotations.
  *
  * Replaces the duplicated `->filter(fn ($id) => is_string($id))->values()->toArray()`
@@ -368,14 +368,15 @@ function to_string_id(mixed $value): string
  * SocialGraphService.
  *
  * @param  Collection<int, mixed>  $values
- * @return array<int, string>
+ * @return list<string>
  */
 function to_string_id_array(Collection $values): array
 {
-    return $values->map(fn (mixed $id): string => to_string_id($id))
-        ->filter(fn (string $id) => $id !== '')
-        ->values()
-        ->all();
+    return array_values(
+        $values->map(fn (mixed $id): string => to_string_id($id))
+            ->filter(fn (string $id) => $id !== '')
+            ->all()
+    );
 }
 
 /**

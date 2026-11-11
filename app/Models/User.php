@@ -301,6 +301,14 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     }
 
     /**
+     * @return HasMany<McpClient, $this>
+     */
+    public function mcpClients()
+    {
+        return $this->hasMany(McpClient::class);
+    }
+
+    /**
      * @return HasMany<ActivityLog, $this>
      */
     public function activityLogs()

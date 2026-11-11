@@ -88,7 +88,10 @@ class AttendanceService
      * If all participants have filed after this batch, triggers early resolution.
      *
      * @param  array<array{reported_id: string, status: string, reason?: string}>  $reports
-     * @return array{success: bool, reason: string}
+     * @return array{success: bool, reason: string, created?: int} The
+     *                                                             created key is present on success (M079 review: the
+     *                                                             true insert count — the race filter can drop entries
+     *                                                             between validation and the insert).
      */
     public function submitReport(Game $game, User $reporter, array $reports): array
     {
@@ -159,6 +162,16 @@ class AttendanceService
         // Validate each report entry
         $validStatuses = [AttendanceStatus::Attended->value, AttendanceStatus::NoShow->value, AttendanceStatus::Excused->value];
 
+        // In-batch duplicate guard: the DB-prefetched set above only knows
+        // about rows that already exist, so an in-batch duplicate (the same
+        // reported user twice in one submission) would otherwise slip past
+        // both the loop check and the race filter and insert two rows —
+        // double-counting this reporter's votes at resolution time. The web
+        // form surface is structurally immune (its array is keyed by
+        // participant id); batch callers (the MCP attendance tool) are not,
+        // so the guard lives here where every caller is protected.
+        $seenInBatch = [];
+
         foreach ($reports as $entry) {
             $reportedId = $entry['reported_id'];
             $status = $entry['status'];
@@ -195,6 +208,13 @@ class AttendanceService
             if (isset($alreadyReportedIds[$reportedId])) {
                 return ['success' => false, 'reason' => 'You have already reported attendance for this participant'];
             }
+
+            // ... nor twice within this batch
+            if (isset($seenInBatch[$reportedId])) {
+                return ['success' => false, 'reason' => 'Duplicate report entries for the same participant in one submission'];
+            }
+
+            $seenInBatch[$reportedId] = true;
         }
 
         // Race guard: filter out already-reported users (handles double-submit between
@@ -275,7 +295,7 @@ class AttendanceService
         // Check if all approved participants have filed reports → trigger early resolution
         $this->checkAndResolveEarlyConsensus($game);
 
-        return ['success' => true, 'reason' => "{$created} report(s) submitted"];
+        return ['success' => true, 'reason' => "{$created} report(s) submitted", 'created' => $created];
     }
 
     /**

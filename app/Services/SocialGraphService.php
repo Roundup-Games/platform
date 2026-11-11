@@ -86,6 +86,22 @@ class SocialGraphService
     }
 
     /**
+     * User ids with a block in EITHER direction with $user (bulk
+     * disclosure): the union of users $user has blocked and users who have
+     * blocked $user — the batch counterpart of the isBlockedBy()/
+     * hasBlocked() pair LocationDisclosureService walks per entity.
+     *
+     * @return list<string>
+     */
+    public function blockedUserIdsFor(User $user): array
+    {
+        $outgoing = $user->blocks()->pluck('related_user_id');
+        $incoming = $user->blockedBy()->pluck('user_id');
+
+        return to_string_id_array($outgoing->merge($incoming)->unique());
+    }
+
+    /**
      * Get the relationship level between $viewer and $target.
      *
      * Returns one of: 'self', 'friend_or_teammate', 'blocked', 'stranger'.
