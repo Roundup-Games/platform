@@ -2,6 +2,7 @@
 
 use Docker\API\Exception\ContainerExecConflictException;
 use Docker\API\Exception\ContainerExecNotFoundException;
+use Testcontainers\Container\StartedGenericContainer;
 use Testcontainers\Modules\PostgresContainer;
 use Testcontainers\Wait\WaitForHostPort;
 
@@ -16,15 +17,21 @@ use Testcontainers\Wait\WaitForHostPort;
  * and reuse the same container, avoiding Docker resource contention.
  *
  * Lifecycle (so no containers leak):
- * - Sequential: this process stops the single container on shutdown.
+ * - Sequential: this process claims its container (see claimTestContainer())
+ *   and stops it on shutdown.
  * - Parallel: ONE shared container is started by the primary worker and
  *   reused by all siblings. No worker stops it on its own exit — that would
  *   tear down the shared server while siblings are still running (the prior
- *   approach did exactly that). Instead the primary tags the container with a
- *   stable label; at the start of each parallel run it prunes any orphaned
- *   containers carrying that label from previous runs that were hard-killed
- *   or whose prune was skipped. This trades at most one transient leftover
- *   for guaranteed correctness during the run.
+ *   approach did exactly that). Instead the primary writes a per-run CLAIM
+ *   file recording the container id, and every worker of the run holds a
+ *   shared flock on it for its process lifetime. At the start of each
+ *   parallel run the primary prunes only containers whose claim is
+ *   verifiably stale (exclusive lock acquirable = no worker of that run is
+ *   alive, e.g. after a hard kill). This trades at most one transient
+ *   leftover for guaranteed correctness during the run — and, unlike the
+ *   pre-2026-11-11 ancestor-filter prune, can never remove another live
+ *   run's shared container (the "invalid response to SSL negotiation"
+ *   kill) or an unrelated postgres:16-alpine container on the host.
  *
  * Note: register_shutdown_function does NOT fire on SIGKILL/OOM, so a hard
  * kill still orphans the container; the next run's prune cleans it up.
@@ -84,6 +91,40 @@ if (getenv('LARAVEL_PARALLEL_TESTING')) {
     putenv('LARAVEL_PARALLEL_TESTING_WITHOUT_DATABASES=1');
 }
 
+/*
+| Paratest MAIN-process skip (2026-11-11 flake fix):
+|
+| Under `--parallel`, pest runs ParaTest IN ITS OWN PROCESS (Pest\Plugins\
+| Parallel::runTestSuiteInParallel() -> ParaTestCommand->run()), and the
+| paratest main process includes this bootstrap during test discovery
+| (WrapperRunner\SuiteLoader includes it) with PARATEST UNSET — PARATEST=1
+| is injected only into WORKER environments (Options::fillEnvWithTokens()).
+| Before this guard the main process fell into the sequential branch below
+| and started a whole throwaway PostgreSQL container that nothing ever used:
+| a second container competing for Docker resources and a candidate victim
+| for any concurrent run's prune (the stray port-63981 sibling of the
+| 2026-11-10 SSL-negotiation flake).
+|
+| Detection mirrors Pest\Plugins\Parallel::isEnabled(): PARATEST unset (so
+| this is NOT a worker) AND '--parallel'/'-p' present in $argv (so this IS
+| the primary that will fork workers — and workers own the container
+| lifecycle, so the main process needs no container at all). A serial run
+| never carries those flags, so it cannot be misclassified; if it ever were,
+| the run would fail loudly with no container rather than hang. Both
+| invocation shapes (parallel and serial) verified locally after this
+| change.
+*/
+$isParatestMainProcess = ! $isParallel && array_filter(
+    $_SERVER['argv'] ?? [],
+    fn (string $arg): bool => $arg === '--parallel' || $arg === '-p' || str_starts_with($arg, '--parallel=')
+) !== [];
+
+if ($isParatestMainProcess) {
+    echo "  Testcontainers: paratest main process — workers own the container, skipping startup.\n";
+
+    return;
+}
+
 // Temp file for sharing container details across parallel workers.
 // Sequential mode keys it by PID (exclusive process); parallel mode uses a
 // stable name shared by all sibling workers of one paratest run.
@@ -92,26 +133,148 @@ if ($isParallel) {
     $cacheFile = sys_get_temp_dir().'/roundup_testcontainers_parallel';
 }
 
-// This project only runs postgres:16-alpine via tests/bootstrap.php, so pruning
-// by ancestor is safe and needs no custom label (and there is no first-party
-// `docker label` CLI to add one to a running container anyway).
+// Claim files (see claimTestContainer()) are the ONLY records the prune
+// trusts: containers are removed by exact id from a verifiably-stale claim,
+// never by a bare ancestor filter.
 
 /**
- * Prune orphaned postgres testcontainers from prior parallel runs. Runs once
- * at the start of each parallel run (primary worker only), before starting a
- * fresh container. Safe: this project only uses the filtered ancestor for the
- * test container, so removal cannot touch unrelated containers.
+ * Prune containers left behind by prior runs of this bootstrap. Runs once at
+ * the start of each parallel run (primary worker only), before starting a
+ * fresh container.
+ *
+ * Safety (2026-11-11 flake fix): the pre-fix prune listed EVERY container
+ * with ancestor postgres:16-alpine and `docker rm -f`'d it — which also
+ * killed (a) other concurrent runs' shared containers (workers connected to
+ * them died with SQLSTATE[08006] "received invalid response to SSL
+ * negotiation") and (b) any unrelated postgres:16-alpine container on the
+ * host. Now each run records its container id in a per-run claim file and
+ * holds a shared flock on it for the process lifetime (parallel sibling
+ * workers re-lock the same claim when they adopt the shared cache file, so
+ * the claim lives until the LAST worker of that run exits). A claim whose
+ * lock can be taken exclusively is verifiably stale — no process of that
+ * run is alive — and only then is its container removed, by exact id.
+ * Containers with no claim file at all are never removed: we cannot prove
+ * they are ours (one-time transition note: leftovers from pre-fix runs
+ * carry no claim and linger until removed manually — harmless).
  */
 function pruneOrphanedParallelContainers(string $dockerHost): void
 {
     $hostArg = $dockerHost !== '' ? '--host '.escapeshellarg($dockerHost) : '';
-    $ids = @shell_exec("docker {$hostArg} ps -aq --filter ancestor=postgres:16-alpine 2>/dev/null");
-    if (is_string($ids) && trim($ids) !== '') {
-        $list = preg_split('/\s+/', trim($ids)) ?: [];
-        foreach ($list as $id) {
-            if ($id !== '') {
-                @shell_exec(sprintf('docker %s rm -f %s >/dev/null 2>&1', $hostArg, escapeshellarg($id)));
+
+    foreach (glob(sys_get_temp_dir().'/roundup_testcontainers_*.claim') ?: [] as $claimFile) {
+        $handle = @fopen($claimFile, 'c+');
+        if ($handle === false) {
+            @unlink($claimFile);
+
+            continue;
+        }
+
+        if (! flock($handle, LOCK_EX | LOCK_NB)) {
+            // A live run still holds this claim — its container must survive.
+            fclose($handle);
+
+            continue;
+        }
+
+        // Exclusive lock acquired: the owning run is gone (all workers
+        // exited, or a hard kill — the OS releases flocks on process death).
+        rewind($handle);
+        $containerId = trim((string) stream_get_contents($handle));
+        if ($containerId !== '') {
+            @shell_exec(sprintf('docker %s rm -f %s >/dev/null 2>&1', $hostArg, escapeshellarg($containerId)));
+        }
+
+        flock($handle, LOCK_UN);
+        fclose($handle);
+        @unlink($claimFile);
+    }
+}
+
+/**
+ * Bind a freshly-started container to this run via a per-run claim file and
+ * hold a shared flock on it for this process's lifetime (the OS releases
+ * the lock when the process dies). The claim records the exact container id
+ * so a later run's pruneOrphanedParallelContainers() can remove the
+ * container once no worker of this run is alive — never by ancestor filter
+ * (see that function's docblock).
+ *
+ * The lock handle is parked in $GLOBALS: this bootstrap is include()d from
+ * a method scope, so caller-local variables (and closure captures Pint
+ * would strip as unused) are collected once the including function
+ * returns — the claim must live for the whole process lifetime.
+ *
+ * @return string|null the claim file path (for shutdown cleanup / cache-file publication); null when the claim could not be created (degraded: the container simply never gets pruned)
+ */
+function claimTestContainer(string $containerId): ?string
+{
+    $claimFile = sys_get_temp_dir().'/roundup_testcontainers_'.getmypid().'.claim';
+    $handle = @fopen($claimFile, 'c+');
+
+    if ($handle === false) {
+        return null;
+    }
+
+    if (! flock($handle, LOCK_SH)) {
+        fclose($handle);
+        @unlink($claimFile);
+
+        return null;
+    }
+
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, $containerId);
+    fflush($handle);
+    $GLOBALS['roundup_testcontainers_claim_handle'] = $handle;
+
+    return $claimFile;
+}
+
+/**
+ * Build a fresh, fully-configured Postgres container handle and start it,
+ * retrying transient Docker-daemon failures. Nightly run 43007399395
+ * (2026-11-10) died in the serial DDL tail when Testcontainers' container
+ * create/start call hit a one-off Docker-daemon HTTP 500 (the identical
+ * tree was green the night before); a plain ->start() has no built-in
+ * retry for that failure class. A FRESH container object is built per
+ * attempt — a handle whose create/start call 500'd can carry a
+ * half-initialized id and be unusable.
+ */
+function startPostgresContainerWithRetry(string $pgVersion): StartedGenericContainer
+{
+    $maxAttempts = 3;
+    $attempt = 0;
+
+    while (true) {
+        $attempt++;
+        $container = new PostgresContainer(
+            version: $pgVersion,
+            username: 'test',
+            password: 'test',
+            database: 'roundup_games_test',
+        );
+        // Docker 29.x: WaitForHostPort avoids the 409 "container is paused"
+        // race during startup exec — the pg_isready loops after each call
+        // site are the query-level readiness wait.
+        $container->withWait(new WaitForHostPort(timeout: 30000));
+        $container->withAutoRemove(true);
+
+        try {
+            return $container->start();
+        } catch (Throwable $e) {
+            if ($attempt >= $maxAttempts) {
+                throw $e;
             }
+
+            $backoff = $attempt * 2; // 2s, 4s — short backoff for a transient daemon blip
+            fwrite(STDERR, sprintf(
+                "  Testcontainers: container start attempt %d/%d failed (%s: %s) — retrying in %ds\n",
+                $attempt,
+                $maxAttempts,
+                $e::class,
+                $e->getMessage()
+            ));
+            sleep($backoff);
         }
     }
 }
@@ -257,16 +420,9 @@ if ($isParallel) {
         // Primary worker: start the container and write details for siblings
         $pgVersion = getenv('TEST_PG_VERSION') ?: '16-alpine';
 
-        $container = new PostgresContainer(
-            version: $pgVersion,
-            username: 'test',
-            password: 'test',
-            database: 'roundup_games_test',
-        );
-        // Docker 29.x: use WaitForHostPort to avoid 409 during startup exec
-        $container->withWait(new WaitForHostPort(timeout: 30000));
-        $container->withAutoRemove(true);
-        $started = $container->start();
+        // Retry for transient Docker-daemon 500s with a fresh container object
+        // per attempt (nightly 43007399395 class) — see the helper's docblock.
+        $started = startPostgresContainerWithRetry($pgVersion);
 
         // Verify PostgreSQL is accepting queries (not just port-open)
         $pgReady = false;
@@ -301,20 +457,29 @@ if ($isParallel) {
             fanOutTemplateDatabase($host, $port);
         }
 
-        // Write connection details for sibling workers. The container id is
-        // stored only for diagnostics — no worker stops the shared container
-        // during its own shutdown (that would race siblings). Cleanup of this
-        // container happens at the START of the next parallel run via
-        // pruneOrphanedParallelContainers().
+        // Claim the container for this run BEFORE publishing the cacheFile, so
+        // a sibling can never adopt connection details whose claim file does
+        // not exist yet. claimTestContainer() parks the lock handle in
+        // $GLOBALS for this worker's whole lifetime — see its docblock.
+        $claimPath = claimTestContainer($started->getId());
+
+        // Write connection details for sibling workers. The container id and
+        // claim path are stored only for diagnostics/lifecycle — no worker
+        // stops the shared container during its own shutdown (that would race
+        // siblings). Cleanup of this container happens at the START of the
+        // next parallel run via pruneOrphanedParallelContainers().
         file_put_contents($cacheFile, json_encode([
             'host' => $host,
             'port' => $port,
             'id' => $started->getId(),
+            'claim' => $claimPath,
             'fanout' => $fanOut,
         ]));
 
         // Also remove the cache file on a clean exit so a healthy run leaves no
         // stale cache for the next run's secondary workers to read by mistake.
+        // The claim file itself is intentionally NOT removed here — the next
+        // run's prune removes it together with the container it names.
         register_shutdown_function(function () use ($cacheFile) {
             if (is_file($cacheFile)) {
                 @unlink($cacheFile);
@@ -392,6 +557,23 @@ if ($isParallel) {
 
         applyConnection((string) $details['host'], (int) $details['port']);
 
+        // Hold this run's claim too: the shared container must survive until
+        // the LAST worker of the run exits. The primary may finish its test
+        // share and exit first — its death alone must NOT lapse the claim, or
+        // a concurrent run's prune would see the container as stale and kill
+        // siblings' database mid-test (the SSL-negotiation kill class). The
+        // handle is parked in $GLOBALS for this worker's lifetime (same
+        // keep-alive rationale as claimTestContainer()).
+        $claimPath = $details['claim'] ?? null;
+        if (is_string($claimPath) && is_file($claimPath)) {
+            $claimHandle = @fopen($claimPath, 'r');
+            if ($claimHandle !== false && flock($claimHandle, LOCK_SH)) {
+                $GLOBALS['roundup_testcontainers_claim_handle'] = $claimHandle;
+            } elseif ($claimHandle !== false) {
+                fclose($claimHandle);
+            }
+        }
+
         // Fan-out (M077/S06): clone a private database from the template the
         // primary stamped before publishing these details.
         if ($details['fanout'] ?? false) {
@@ -410,21 +592,14 @@ if ($isParallel) {
     // ── Sequential: single container as before ─────────────────────────────
     $pgVersion = getenv('TEST_PG_VERSION') ?: '16-alpine';
 
-    $container = new PostgresContainer(
-        version: $pgVersion,
-        username: 'test',
-        password: 'test',
-        database: 'roundup_games_test',
-    );
-    $container->withAutoRemove(true);
-
     // Docker Engine 29.x returns HTTP 409 "container is paused" when exec runs
     // during the container's startup sequence. The library's WaitForExec throws
-    // ContainerExecConflictException before its retry loop can catch it.
-    // Use WaitForHostPort (TCP probe) to confirm the port is open, then do a
-    // manual pg_isready exec loop with 409-retry logic.
-    $container->withWait(new WaitForHostPort(timeout: 30000));
-    $started = $container->start();
+    // ContainerExecConflictException before its retry loop can catch it, so
+    // startPostgresContainerWithRetry() configures WaitForHostPort (TCP probe)
+    // before starting — the pg_isready loop below is the query-level wait —
+    // and retries transient Docker-daemon 500s with a fresh container object
+    // per attempt (nightly run 43007399395 class, 2026-11-10).
+    $started = startPostgresContainerWithRetry($pgVersion);
 
     // Verify PostgreSQL is actually ready for queries (not just port-open).
     // WaitForHostPort only checks that the port accepts TCP connections, but
@@ -452,14 +627,24 @@ if ($isParallel) {
     applyConnection($started->getHost(), $started->getFirstMappedPort());
     runMigrations();
 
+    // Claim the container so a concurrent parallel run's prune cannot remove
+    // it while this process is mid-suite (exact-id removal only — see
+    // pruneOrphanedParallelContainers()). The shutdown closure below removes
+    // the claim once the container is stopped + auto-removed.
+    $claimPath = claimTestContainer($started->getId());
+
     // Stop the container (and remove it + its anonymous volume via autoRemove)
     // when the test process exits. register_shutdown_function fires on normal
-    // completion and fatal errors, but NOT on SIGKILL/OOM.
-    register_shutdown_function(function () use ($started) {
+    // completion and fatal errors, but NOT on SIGKILL/OOM — a hard kill leaves
+    // the claim behind for the next parallel run's prune to clean up.
+    register_shutdown_function(function () use ($started, $claimPath) {
         try {
             $started->stop();
         } catch (Throwable) {
             // Container may already be stopped/removed — ignore.
+        }
+        if (is_string($claimPath)) {
+            @unlink($claimPath);
         }
     });
 

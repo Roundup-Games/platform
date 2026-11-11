@@ -301,8 +301,24 @@ jobs:
         # tests/Feature/Migrations only — see the parallel step's note.
         # M077/S04: gated on database/migrations|schema changes (fail-safe:
         # runs when the base ref is unresolvable).
+        # Retry (max 2) for transient Docker-daemon 500s in the bootstrap's
+        # container start (nightly run 43007399395 class, 2026-11-10) — same
+        # command, same env; plain bash loop, no retry action in this repo.
         if: steps.paths.outputs.ddl == 'changed'
-        run: vendor/bin/pest --ci --group=ddl-serial
+        run: |
+          set +e
+          for attempt in 1 2 3; do
+            vendor/bin/pest --ci --group=ddl-serial
+            code=$?
+            if [ "$code" -eq 0 ]; then
+              exit 0
+            fi
+            echo "serial DDL tail attempt ${attempt}/3 failed (exit ${code})" >&2
+            if [ "$attempt" -lt 3 ]; then
+              sleep 5
+            fi
+          done
+          exit 1
 
       - name: Run deferred tests (nightly group, path-triggered)
         # The nightly-group deferrals run when their app-side paths change,

@@ -82,4 +82,22 @@ jobs:
         run: vendor/bin/pest --ci --parallel --exclude-group=ddl-serial
 
       - name: Run tests (serial DDL tail)
-        run: vendor/bin/pest --ci --group=ddl-serial
+        # The tail boots its own Testcontainers Postgres via tests/bootstrap.php;
+        # a transient Docker-daemon HTTP 500 killed this step's container start
+        # before (nightly run 43007399395, 2026-11-10 — identical tree green the
+        # night before), so retry up to 2 times. Same command, same env; plain
+        # bash loop because no retry action is used elsewhere in this repo.
+        run: |
+          set +e
+          for attempt in 1 2 3; do
+            vendor/bin/pest --ci --group=ddl-serial
+            code=$?
+            if [ "$code" -eq 0 ]; then
+              exit 0
+            fi
+            echo "serial DDL tail attempt ${attempt}/3 failed (exit ${code})" >&2
+            if [ "$attempt" -lt 3 ]; then
+              sleep 5
+            fi
+          done
+          exit 1
