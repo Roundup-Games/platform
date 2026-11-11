@@ -62,9 +62,20 @@ jobs:
           tools: composer:v2
 
       - name: Install ripgrep
-        # The Eloquent practices guardrail uses rg. The default ubuntu-latest
-        # image does not always include it, so install it explicitly.
-        run: sudo apt-get update && sudo apt-get install -y ripgrep
+        # The Eloquent practices guardrail needs rg, and ubuntu-latest does
+        # NOT ship it preinstalled (verified 2026-11-11). The runner fleet
+        # could not resolve the ubuntu apt mirrors that same day — apt
+        # failed three runs in a row (exit 100, DNS) while github.com and
+        # packagist worked fine — so fetch the musl-static binary from the
+        # BurntSushi release instead: one curl over a channel the job
+        # already depends on, no apt, no DNS gamble. Pinned; bump
+        # deliberately.
+        run: |
+          curl -fsSL \
+            https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-x86_64-unknown-linux-musl.tar.gz \
+            | tar -xz --strip-components=1 -C /tmp
+          sudo install -m 0755 /tmp/rg /usr/local/bin/rg
+          rg --version | head -1
 
       - name: Install dependencies
         uses: ramsey/composer-install@v3
