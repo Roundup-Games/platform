@@ -5,8 +5,6 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\SendQueuedMailable;
 use Illuminate\Support\Str;
 
-// Without a backoff, a sub-second network blip to the mail provider uses up
-// all of Horizon's tries at once and the mail is lost.
 it('gives every queued Mailable a retry backoff', function () {
     $queued = collect(glob(app_path('Mail/*.php')) ?: [])
         ->map(fn (string $path) => 'App\\Mail\\'.Str::before(basename($path), '.php'))
