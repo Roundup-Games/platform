@@ -10,6 +10,8 @@ use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Models\AttendanceReport;
+use App\Models\CampaignGoal;
+use App\Models\CampaignParticipant;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\Review;
@@ -79,6 +81,20 @@ class GameDetail extends Component
 
     /** @var string|null Recap content for host write-recap form */
     public ?string $recapContent = null;
+
+    // ── Session-end quick journal widgets (D235, spec §5) ──
+
+    /** @var string Selected campaign goal id (session-end goal-status widget). */
+    public string $sessionGoalId = '';
+
+    /** @var string Chosen GoalStatus value (session-end goal-status widget). */
+    public string $sessionGoalStatus = '';
+
+    /** @var string One of CharacterStateChangeType's values (session-end state widget). */
+    public string $sessionStateType = '';
+
+    /** @var string Free-text delta (session-end character-state widget). */
+    public string $sessionStateDelta = '';
 
     /** @var string|null Reason for attendance dispute */
     public ?string $disputeReason = null;
@@ -1093,6 +1109,43 @@ class GameDetail extends Component
     }
 
     /**
+     * Data for the session-end quick journal widgets (D235, spec §5):
+     * the campaign's goals (board order) and the viewer's own seated
+     * participant row — computed only for the campaign GM on a completed
+     * campaign session, empty otherwise. The widgets hide when there is
+     * nothing to write (no goals / no own character row), so a completed
+     * one-shot or a player's view costs nothing here.
+     *
+     * @return array{goals: \Illuminate\Database\Eloquent\Collection<int, CampaignGoal>, ownParticipant: ?CampaignParticipant}
+     */
+    private function sessionJournalWidgets(): array
+    {
+        $campaign = $this->game->campaign;
+        $user = Auth::user();
+
+        if ($campaign === null
+            || $user === null
+            || $this->game->status !== GameStatus::Completed
+            || ! $this->isCampaignOwner()) {
+            /** @var \Illuminate\Database\Eloquent\Collection<int, CampaignGoal> $none */
+            $none = new \Illuminate\Database\Eloquent\Collection;
+
+            return ['goals' => $none, 'ownParticipant' => null];
+        }
+
+        /** @var \Illuminate\Database\Eloquent\Collection<int, CampaignGoal> $goals */
+        $goals = $campaign->goals()->orderBy('sort')->get();
+
+        /** @var CampaignParticipant|null $ownParticipant */
+        $ownParticipant = $campaign->participants()
+            ->whereBelongsTo($user)
+            ->whereIn('status', [ParticipantStatus::Approved->value, ParticipantStatus::Benched->value])
+            ->first();
+
+        return ['goals' => $goals, 'ownParticipant' => $ownParticipant];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     #[Computed]
@@ -1138,6 +1191,7 @@ class GameDetail extends Component
         $this->game->load(['participants.user', 'applications.user']);
 
         $db = $this->debriefingState();
+        $sessionWidgets = $this->sessionJournalWidgets();
 
         return view('livewire.games.game-detail', [
             'game' => $this->game,
@@ -1182,6 +1236,8 @@ class GameDetail extends Component
             'attendanceTallies' => $this->attendanceTallies(),
             'currentUserAttendanceStatus' => $this->currentUserAttendanceStatus(),
             'attendanceTimeRemaining' => $this->attendanceTimeRemaining(),
+            'sessionJournalGoals' => $sessionWidgets['goals'],
+            'sessionOwnSeatedParticipant' => $sessionWidgets['ownParticipant'],
             'capacityDemotionPreview' => ($this->confirmingCapacityDecrease === 'capacity-decrease'
                 && $this->pendingNewMax !== null)
                     ? app(CapacityService::class)->previewDemotion($this->game, $this->pendingNewMax)

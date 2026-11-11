@@ -60,6 +60,108 @@
     @endif
 @endauth
 
+{{-- Quick Journal Updates (D235, spec §5): the session-end goal-status
+     and character-state inline widgets. Campaign sessions + campaign GM
+     only (the Journal tab's changeGoalStatus/logStateChange gate), and
+     they stamp THIS session as the change source (the S04 "goals moved"
+     diff). Both hide entirely when there is nothing to write (no goals /
+     no own character row) — the Journal tab stays the full surface. --}}
+@auth
+    @if($game->status === \App\Enums\GameStatus::Completed && $game->campaign_id !== null && $isCampaignOwner
+        && ($sessionJournalGoals->isNotEmpty() || $sessionOwnSeatedParticipant !== null))
+        <section class="bg-tertiary/5 border border-tertiary/20 rounded-xl shadow-ambient p-6">
+            <div class="flex items-center gap-2 mb-2">
+                <span class="material-symbols-outlined text-xl text-tertiary" aria-hidden="true">bolt</span>
+                <h2 class="text-xl font-heading font-bold tracking-tight text-on-surface">{{ __('journal.title_session_quick_updates') }}</h2>
+            </div>
+            <p class="text-sm text-on-surface-variant mb-4">{{ __('journal.content_session_quick_updates_description') }}</p>
+
+            <div class="space-y-4">
+                {{-- Goal status widget: renders only when the campaign has goals --}}
+                @if($sessionJournalGoals->isNotEmpty())
+                    <form wire:submit="sessionEndChangeGoalStatus" class="bg-surface-container-low rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="material-symbols-outlined text-base text-on-surface-variant" aria-hidden="true">flag</span>
+                            <h3 class="text-sm font-semibold text-on-surface">{{ __('journal.label_session_goal_widget') }}</h3>
+                        </div>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <div>
+                                <label for="session-goal-select" class="block text-xs font-medium text-on-surface-variant mb-1">
+                                    {{ __('journal.label_session_goal') }}
+                                </label>
+                                <select id="session-goal-select" wire:model="sessionGoalId"
+                                        class="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+                                    <option value="">{{ __('journal.label_session_choose_goal') }}</option>
+                                    @foreach($sessionJournalGoals as $goal)
+                                        <option value="{{ $goal->id }}">{{ $goal->title }} ({{ $goal->status->label() }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label for="session-goal-status" class="block text-xs font-medium text-on-surface-variant mb-1">
+                                    {{ __('journal.label_session_goal_new_status') }}
+                                </label>
+                                <select id="session-goal-status" wire:model="sessionGoalStatus"
+                                        class="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+                                    <option value="">{{ __('journal.label_session_choose_status') }}</option>
+                                    @foreach(\App\Enums\GoalStatus::cases() as $status)
+                                        <option value="{{ $status->value }}" @selected($sessionGoalStatus === $status->value)>{{ $status->label() }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit"
+                                class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-colors">
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">check_circle</span>
+                            {{ __('journal.action_session_save_goal_status') }}
+                        </button>
+                    </form>
+                @endif
+
+                {{-- Character state widget: the acting GM's own character
+                     only; renders only when they have a seated row --}}
+                @if($sessionOwnSeatedParticipant !== null)
+                    <form wire:submit="sessionEndLogStateChange" class="bg-surface-container-low rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="material-symbols-outlined text-base text-on-surface-variant" aria-hidden="true">history</span>
+                            <h3 class="text-sm font-semibold text-on-surface">{{ __('journal.label_session_state_widget') }}</h3>
+                        </div>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <div>
+                                <label for="session-state-type" class="block text-xs font-medium text-on-surface-variant mb-1">
+                                    {{ __('journal.label_state_change_type') }}
+                                </label>
+                                <select id="session-state-type" wire:model="sessionStateType"
+                                        class="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+                                    <option value="">{{ __('journal.label_state_choose_type') }}</option>
+                                    @foreach(\App\Enums\CharacterStateChangeType::cases() as $type)
+                                        <option value="{{ $type->value }}" @selected($sessionStateType === $type->value)>{{ $type->label() }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label for="session-state-delta" class="block text-xs font-medium text-on-surface-variant mb-1">
+                                    {{ __('journal.label_state_delta') }}
+                                </label>
+                                <input id="session-state-delta" type="text" wire:model="sessionStateDelta" maxlength="2000"
+                                       class="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none" />
+                            </div>
+                        </div>
+                        <div class="mt-3 flex flex-wrap items-center gap-3">
+                            <button type="submit"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-colors">
+                                <span class="material-symbols-outlined text-base" aria-hidden="true">history</span>
+                                {{ __('journal.action_log_state') }}
+                            </button>
+                            <p class="text-xs text-on-surface-variant">{{ __('journal.hint_session_state_own_character') }}</p>
+                        </div>
+                    </form>
+                @endif
+            </div>
+        </section>
+    @endif
+@endauth
+
 {{-- ═══════════════════════════════════════════════════════════════════════════════
      Attendance Reporting — Three-state UI
      State 1: Form (window open, not yet submitted)

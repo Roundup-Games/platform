@@ -84,6 +84,23 @@ return [
     'flash_goal_status_changed' => 'Goal status updated.',
     'flash_state_change_logged' => 'State change logged.',
 
+    // Session-end quick journal widgets (D235, spec §5): the campaign
+    // GM's inline goal-status and character-state forms in the
+    // session-end panel. Both writes stamp THIS session (the S04
+    // "goals moved" digest source); the state widget logs the acting
+    // GM's own character only — the Journal tab stays the per-character
+    // surface.
+    'title_session_quick_updates' => 'Quick Journal Updates',
+    'content_session_quick_updates_description' => 'Changes you log here are stamped to this session — your next Previously On digest picks them up automatically.',
+    'label_session_goal_widget' => 'Move a goal',
+    'label_session_goal' => 'Goal',
+    'label_session_choose_goal' => 'Choose a goal',
+    'label_session_goal_new_status' => 'New status',
+    'label_session_choose_status' => 'Choose a status',
+    'action_session_save_goal_status' => 'Save goal status',
+    'label_session_state_widget' => 'Log character state',
+    'hint_session_state_own_character' => 'Your own character only — log other characters in the campaign Journal tab.',
+
     // Previously On composition copy (M071/S04, spec §3.1): the digest's
     // plain-text sections and the publish guards. :session is the
     // completed-sessions count; the composed body is plain text only.

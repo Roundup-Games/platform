@@ -82,6 +82,23 @@ return [
     'flash_goal_status_changed' => 'Ziel-Status aktualisiert.',
     'flash_state_change_logged' => 'Zustandsänderung erfasst.',
 
+    // Schnelle Journal-Widgets im Rundenabschluss (D235, Spec §5): die
+    // Inline-Formulare des Kampagnen-GMs für Ziel-Status und Charakter-
+    // Zustand. Beide Schreibvorgänge werden dieser Runde zugeordnet
+    // (Quelle für „Geänderte Ziele“ im Rückblick); das Zustands-Widget
+    // erfasst nur den eigenen Charakter des GMs — der Journal-Tab bleibt
+    // die Fläche für alle Charaktere. Du-Form gemäß K001.
+    'title_session_quick_updates' => 'Schnelle Journal-Updates',
+    'content_session_quick_updates_description' => 'Änderungen, die du hier erfasst, werden dieser Runde zugeordnet — dein nächster Rückblick nimmt sie automatisch auf.',
+    'label_session_goal_widget' => 'Ziel weiterbewegen',
+    'label_session_goal' => 'Ziel',
+    'label_session_choose_goal' => 'Ziel wählen',
+    'label_session_goal_new_status' => 'Neuer Status',
+    'label_session_choose_status' => 'Status wählen',
+    'action_session_save_goal_status' => 'Ziel-Status speichern',
+    'label_session_state_widget' => 'Charakter-Zustand erfassen',
+    'hint_session_state_own_character' => 'Nur dein eigener Charakter — andere erfassst du im Journal-Tab der Kampagne.',
+
     // Previously-On-Kompositionstexte (M071/S04, Spec §3.1): die
     // Nur-Text-Abschnitte des Digests und die Publish-Guards. :session ist
     // die Anzahl abgeschlossener Runden; Runde-Terminologie durchgängig
