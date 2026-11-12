@@ -4,14 +4,20 @@ use App\Models\User;
 use App\Services\PostHogClient;
 use App\Services\PostHogExceptionReporter;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Contracts\Console\Kernel as ConsoleKernel;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Illuminate\Session\TokenMismatchException;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\Console\Exception\InvalidArgumentException as ConsoleInvalidArgumentException;
+use Symfony\Component\Console\Exception\InvalidOptionException;
+use Symfony\Component\Console\Input\ArgvInput;
+use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -103,6 +109,51 @@ describe('4xx exception pipeline', function () {
         $handler->report(ValidationException::withMessages(['email' => 'Invalid email']));
 
         expect($this->posthogClient->capturedCalls)->toHaveCount(0);
+    });
+});
+
+describe('console input errors', function () {
+    // Runs argv through the console kernel the way bin/artisan does, so a
+    // parse failure reaches the reporter through Kernel::handle().
+    it('does NOT capture a mistyped artisan command', function (array $argv) {
+        $exitCode = app(ConsoleKernel::class)->handle(
+            new ArgvInput(['artisan', ...$argv, '--no-interaction']),
+            new BufferedOutput,
+        );
+
+        expect($exitCode)->toBe(1)
+            ->and($this->posthogClient->capturedCalls)->toHaveCount(0);
+    })->with([
+        'unknown option' => [['about', '--showing']],
+        'unknown command' => [['no-such-command']],
+        'too many arguments' => [['about', 'extra']],
+        'missing argument' => [['make:model']],
+    ]);
+
+    it('captures bad input that application code passes to Artisan::call', function () {
+        try {
+            Artisan::call('about', ['--showing' => true]);
+        } catch (InvalidOptionException $e) {
+            app(ExceptionHandler::class)->report($e);
+        }
+
+        expect($this->posthogClient->capturedCalls)->toHaveCount(1);
+    });
+
+    it('captures an unknown command that application code passes to Artisan::call', function () {
+        try {
+            Artisan::call('no-such-command');
+        } catch (Throwable $e) {
+            app(ExceptionHandler::class)->report($e);
+        }
+
+        expect($this->posthogClient->capturedCalls)->toHaveCount(1);
+    });
+
+    it('captures a console exception thrown by command code', function () {
+        app(ExceptionHandler::class)->report(new ConsoleInvalidArgumentException('The "typo" option does not exist.'));
+
+        expect($this->posthogClient->capturedCalls)->toHaveCount(1);
     });
 });
 

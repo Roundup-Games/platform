@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Console\Application as ArtisanApplication;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
@@ -10,13 +11,16 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use PostHog\ExceptionPayloadBuilder;
+use Symfony\Component\Console\Application as ConsoleApplication;
+use Symfony\Component\Console\Exception\ExceptionInterface as ConsoleException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Throwable;
 
 /**
  * Captures PHP exceptions as PostHog '$exception' events for error tracking.
  *
- * Only reports 5xx and unhandled exceptions (skips 4xx HTTP exceptions).
+ * Only reports 5xx and unhandled exceptions (skips 4xx HTTP exceptions and
+ * mistyped artisan commands).
  * Rate-limited to 10 reports/minute per exception type to prevent flooding.
  * All PostHog calls are wrapped in try/catch so analytics failures never
  * block error reporting or app responses.
@@ -148,7 +152,41 @@ class PostHogExceptionReporter
             return true;
         }
 
-        return false;
+        return $this->isConsoleInputError($e);
+    }
+
+    /**
+     * Check if an operator typed an artisan command the console cannot parse:
+     * an unknown command, an unknown option, or a wrong argument count.
+     *
+     * These fail while the console resolves the command name or binds argv to
+     * the command definition, before any command code runs — the CLI form of
+     * a 4xx. The same failure from Artisan::call() in a job or command still
+     * reports: there the bad input is an application bug.
+     */
+    private function isConsoleInputError(Throwable $e): bool
+    {
+        if (! $e instanceof ConsoleException) {
+            return false;
+        }
+
+        $duringInputParsing = false;
+
+        foreach ($e->getTrace() as $frame) {
+            $class = $frame['class'] ?? '';
+
+            if ($class === ArtisanApplication::class && $frame['function'] === 'call') {
+                return false;
+            }
+
+            if (($class === ConsoleApplication::class && $frame['function'] === 'find')
+                || (str_starts_with($class, 'Symfony\\Component\\Console\\Input\\')
+                    && in_array($frame['function'], ['bind', 'validate'], true))) {
+                $duringInputParsing = true;
+            }
+        }
+
+        return $duringInputParsing;
     }
 
     /**
