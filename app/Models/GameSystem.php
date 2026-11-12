@@ -296,9 +296,15 @@ class GameSystem extends Model implements HasMedia, TicketSubject
         // flow served the untouched original (often 1000×1500+, ~235KB) behind
         // blur-xs + a from-primary/85 gradient overlay — Lighthouse flagged
         // 83% of those bytes as waste. 800px is visually lossless under that
-        // blur+overlay; webp q60 lands ~90KB for detailed box art (tuned
-        // down from q72/132KB after verifying LCP headroom on prod).
+        // blur+overlay; webp q60 lands ~86KB for detailed box art.
+        //
+        // nonOptimized() is load-bearing: the package's default optimizer
+        // chain re-encodes every webp with `cwebp -q 90` (config default in
+        // spatie/laravel-medialibrary), silently overriding any quality()
+        // setting — measured: q60 through the optimizer produced the same
+        // ~130KB as q72. Skipping the optimizer lets GD's q60 stand (~86KB).
         $this->addMediaConversion('hero')
+            ->nonOptimized()
             ->width(800)
             ->quality(60)
             ->format('webp');
