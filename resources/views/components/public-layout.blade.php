@@ -35,6 +35,11 @@
     {{-- Material Symbols is subset to project icons — rebuild with build-tools/subset-icons.sh --}}
     <link rel="preload" href="/fonts/inter-latin-var.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="/fonts/noto-serif-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+    {{-- Icon font preloaded (CWV 2026-11): it renders on every page (header
+         nav, meta rows) and its font-display:block swap was reflowing
+         icon-heavy pages after first paint (CLS 0.17 on game detail). Same
+         origin + immutable cache → present at first paint. --}}
+    <link rel="preload" href="{{ \Illuminate\Support\Facades\Vite::asset('resources/fonts/material-symbols-subset.woff2') }}" as="font" type="font/woff2" crossorigin>
 
     {{-- DNS prefetch for external image CDN --}}
     <link rel="dns-prefetch" href="https://spg-images.s3.us-west-1.amazonaws.com">

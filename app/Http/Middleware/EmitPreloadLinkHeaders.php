@@ -63,6 +63,11 @@ class EmitPreloadLinkHeaders
                 $links[] = sprintf('<%s>; rel=preload; as=style', $stylesheet);
             }
 
+            $iconFont = $this->iconFontUrl();
+            if ($iconFont !== null) {
+                $links[] = sprintf('<%s>; rel=preload; as=font; type="font/woff2"; crossorigin', $iconFont);
+            }
+
             foreach ($this->heroImageUrls($response->getContent() ?? '') as $imageUrl) {
                 $links[] = sprintf('<%s>; rel=preload; as=image; fetchpriority=high', $imageUrl);
             }
@@ -71,6 +76,19 @@ class EmitPreloadLinkHeaders
         }
 
         return $response;
+    }
+
+    /**
+     * Hashed icon-font URL from the Vite manifest (preloaded in the public
+     * layout for CLS — see the layout note). Null when unavailable.
+     */
+    protected function iconFontUrl(): ?string
+    {
+        try {
+            return Vite::asset('resources/fonts/material-symbols-subset.woff2');
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**

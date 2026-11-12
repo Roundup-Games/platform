@@ -309,6 +309,10 @@
 .material-symbols-outlined {
     font-family: 'Material Symbols Outlined';
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    /* Reserve the final glyph box (CWV 2026-11): icons are square 1em
+       glyphs — reserving width kills the reflow when the font swaps in
+       (flex rows honor min-width even while the font is blocked). */
+    min-width: 1em;
 }
 
     /* ── Color tokens — Light (default) ──────────────────────── */
