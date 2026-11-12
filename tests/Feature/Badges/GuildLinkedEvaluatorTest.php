@@ -30,6 +30,9 @@ use Carbon\Carbon;
  * One organizer opt-in row for the user, aged as given (null = opted
  * out) on the given or a fresh live guild.
  */
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 function guildLinkedOptIn(User $user, ?Carbon $optedInAt, ?DiscordGuild $guild = null): DiscordGuildOrganizer
 {
     return DiscordGuildOrganizer::factory()

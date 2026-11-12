@@ -26,6 +26,9 @@ uses(CapturesLogRecords::class);
 // failed().
 //
 
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 beforeEach(function () {
     seedRoles();
 

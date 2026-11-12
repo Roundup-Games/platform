@@ -31,6 +31,9 @@ use Tests\Traits\InjectsConcurrentDuplicates;
  */
 uses(InjectsConcurrentDuplicates::class);
 
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 beforeEach(function () {
     $this->artisan('badges:sync')->assertSuccessful();
 });

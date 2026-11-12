@@ -34,6 +34,9 @@ use Carbon\Carbon;
  * time, returning the participant row (callers use the first one as
  * evidence).
  */
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 function firstSeatAttend(User $user, Carbon $sessionAt, AttendanceStatus $attendance = AttendanceStatus::Attended, bool $resolved = true): GameParticipant
 {
     $game = Game::factory()->withoutGameSystems()->create([

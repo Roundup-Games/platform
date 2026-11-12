@@ -12,6 +12,9 @@ use App\Services\Badges\NoOpEvaluator;
  * award, must sweep nothing" — is exactly what worth pinning before a
  * dormant definition actually relies on it.
  */
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 test('the dormant-slot evaluator never awards and sweeps nothing', function () {
     $user = User::factory()->create();
 

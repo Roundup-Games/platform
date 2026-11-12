@@ -37,6 +37,9 @@ use Illuminate\Support\Facades\Event as EventFacade;
  * days into that quarter — the fixture primitive every quarter shape
  * composes from.
  */
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 function trustedOrganizerEvent(User $organizer, int $quartersAgo, int $daysIntoQuarter, EventStatus $status = EventStatus::Completed): Event
 {
     $quarterStart = now()->subQuarters($quartersAgo)->startOfQuarter();

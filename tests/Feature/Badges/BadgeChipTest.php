@@ -16,6 +16,9 @@ use App\View\Components\BadgeChip;
  * One render-through-view smoke check keeps the Blade compiling; full
  * render-through-surface assertions land with the T3/T5 hosts.
  */
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 it('resolves the icon with the S03 metadata override beating the synced registry column', function () {
     $column = BadgeDefinition::factory()->create([
         'key' => 'column_badge',

@@ -16,6 +16,9 @@ use App\Services\Badges\BadgeRegistry;
 /**
  * @return array<string, array<string, mixed>> key => synced content columns
  */
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 function badgesSyncSnapshot(): array
 {
     return BadgeDefinition::query()

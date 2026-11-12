@@ -33,6 +33,9 @@ use Tests\Helpers\TestablePostHogClient;
  * Copy assertions are wording-agnostic (K004): they compare against
  * trans() lookups, never literal lang values.
  */
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 beforeEach(function () {
     $this->artisan('badges:sync')->assertSuccessful();
 

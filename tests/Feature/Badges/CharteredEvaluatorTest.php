@@ -42,6 +42,9 @@ uses(CreatesUsers::class);
  * A fresh campaign owned by $owner with the deterministic quick-start
  * inputs that make CharterContent::quickStart() fully publishable.
  */
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 function charteredCampaign(User $owner): Campaign
 {
     return Campaign::factory()->create([

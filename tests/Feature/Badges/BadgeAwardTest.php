@@ -18,6 +18,9 @@ uses(CapturesLogRecords::class);
  * keys can never be pointers, so a Paddle-earliest supporter carries a
  * null evidence pointer by design).
  */
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 test('a non-uuid evidence key carries a null pointer and warns instead of crashing', function () {
     $this->captureLogRecords();
 

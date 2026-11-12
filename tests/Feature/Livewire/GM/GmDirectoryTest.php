@@ -21,6 +21,14 @@ class GmDirectoryTest extends TestCase
 {
     use DatabaseTransactions;
 
+    // Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        serializeBadgeDefinitionWrites();
+    }
+
     // ── Helpers ────────────────────────────────────────
 
     private function createActiveGm(array $userOverrides = [], array $profileOverrides = []): User

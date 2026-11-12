@@ -40,6 +40,9 @@ uses(CapturesLogRecords::class);
 /**
  * Holds (badge_user rows) for one registry key.
  */
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 function demoCohortHoldsFor(string $key): int
 {
     return BadgeUser::query()

@@ -17,6 +17,9 @@ use App\Services\Badges\DebutEvaluator;
 // registry entry without a resolvable evaluator, or a proposal path
 // that starts writing, fails HERE first).
 
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 beforeEach(function () {
     $this->artisan('badges:sync')->assertSuccessful();
 });

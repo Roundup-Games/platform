@@ -32,6 +32,9 @@ uses(CapturesLogRecords::class);
 /**
  * One game owned (hosted) by the user at the given session time.
  */
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 function debutHostGame(User $user, Carbon $dateTime, GameStatus $status = GameStatus::Scheduled): Game
 {
     return Game::factory()->withoutGameSystems()->create([

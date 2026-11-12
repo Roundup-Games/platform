@@ -23,6 +23,9 @@ use function Pest\Laravel\get;
  * badge stays on the profile shelf and the GM Directory. Lapsed/revoked
  * holds never chip. Wording-agnostic assertions throughout (K004).
  */
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 describe('AuthorChip — discovery cards', function () {
     it('renders the chip for a Compleat-class host', function () {
         $host = User::factory()->create();

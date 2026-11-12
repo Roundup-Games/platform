@@ -35,6 +35,9 @@ use Illuminate\Support\Str;
  * One resolved Attended session for the user in the given Y-m month,
  * returning the participant row (callers use the last one as evidence).
  */
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 function regularsAttendMonth(User $user, string $month, AttendanceStatus $status = AttendanceStatus::Attended, bool $resolved = true): GameParticipant
 {
     $game = Game::factory()->withoutGameSystems()->create([

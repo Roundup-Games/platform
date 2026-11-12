@@ -22,6 +22,9 @@ use App\Models\User;
 /**
  * A definition pinned to a real badge name key, with controllable sort.
  */
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 function shelfDefinition(string $key, string $nameKey, int $sortOrder): BadgeDefinition
 {
     return BadgeDefinition::factory()->create([

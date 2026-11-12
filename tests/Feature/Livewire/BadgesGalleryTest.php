@@ -23,6 +23,9 @@ use Livewire\Livewire;
  * A definition pinned to a real badge name key with controllable sort,
  * category and rarity columns. Defaults mirror the debut registry entry.
  */
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 function galleryDefinition(array $overrides = []): BadgeDefinition
 {
     return BadgeDefinition::factory()->create(array_merge([

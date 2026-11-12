@@ -92,6 +92,9 @@ use Illuminate\Support\Facades\DB;
  * functions do not cross file boundaries under --parallel (per-process
  * lookup), so each file carries its own.
  */
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 function sweepBudgetHoldsFor(string $key): int
 {
     return BadgeUser::query()

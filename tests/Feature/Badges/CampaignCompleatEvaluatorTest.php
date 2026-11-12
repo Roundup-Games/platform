@@ -40,6 +40,9 @@ use Illuminate\Support\Str;
  *
  * @param  array<string, mixed>  $attributes
  */
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 function compleatCampaign(User $owner, array $attributes = []): Campaign
 {
     return Campaign::factory()->create(array_merge([

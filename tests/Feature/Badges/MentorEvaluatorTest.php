@@ -40,6 +40,9 @@ use Illuminate\Support\Str;
  *
  * @return array{0: User, 1: GMProfile}
  */
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 function mentorGm(): array
 {
     $gm = User::factory()->create();

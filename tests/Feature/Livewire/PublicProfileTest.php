@@ -16,6 +16,9 @@ use Livewire\Livewire;
 // HELPERS
 // ═══════════════════════════════════════════════════════════
 
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 function createProfileUser(array $overrides = []): User
 {
     return User::factory()->create(array_merge([

@@ -519,3 +519,24 @@ function findSchemaByType(array $schemas, string $type): ?array
 
     return null;
 }
+
+/**
+ * Serialize badge-fixture writes across parallel workers (2026-11-11).
+ *
+ * `pest --parallel` shares one testcontainer database. Badge tests on
+ * sibling workers concurrently write the SAME badge_definitions rows —
+ * badges:sync upserts (BadgeServiceTest et al.) and factory creates
+ * pinned to real registry keys ('debut', 'campaign_compleat', …) — and
+ * two uncommitted transactions inserting overlapping unique keys in
+ * different orders deadlock on badge_definitions_key_unique
+ * (SQLSTATE[40P01], observed twice in full-gate runs 2026-11-11). The
+ * transaction-scoped advisory lock makes every test that takes it run
+ * one-at-a-time across workers; it releases automatically when the
+ * test's transaction rolls back. Called from the beforeEach of every
+ * badge-fixture file (tests/Feature/Badges/* plus the four files
+ * outside it that create badge definitions).
+ */
+function serializeBadgeDefinitionWrites(): void
+{
+    DB::statement('SELECT pg_advisory_xact_lock(?)', [1651365401]);
+}

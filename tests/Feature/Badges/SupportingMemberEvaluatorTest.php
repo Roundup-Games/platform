@@ -14,6 +14,9 @@ use App\Services\Badges\SupportingMemberEvaluator;
  * every writer stamps now() — must count as ZERO elapsed months, not
  * (as abs() would have it) the distance until the start.
  */
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 beforeEach(function () {
     MembershipType::updateOrCreate(
         ['name' => 'Game Master'],

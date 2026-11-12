@@ -44,6 +44,9 @@ uses(CapturesLogRecords::class);
 /**
  * The user's founding_table hold row, or null when not held.
  */
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 function foundingTableHold(?User $user = null): ?BadgeUser
 {
     return BadgeUser::query()

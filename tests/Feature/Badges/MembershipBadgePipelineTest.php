@@ -36,6 +36,9 @@ uses(CapturesLogRecords::class);
 /**
  * Seed/fetch the GM plan exactly as GmSubscriptionTest does.
  */
+// Badge-fixture serialization: see serializeBadgeDefinitionWrites() in tests/Pest.php.
+beforeEach(fn () => serializeBadgeDefinitionWrites());
+
 function membershipBadgeGmPlan(): MembershipType
 {
     return MembershipType::updateOrCreate(
