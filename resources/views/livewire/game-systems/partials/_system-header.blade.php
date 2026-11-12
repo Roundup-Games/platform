@@ -30,11 +30,13 @@
         @endif
 
         <div class="relative max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-14 text-center">
-            {{-- Small centered thumbnail --}}
+            {{-- Small centered thumbnail — card 480w with hero 800w for
+                 high-DPR phones (CWV 2026-11 srcset polish) --}}
             <div class="mx-auto w-32 h-32 sm:w-48 sm:h-48 rounded-xl overflow-hidden shadow-lg bg-on-primary/10 mb-5">
                 @if($cardUrl)
                     {{-- Above the fold, inside the hero: eager, never lazy --}}
-                    <img src="{{ $cardUrl }}" alt="{{ $system->name }}" class="w-full h-full object-cover" data-fallback="hide">
+                    @php($thumbSrcset = $system->coverImageSrcset('card', 'hero', 480, 800))
+                    <img src="{{ $cardUrl }}" @if($thumbSrcset) srcset="{{ $thumbSrcset }}" sizes="(min-width: 640px) 192px, 128px" @endif alt="{{ $system->name }}" class="w-full h-full object-cover" data-fallback="hide">
                 @else
                     <div class="w-full h-full flex items-center justify-center">
                         <span class="material-symbols-outlined text-4xl text-on-primary/40" aria-hidden="true">casino</span>

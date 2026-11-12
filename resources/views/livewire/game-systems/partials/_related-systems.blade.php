@@ -5,8 +5,9 @@
                 <a href="{{ route('game-systems.show', $system->baseGame->slug) }}" wire:navigate class="flex items-center gap-4 p-3 bg-surface rounded-lg hover:bg-primary/5 transition-colors group">
                     <div class="shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-surface-container-high">
                         @php($baseCover = $system->baseGame->coverImageUrl('thumb'))
+                        @php($baseSrcset = $system->baseGame->coverImageSrcset())
                         @if($baseCover)
-                            <img src="{{ $baseCover }}" alt="{{ $system->baseGame->name }}" class="w-full h-full object-cover" loading="lazy" data-fallback="placeholder">
+                            <img src="{{ $baseCover }}" @if($baseSrcset) srcset="{{ $baseSrcset }}" sizes="64px" @endif alt="{{ $system->baseGame->name }}" class="w-full h-full object-cover" loading="lazy" data-fallback="placeholder">
                         @else
                             <div class="w-full h-full flex items-center justify-center">
                                 <span class="material-symbols-outlined text-on-surface-variant" aria-hidden="true">casino</span>
@@ -46,8 +47,9 @@
                         <a href="{{ route('game-systems.show', $expansion->slug) }}" wire:navigate class="block bg-surface-container rounded-xl shadow-ambient hover:shadow-md transition-shadow overflow-hidden group">
                             <div class="aspect-square bg-surface-container-high relative overflow-hidden">
                                 @php($expCover = $expansion->coverImageUrl('thumb'))
+                                @php($expSrcset = $expansion->coverImageSrcset())
                                 @if($expCover)
-                                    <img src="{{ $expCover }}" alt="{{ $expansion->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" data-fallback="placeholder">
+                                    <img src="{{ $expCover }}" @if($expSrcset) srcset="{{ $expSrcset }}" sizes="(min-width: 1280px) 19vw, 45vw" @endif alt="{{ $expansion->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" data-fallback="placeholder">
                                 @else
                                     <div class="w-full h-full flex items-center justify-center">
                                         <span class="material-symbols-outlined text-3xl text-on-surface-variant/30" aria-hidden="true">extension</span>

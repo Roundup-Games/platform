@@ -53,7 +53,9 @@ describe('CreateGame cover-image upload', function () {
         expect($game->resolveCoverUrl())->toBe($media->getUrl());
 
         // getDynamicSEOData() (a wired consumer) surfaces the host cover.
-        expect($game->getDynamicSEOData()->image)->toBe($media->getUrl());
+        // 'hero' rendition (CWV 2026-11): og:image serves the 800w webp
+        // conversion, in parity with the hero <img> and preload.
+        expect($game->getDynamicSEOData()->image)->toBe($media->getUrl('hero'));
     });
 
     it('fires the fallback chain (representative system cover) when no cover is uploaded', function () {
@@ -117,7 +119,7 @@ describe('CreateCampaign cover-image upload', function () {
         $media = $campaign->getFirstMedia('cover');
         expect($media)->not->toBeNull()
             ->and($campaign->resolveCoverUrl())->toBe($media->getUrl())
-            ->and($campaign->getDynamicSEOData()->image)->toBe($media->getUrl());
+            ->and($campaign->getDynamicSEOData()->image)->toBe($media->getUrl('hero'));
     });
 
     it('falls back to the representative system cover when no cover is uploaded', function () {

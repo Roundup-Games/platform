@@ -47,10 +47,12 @@ describe('GameSystemDetail - hero image conversions', function () {
             // Hero <img> and its preload both point at the conversion…
             ->assertSee('src="'.$system->coverImageUrl('hero').'"', false)
             ->assertSee('href="'.$system->coverImageUrl('hero').'"', false)
-            // …the identity thumbnail at the card conversion…
+            // …the identity thumbnail at the card conversion, with a
+            // card+hero srcset for high-DPR phones…
             ->assertSee('src="'.$system->coverImageUrl('card').'"', false)
+            ->assertSee('srcset="'.$system->coverImageSrcset('card', 'hero', 480, 800).'"', false)
             // …and the untouched original must no longer be painted by the
-            // page (og:image / JSON-LD meta still reference it, by design).
+            // page (og:image / JSON-LD meta serve the hero rendition too).
             ->assertDontSee('src="'.$system->coverImageUrl().'"', false);
     });
 

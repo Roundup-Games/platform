@@ -54,6 +54,13 @@ trait ResolvesCoverImage
      * 'og' produces a 1200x630 social-share card via Fit::Crop so OG/Twitter
      * cards fill their canonical frame regardless of the uploaded image's
      * aspect ratio. Conversions run on the default queue (same as GameSystem).
+     *
+     * 'hero' (CWV 2026-11) serves the game/campaign detail hero backgrounds —
+     * a blurred, gradient-overlaid backdrop where the untouched original
+     * (often multi-MB phone photos) was pure waste. nonOptimized() is
+     * load-bearing: the package's default optimizer chain re-encodes webp
+     * with `cwebp -q 90`, silently overriding quality() (see the fuller
+     * note on GameSystem::registerMediaConversions).
      */
     public function registerMediaConversions(?Media $media = null): void
     {
@@ -64,6 +71,12 @@ trait ResolvesCoverImage
 
         $this->addMediaConversion('og')
             ->fit(Fit::Crop, 1200, 630);
+
+        $this->addMediaConversion('hero')
+            ->nonOptimized()
+            ->width(800)
+            ->quality(60)
+            ->format('webp');
     }
 
     /**

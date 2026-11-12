@@ -76,7 +76,9 @@ describe('rung 1 — host-uploaded cover', function () {
 
         // The factory default attaches a fresh GameSystem (thumbnail_url=null,
         // no cover media), so the only competing URL would be og-default.
-        $expectedPath = parse_url($campaign->fresh()->resolveCoverUrl(), PHP_URL_PATH);
+        // 'hero' rendition (CWV 2026-11): the parity triple (hero img, og:image,
+        // preload) shares resolveCoverUrl('hero').
+        $expectedPath = parse_url($campaign->fresh()->resolveCoverUrl('hero'), PHP_URL_PATH);
 
         $response = get(route('campaigns.detail', $campaign->id))->assertOk();
 

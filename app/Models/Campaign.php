@@ -438,8 +438,9 @@ class Campaign extends Model implements HasMedia, TicketSubject
         // Cover image via the deterministic fallback chain (S07): host-uploaded
         // cover -> representative GameSystem cover -> og-default.jpg asset.
         // The legacy $this->images JSON column was dropped in S07; every cover
-        // surface now reads through resolveCoverUrl().
-        $image = $this->resolveCoverUrl();
+        // surface now reads through resolveCoverUrl(). 'hero' rendition
+        // (CWV 2026-11) keeps the hero/preload/og parity triple on one rung.
+        $image = $this->resolveCoverUrl('hero');
 
         $isPublic = $this->visibility === Visibility::Public;
         $robots = $isPublic

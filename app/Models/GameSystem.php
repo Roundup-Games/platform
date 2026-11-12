@@ -342,6 +342,41 @@ class GameSystem extends Model implements HasMedia, TicketSubject
         return $this->thumbnail_url;
     }
 
+    /**
+     * DPR-aware srcset for card/thumbnail img slots, built from two local
+     * conversions (defaults: 'thumb' 150px + 'card' 480px).
+     *
+     * Returns null when either conversion file is absent — external BGG
+     * fallbacks (thumbnail_url) are single-URL resources and must not be
+     * advertised at fake widths. Views pair this with a slot-specific
+     * `sizes` attribute; the detail-page identity thumb uses
+     * coverImageSrcset('card', 'hero', 480, 800).
+     *
+     * CWV 2026-11: retina phones otherwise fetch 150px thumbs stretched to
+     * ~200px boxes, or single 480px cards on DPR-1 screens.
+     */
+    public function coverImageSrcset(
+        string $smallConversion = 'thumb',
+        string $largeConversion = 'card',
+        int $smallWidth = 150,
+        int $largeWidth = 480,
+    ): ?string {
+        $media = $this->getFirstMedia('cover');
+
+        if ($media === null) {
+            return null;
+        }
+
+        $smallPath = $media->getPath($smallConversion);
+        $largePath = $media->getPath($largeConversion);
+
+        if ($smallPath === '' || $largePath === '' || ! file_exists($smallPath) || ! file_exists($largePath)) {
+            return null;
+        }
+
+        return sprintf('%s %dw, %s %dw', $media->getUrl($smallConversion), $smallWidth, $media->getUrl($largeConversion), $largeWidth);
+    }
+
     // ── Relationships ──────────────────────────────────
 
     /**
@@ -447,7 +482,7 @@ class GameSystem extends Model implements HasMedia, TicketSubject
             ->name($this->name)
             ->description(Str::limit(strip_tags((string) $this->description), 500));
 
-        if (($imageUrl = $this->coverImageUrl()) !== null && $imageUrl !== '') {
+        if (($imageUrl = $this->coverImageUrl('hero')) !== null && $imageUrl !== '') {
             $product->image($imageUrl);
         }
 
@@ -508,7 +543,10 @@ class GameSystem extends Model implements HasMedia, TicketSubject
         }
 
         $metaDescription = Str::limit(strip_tags($this->description ?? ''), 160);
-        $coverUrl = $this->coverImageUrl();
+        // 'hero' rendition (800w webp): og:image/JSON-LD consumers get the
+        // right-sized conversion instead of the ~235KB original — same art,
+        // one-third the fetch for social/answer-engine scrapers (CWV 2026-11).
+        $coverUrl = $this->coverImageUrl('hero');
 
         return new SEOData(
             // Keyword-first generated fallback (R072): the bare system

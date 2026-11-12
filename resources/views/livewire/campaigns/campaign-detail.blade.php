@@ -18,7 +18,8 @@
             // an admin clears an offending host cover via the cover-takedown
             // action (resolveCoverUrl()'s on-disk file_exists guard makes a
             // removed media row fall through cleanly to the next rung).
-            $coverUrl = $campaign->resolveCoverUrl();
+            // 'hero' rendition (CWV 2026-11): 800w webp like the public view.
+            $coverUrl = $campaign->resolveCoverUrl('hero');
         @endphp
         @if($coverUrl)
             <div class="absolute inset-0">

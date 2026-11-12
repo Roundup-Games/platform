@@ -732,8 +732,10 @@ class Game extends Model implements HasMedia, TicketSubject
         // Cover image via the deterministic fallback chain (S07): host-uploaded
         // cover -> representative GameSystem cover -> og-default.jpg asset.
         // Eager-loaded gameSystems (callers use ->with('gameSystems')) makes the
-        // representative rung N+1-safe.
-        $image = $this->resolveCoverUrl();
+        // representative rung N+1-safe. 'hero' rendition (CWV 2026-11): the
+        // parity triple (hero <img>, preload, og:image) shares one resolver
+        // call so all three surfaces stay on the same fallback rung.
+        $image = $this->resolveCoverUrl('hero');
 
         $isPublic = $this->visibility === Visibility::Public;
         $robots = $isPublic

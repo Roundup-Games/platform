@@ -3,7 +3,10 @@
     // Cover image via the deterministic fallback chain (S07): host-uploaded
     // cover -> representative GameSystem cover -> og-default.jpg asset.
     // Eager-loaded gameSystems keeps the representative rung N+1-safe.
-    $coverUrl = $game->resolveCoverUrl();
+    // 'hero' rendition (CWV 2026-11): 800w webp behind the blur+gradient
+    // overlay instead of the untouched original — mirrors GameSystem's hero
+    // and stays parity with Game::getDynamicSEOData()'s og:image.
+    $coverUrl = $game->resolveCoverUrl('hero');
 @endphp
 @if($coverUrl)
     @push('preload')

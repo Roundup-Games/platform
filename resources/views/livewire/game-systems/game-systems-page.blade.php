@@ -187,11 +187,14 @@
                             <a href="{{ route('game-systems.show', $system->slug) }}"
                                wire:navigate
                                class="block bg-surface-container rounded-xl shadow-ambient hover:shadow-lg transition-all duration-200 overflow-hidden group">
-                                {{-- Cover Image --}}
+                                {{-- Cover Image — DPR-aware srcset (CWV 2026-11): thumb 150w
+                                     + card 480w; external BGG fallbacks stay
+                                     single-URL (helper returns null). --}}
                                 <div class="aspect-4/3 bg-surface-container-high relative overflow-hidden">
                                     @php($coverUrl = $system->coverImageUrl('thumb'))
+                                    @php($coverSrcset = $system->coverImageSrcset())
                                     @if($coverUrl)
-                                        <img src="{{ $coverUrl }}" alt="{{ $system->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" data-fallback="placeholder">
+                                        <img src="{{ $coverUrl }}" @if($coverSrcset) srcset="{{ $coverSrcset }}" sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 45vw, 92vw" @endif alt="{{ $system->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" data-fallback="placeholder">
                                     @else
                                         <div class="w-full h-full flex items-center justify-center bg-primary/5">
                                             <span class="material-symbols-outlined text-5xl text-primary/30" aria-hidden="true">casino</span>
