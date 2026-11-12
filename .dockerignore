@@ -2,15 +2,7 @@
 .github
 .gsd
 node_modules
-# vendor/** (not bare `vendor`) — the negations below re-include the
-# Livewire ESM runtime that resources/js/app.js imports for the Vite bundle
-# (manual-bundling pattern). Docker cannot re-include children of an
-# excluded directory, so every parent path down to the file is negated too.
-vendor/**
-!vendor/livewire
-!vendor/livewire/livewire
-!vendor/livewire/livewire/dist
-!vendor/livewire/livewire/dist/livewire.esm.js
+vendor
 .env
 .env.backup
 .env.bak

@@ -1,4 +1,19 @@
 # syntax=docker/dockerfile:1
+# Stage 0: Livewire front-end runtime from composer.
+# The frontend stage bundles Livewire+Alpine through Vite (manual-bundling
+# pattern — resources/js/app.js imports the vendor ESM build). The runtime
+# must come from composer.lock, not from a committed copy (drift) or the
+# build context (vendor/ is dockerignored and absent in CI checkouts), so
+# this tiny stage installs the locked dependency tree and the frontend stage
+# copies just the dist file out of it.
+FROM composer:2 AS livewire-dist
+WORKDIR /app
+COPY composer.json composer.lock ./
+RUN --mount=type=cache,target=/tmp/composer-cache \
+    COMPOSER_CACHE_DIR=/tmp/composer-cache \
+    composer install --no-dev --no-scripts --no-autoloader --no-interaction --no-progress \
+    --ignore-platform-reqs
+
 # Stage 1: Build frontend assets
 # Node 24 — current active LTS, pinned in lockstep with CI (.github/workflows/ci.yml),
 # .nvmrc, and package.json engines so every build environment produces
@@ -14,9 +29,8 @@ COPY vite.config.js ./
 COPY resources/ resources/
 
 # Livewire ESM runtime for the manually-bundled front end (app.js imports it
-# from vendor/). Everything else under vendor/ stays out of the build
-# context — see the targeted .dockerignore negations.
-COPY vendor/livewire/livewire/dist/livewire.esm.js vendor/livewire/livewire/dist/
+# from vendor/). Everything else under vendor/ stays out of the build context.
+COPY --from=livewire-dist /app/vendor/livewire/livewire/dist/livewire.esm.js vendor/livewire/livewire/dist/
 
 RUN npm run build
 
