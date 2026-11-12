@@ -165,14 +165,17 @@
             <div class="border-t border-outline-variant/10 px-8 sm:px-12 py-4">
                 <div class="max-w-(--breakpoint-2xl) mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-on-surface-variant">
                     <div class="flex flex-wrap items-center gap-x-4 gap-y-1 justify-center">
-                        <a href="{{ route('impressum', app()->getLocale()) }}" wire:navigate class="hover:text-primary transition-colors">{{ __('common.nav_impressum') }}</a>
+                        {{-- Tap targets ≥24px (Lighthouse target-size): inline-flex + min-h-6
+                            grows the hit area invisibly — px/-mx keeps the visual
+                            spacing unchanged. --}}
+                        <a href="{{ route('impressum', app()->getLocale()) }}" wire:navigate class="inline-flex items-center min-h-6 px-1 -mx-1 hover:text-primary transition-colors">{{ __('common.nav_impressum') }}</a>
                         <span class="hidden sm:inline" aria-hidden="true">·</span>
-                        <a href="{{ route('privacy', app()->getLocale()) }}" wire:navigate class="hover:text-primary transition-colors">{{ __('common.nav_privacy') }}</a>
+                        <a href="{{ route('privacy', app()->getLocale()) }}" wire:navigate class="inline-flex items-center min-h-6 px-1 -mx-1 hover:text-primary transition-colors">{{ __('common.nav_privacy') }}</a>
                         <span class="hidden sm:inline" aria-hidden="true">·</span>
-                        <a href="{{ route('terms', app()->getLocale()) }}" wire:navigate class="hover:text-primary transition-colors">{{ __('common.nav_terms') }}</a>
+                        <a href="{{ route('terms', app()->getLocale()) }}" wire:navigate class="inline-flex items-center min-h-6 px-1 -mx-1 hover:text-primary transition-colors">{{ __('common.nav_terms') }}</a>
                         <span class="hidden sm:inline" aria-hidden="true">·</span>
                         @if(config('cookie-consent.enabled'))
-                            <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()" class="js-cookie-consent-settings hover:text-primary transition-colors cursor-pointer">{{ __('common.nav_cookie_settings') }}</button>
+                            <button type="button" onclick="if(window.laravelCookieConsent)window.laravelCookieConsent.showCookieDialog()" class="js-cookie-consent-settings inline-flex items-center min-h-6 px-1 -mx-1 hover:text-primary transition-colors cursor-pointer">{{ __('common.nav_cookie_settings') }}</button>
                         @endif
                     </div>
                     <p>&copy; {{ date('Y') }} {{ config('company.legal_name') }}</p>

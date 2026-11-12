@@ -45,32 +45,37 @@
         </nav>
 
         <div class="ml-auto flex items-center gap-2">
-            {{-- City hub pill — visible at every width (label from sm) --}}
+            {{-- City hub pill — visible at every width (label from sm).
+                 Accessible name must CONTAIN the visible text (axe
+                 label-content-name-mismatch): "<visible>, <action>". --}}
+            @php($currentCity = null)
+            @if (request()->routeIs('city-hubs.show') && isset($navCities))
+                @foreach ($navCities as $city)
+                    @if (request()->route('slug') === $city['slug'])
+                        @php($currentCity = $city['city'])
+                    @endif
+                @endforeach
+            @endif
             <button type="button"
                     popovertarget="city-menu"
                     aria-haspopup="true"
                     aria-expanded="false"
-                    aria-label="{{ __('common.aria_open_city_hubs') }}"
+                    aria-label="{{ ($currentCity ?? __('city-hubs.nav_cities')).', '.__('common.aria_open_city_hubs') }}"
                     class="inline-flex h-10 items-center gap-[7px] rounded-full border border-outline-variant/55 px-3.5 text-sm font-medium text-on-surface transition-colors hover:border-primary sm:px-3.5 max-sm:px-2.5">
                 <span class="material-symbols-outlined text-[18px] text-on-surface-variant" aria-hidden="true">location_on</span>
-                @php($currentCity = null)
-                @if (request()->routeIs('city-hubs.show') && isset($navCities))
-                    @foreach ($navCities as $city)
-                        @if (request()->route('slug') === $city['slug'])
-                            @php($currentCity = $city['city'])
-                        @endif
-                    @endforeach
-                @endif
                 <span class="hidden max-sm:inline">{{ $currentCity ?? __('city-hubs.nav_cities') }}</span>
                 <span class="material-symbols-outlined chev hidden text-[18px] transition-transform duration-200 min-[1140px]:inline" aria-hidden="true">expand_more</span>
             </button>
 
-            {{-- Account chip — composes theme · language · auth · contact --}}
+            {{-- Account chip — composes theme · language · auth · contact.
+                 Accessible name contains the visible text (first name when
+                 signed in, "Account" for guests) per axe label-content-name-
+                 mismatch — same construction as the city pill above. --}}
             <button type="button"
                     popovertarget="account-menu"
                     aria-haspopup="true"
                     aria-expanded="false"
-                    aria-label="{{ __('common.aria_open_account_menu') }}"
+                    aria-label="{{ (auth()->check() ? \Illuminate\Support\Str::before(auth()->user()->name, ' ') : __('profile.content_account')).', '.__('common.aria_open_account_menu') }}"
                     class="inline-flex h-10 items-center gap-[7px] rounded-full border border-outline-variant/55 px-3.5 text-sm font-medium text-on-surface transition-colors hover:border-primary max-sm:px-2.5">
                 @guest
                     <span class="material-symbols-outlined text-[18px] text-on-surface-variant" aria-hidden="true">person</span>
