@@ -38,12 +38,19 @@ use Throwable;
  * Rate limiting (T03): per-consumer buckets keyed on the client uuid
  * with a read/write suffix (tier from rate_limit_tier); the 'mcp' named
  * limiter (AppServiceProvider) serves the Limit pair. 429s carry
- * Retry-After.
+ * Retry-After. The limits are a documented contract: /agents.md renders
+ * them from config (mcp.rate_limits.tiers.standard), so retuning a tier
+ * is doc-synced automatically.
  *
  * Dispatch policy (T03): the tool kill-switch (cache-TTL'd disabled list,
  * no deploy needed) refuses disabled tools with 403; the argument
  * discipline refuses undeclared arguments with 400 naming the accepted
  * ones (agents guess). Both apply before the server sees the message.
+ *
+ * Contract note: the snake_case reasons this gate emits are a public
+ * wire contract — /agents.md lists them for agents to branch on. A new
+ * reason must be added to the doc's hand-maintained "The wire" list in
+ * the same change (resources/views/markdown/agents.blade.php).
  *
  * After dispatch, every tools/call message leaves an mcp_calls audit row
  * (client, user, tool, sha256 of the arguments, latency) — including
@@ -174,6 +181,12 @@ class McpAuthentication
 
                 $response = response()->json([
                     'error' => [
+                        // Coded reason (M079 review 4): tool-level denials carry
+                        // snake_case codes; the gate layer matches that
+                        // discipline so agents can branch on error.reason at
+                        // every layer instead of parsing prose. Additive —
+                        // message text is unchanged.
+                        'reason' => 'dispatch_exception',
                         'message' => 'The MCP server encountered an error.',
                     ],
                 ], $response->getStatusCode());
@@ -185,6 +198,7 @@ class McpAuthentication
 
             $response = response()->json([
                 'error' => [
+                    'reason' => 'dispatch_exception',
                     'message' => 'The MCP server encountered an error.',
                 ],
             ], 500);
@@ -243,6 +257,7 @@ class McpAuthentication
 
             return response()->json([
                 'error' => [
+                    'reason' => 'rate_limited',
                     'message' => 'Too many MCP requests. Retry later.',
                 ],
             ], 429)->withHeaders([
@@ -373,6 +388,7 @@ class McpAuthentication
 
             return response()->json([
                 'error' => [
+                    'reason' => 'tool_disabled',
                     'message' => sprintf('The %s tool has been disabled by the platform.', $toolName),
                 ],
             ], 403);
@@ -419,6 +435,7 @@ class McpAuthentication
 
         return response()->json([
             'error' => [
+                'reason' => 'undeclared_arguments',
                 'message' => sprintf(
                     'Tool %s does not accept %s. This tool accepts: %s.',
                     $toolName,
@@ -628,6 +645,7 @@ class McpAuthentication
 
         return response()->json([
             'error' => [
+                'reason' => 'unauthenticated',
                 'message' => 'Unauthenticated.',
             ],
         ], 401);
@@ -642,6 +660,10 @@ class McpAuthentication
 
         return response()->json([
             'error' => [
+                // The same snake_case reason that reaches the mcp.reject log
+                // event — ability_denied / no_mcp_abilities /
+                // ops_requires_admin / host_requires_gm.
+                'reason' => $reason,
                 'message' => $message,
             ],
         ], 403);

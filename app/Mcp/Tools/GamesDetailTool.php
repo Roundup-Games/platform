@@ -74,8 +74,10 @@ class GamesDetailTool extends Tool
             ->find($args['game_id']);
 
         if (! $game instanceof Game) {
-            // Same answer for invisible and unknown ids — no existence oracle.
-            return Response::error('Game not found.');
+            // Byte-identical denial for invisible and unknown ids — no
+            // existence oracle (mirrors the web 404). Coded like every
+            // other tool's denials (agent-branchable snake_case prefix).
+            return Response::error('not_found: Game not found.');
         }
 
         return Response::json(

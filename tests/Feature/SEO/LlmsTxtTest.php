@@ -72,8 +72,9 @@ describe('LlmsTxtService — v2 body shape', function () {
 
         preg_match_all('/^- \[[^\]]+\]\([^)]+\): .+$/m', $body, $rows);
         // One row per INVENTORY entry, plus one .md alternate row per
-        // PAGES entry (the v2 Optional appendix — M078/S04/T03).
-        expect(count($rows[0]))->toBe(count(LlmsTxtService::INVENTORY) + count(MarkdownAlternateController::PAGES));
+        // PAGES entry (the v2 Optional appendix — M078/S04/T03), plus the
+        // /agents.md self-onboarding row appended to the same appendix.
+        expect(count($rows[0]))->toBe(count(LlmsTxtService::INVENTORY) + count(MarkdownAlternateController::PAGES) + 1);
     });
 });
 
@@ -122,14 +123,22 @@ describe('LlmsTxtService — markdown alternates appendix', function () {
             expect($body)->toContain(sprintf('](%s/en/%s.md):', $base, $page));
         }
 
-        // And nothing beyond the whitelist: the emitted .md link set is
-        // exactly PAGES, in order — no stray .md URL leaks into the map.
+        // The agent self-onboarding doc rides the same Optional section
+        // (not a PAGES pillar: root path, EN-only, no HTML twin).
+        expect($body)->toContain(sprintf('](%s%s):', $base, LlmsTxtService::AGENTS_DOC_PATH));
+
+        // And nothing beyond the whitelist plus that row: the emitted
+        // .md link set is exactly PAGES + /agents.md, in order — no
+        // stray .md URL leaks into the map.
         preg_match_all('/\]\(([^)]+\.md)\)/', $body, $mdUrls);
-        expect($mdUrls[1])->toHaveCount(count(MarkdownAlternateController::PAGES))
-            ->toEqual(array_map(
-                fn (string $page): string => $base.'/en/'.$page.'.md',
-                array_keys(MarkdownAlternateController::PAGES),
-            ));
+        expect($mdUrls[1])->toHaveCount(count(MarkdownAlternateController::PAGES) + 1)
+            ->toEqual([
+                ...array_map(
+                    fn (string $page): string => $base.'/en/'.$page.'.md',
+                    array_keys(MarkdownAlternateController::PAGES),
+                ),
+                $base.LlmsTxtService::AGENTS_DOC_PATH,
+            ]);
     });
 });
 
@@ -317,12 +326,12 @@ describe('GET /llms.txt — route', function () {
     it('resolves every advertised .md alternate to 200', function () {
         $body = get('/llms.txt')->content();
 
-        // The advertised .md set is exactly the PAGES whitelist, and
-        // each URL must be a live route (the /en/{page}.md alternates
-        // from M078/S04/T01) — an advertised-but-dead .md row fails here.
+        // The advertised .md set is exactly the PAGES whitelist plus the
+        // /agents.md self-onboarding doc, and each URL must be a live
+        // route — an advertised-but-dead .md row fails here.
         preg_match_all('/\]\(([^)]+\.md)\)/', $body, $mdUrls);
         expect($mdUrls[1])->not->toBeEmpty()
-            ->toHaveCount(count(MarkdownAlternateController::PAGES));
+            ->toHaveCount(count(MarkdownAlternateController::PAGES) + 1);
 
         foreach ($mdUrls[1] as $url) {
             get((string) parse_url($url, PHP_URL_PATH))->assertOk();

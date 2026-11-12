@@ -220,7 +220,9 @@
             <p class="text-xs text-on-surface-variant leading-relaxed mt-2">{{ __('settings.content_agent_dev_note') }}</p>
             <pre class="mt-2 rounded-lg bg-on-surface text-surface px-3 py-2.5 text-[11px] leading-relaxed overflow-x-auto"><code>claude mcp add --transport http roundup {{ $mcpUrl }} \
   --header "Authorization: Bearer $ROUNDUP_MCP_TOKEN"</code></pre>
-            <p class="text-xs text-on-surface-variant mt-2">{{ __('settings.content_agent_catalog_note') }}</p>
+            <p class="text-xs text-on-surface-variant mt-2">
+                <a href="{{ route('agents.markdown') }}" class="text-primary font-medium hover:underline">{{ __('settings.content_agent_catalog_note') }}</a>
+            </p>
         </details>
     </div>
 

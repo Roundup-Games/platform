@@ -63,6 +63,7 @@ test('a revoked client is rejected with 401 even while its token row still exist
 
     $this->postMcp($newAccessToken->plainTextToken, 'tools/list')
         ->assertStatus(401)
+        ->assertJsonPath('error.reason', 'unauthenticated')
         ->assertJson(['error' => ['message' => 'Unauthenticated.']]);
 });
 
@@ -83,6 +84,7 @@ test('a session authenticated user without a personal access token is rejected w
 
     $this->postJson('/mcp', $this->mcpMessage('tools/list'), $this->mcpHeaders('tools/list'))
         ->assertStatus(401)
+        ->assertJsonPath('error.reason', 'unauthenticated')
         ->assertJson(['error' => ['message' => 'Unauthenticated.']]);
 });
 
@@ -96,7 +98,8 @@ test('a token without the tools required ability is rejected with 403 naming the
         'arguments' => (object) [],
     ], PlatformInfoTool::NAME);
 
-    $response->assertStatus(403);
+    $response->assertStatus(403)
+        ->assertJsonPath('error.reason', 'ability_denied');
 
     expect($response->json('error.message'))->toContain(McpAbility::Read->value)
         ->and($response->json('error.message'))->toContain(PlatformInfoTool::NAME);

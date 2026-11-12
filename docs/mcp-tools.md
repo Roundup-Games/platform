@@ -90,7 +90,10 @@ The rules every tool obeys — the reason this surface can be exposed to autonom
    pins it, and the tool classes' write-free discipline is asserted by the MCP feature
    suites).
 4. **Fail-closed gate.** `McpAuthentication` runs auth → rate limit → dispatch policy →
-   dispatch, in order; every rejection answers precise JSON (401/403/400/429) and an
+   dispatch, in order; every rejection answers precise JSON (401/403/400/429) carrying a
+   stable snake_case `error.reason` (unauthenticated / no_mcp_abilities / ability_denied /
+   host_requires_gm / ops_requires_admin / tool_disabled / undeclared_arguments /
+   rate_limited; 500s sanitize to `dispatch_exception`) and an
    exception anywhere past auth becomes a sanitized 500, never a stack trace.
 
 Additional agent-safety mechanics: write tools accept `idempotency_key` (a retried call

@@ -15,6 +15,7 @@ Route::get('/up', function (): Response {
     );
 });
 
+use App\Http\Controllers\AgentsMarkdownController;
 use App\Http\Controllers\Auth\AuthLookupController;
 use App\Http\Controllers\Auth\OAuthController;
 use App\Http\Controllers\ClientErrorReportController;
@@ -234,6 +235,20 @@ Route::get('/sitemap-{type}.xml', [SitemapController::class, 'show'])
 // group and the bare-path /{path} catch-all, so the exact path can never
 // fall through to the locale-redirect fallback (pinned by LlmsTxtTest).
 Route::get('/llms.txt', LlmsTxtController::class);
+
+// ── /agents.md — public agent self-onboarding ─────────
+// Written FOR an AI personal assistant: how to connect to the platform's
+// MCP server (POST /mcp) and act on behalf of its human. EN-only by
+// design (the D274 markdown-alternates precedent: agent-consumption docs
+// are EN-only). Registered beside llms.txt — outside the {locale} group
+// and before the bare-path /{path} catch-all — so the exact path can
+// never fall through to the locale-redirect fallback (pinned by
+// AgentsMarkdownTest, mirroring the llms.txt route pin). A plain view
+// render: no live stats, no cache machinery (content changes only per
+// deploy). The tool catalog section is generated from
+// RoundupServer::TOOL_REGISTRY and the protocol versions from the
+// laravel/mcp package — never hand-copied.
+Route::get('/agents.md', AgentsMarkdownController::class)->name('agents.markdown');
 
 // ── Legacy API Redirects (backward compatibility) ────
 // Old /api/* routes redirect to /api/v1/* equivalents.

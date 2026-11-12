@@ -362,7 +362,7 @@ test('games detail answers not found for hidden games identically to unknown ids
 
         $response->assertStatus(200)
             ->assertJsonPath('result.isError', true)
-            ->assertJsonPath('result.content.0.text', 'Game not found.');
+            ->assertJsonPath('result.content.0.text', 'not_found: Game not found.');
     }
 });
 

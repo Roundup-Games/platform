@@ -176,6 +176,17 @@ class LlmsTxtService
      */
     private const OPTIONAL_HEADING = 'Optional';
 
+    /**
+     * Path of the public agent self-onboarding doc (served by
+     * AgentsMarkdownController): linked from the Optional appendix so an
+     * agent hunting for the platform's MCP surface finds it from llms.txt.
+     */
+    public const AGENTS_DOC_PATH = '/agents.md';
+
+    private const AGENTS_DOC_LABEL = 'Agent onboarding (markdown)';
+
+    private const AGENTS_DOC_NOTE = 'Self-onboarding for AI assistants: how to connect to the Roundup Games MCP server and act for your owner.';
+
     /** One-line blockquote under the H1 (v2 spec position). */
     private const SUMMARY_LINE = 'Find and host in-person tabletop games — from one-evening board games to long-running RPG campaigns. Free to use, run by a small non-profit team in Berlin.';
 
@@ -286,6 +297,17 @@ class LlmsTxtService
                 sprintf('The %s page as clean markdown — same content, no chrome.', $label),
             );
         }
+
+        // Agent self-onboarding row: /agents.md is not a PAGES pillar (it
+        // lives at the root, EN-only, no HTML twin), so it is appended
+        // here rather than joining the loop — same Optional section, same
+        // [name](url): note shape, resolved by the LlmsTxtTest walk.
+        $lines[] = sprintf(
+            '- [%s](%s): %s',
+            self::AGENTS_DOC_LABEL,
+            $baseUrl.self::AGENTS_DOC_PATH,
+            self::AGENTS_DOC_NOTE,
+        );
 
         $lines[] = '';
 

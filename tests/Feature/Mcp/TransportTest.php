@@ -28,6 +28,7 @@ test('unauthenticated agent requests are rejected with 401 json, never a 500 or 
     $response = $this->postJson('/mcp', $this->mcpMessage('server/discover'), $this->mcpHeaders('server/discover'));
 
     $response->assertStatus(401)
+        ->assertJsonPath('error.reason', 'unauthenticated')
         ->assertJson(['error' => ['message' => 'Unauthenticated.']])
         ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", error="invalid_token"');
 });

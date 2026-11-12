@@ -64,6 +64,7 @@ test('a consumer exceeding its read bucket gets 429 with retry-after and an mcp 
     $response = $this->postMcp($bearer, 'tools/list');
 
     $response->assertStatus(429)
+        ->assertJsonPath('error.reason', 'rate_limited')
         ->assertJson(['error' => ['message' => 'Too many MCP requests. Retry later.']]);
 
     expect((int) $response->headers->get('Retry-After'))->toBeGreaterThan(0)
@@ -290,6 +291,7 @@ test('undeclared arguments are refused before dispatch with the accepted names',
     ], PlatformInfoTool::NAME);
 
     $response->assertStatus(400)
+        ->assertJsonPath('error.reason', 'undeclared_arguments')
         ->assertJson([
             'error' => [
                 'message' => 'Tool '.PlatformInfoTool::NAME.' does not accept bogus, also_bogus. This tool accepts: no arguments.',
@@ -337,6 +339,7 @@ test('a dispatch exception becomes 500 json, never a stack trace, and is still a
     ], PlatformInfoTool::NAME);
 
     $response->assertStatus(500)
+        ->assertJsonPath('error.reason', 'dispatch_exception')
         ->assertJson(['error' => ['message' => 'The MCP server encountered an error.']]);
 
     expect($response->getContent())->not->toContain('secret-internal-detail')

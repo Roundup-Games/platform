@@ -78,7 +78,7 @@ return [
     'content_agent_cloud_warning' => 'These apps connect from the vendor\'s cloud — the token is stored in their plugin settings, so treat it like a password entry. Never paste it into a chat. If your app only offers sign in (no token or header field), it cannot connect to Roundup yet.',
     'label_agent_dev_accordion' => 'Using a coding agent? (Claude Code · Cursor · VS Code)',
     'content_agent_dev_note' => 'Endpoint and bearer pattern, as usual: keep the token in an environment variable, never in committed config files.',
-    'content_agent_catalog_note' => 'The full tool catalog (18 tools, argument lists, rate limits) is documented in the platform docs: docs/mcp-tools.',
+    'content_agent_catalog_note' => 'The full tool catalog and connection instructions for assistants: /agents.md',
     'title_your_agents' => 'Your agents',
     'content_your_agents_lede' => 'What each agent can do, what it has been doing, and one-tap control. Nothing happens through an agent that is not visible here.',
     'label_agent_connected_on' => 'Connected :date',
