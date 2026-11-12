@@ -113,7 +113,7 @@ describe('4xx exception pipeline', function () {
 });
 
 describe('console input errors', function () {
-    // Runs argv through the console kernel the way bin/artisan does, so a
+    // Runs argv through the console kernel the way the artisan script does, so a
     // parse failure reaches the reporter through Kernel::handle().
     it('does NOT capture a mistyped artisan command', function (array $argv) {
         $exitCode = app(ConsoleKernel::class)->handle(
