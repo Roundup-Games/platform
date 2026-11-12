@@ -296,10 +296,11 @@ class GameSystem extends Model implements HasMedia, TicketSubject
         // flow served the untouched original (often 1000×1500+, ~235KB) behind
         // blur-xs + a from-primary/85 gradient overlay — Lighthouse flagged
         // 83% of those bytes as waste. 800px is visually lossless under that
-        // blur+overlay; webp q72 lands ~40-60KB.
+        // blur+overlay; webp q60 lands ~90KB for detailed box art (tuned
+        // down from q72/132KB after verifying LCP headroom on prod).
         $this->addMediaConversion('hero')
             ->width(800)
-            ->quality(72)
+            ->quality(60)
             ->format('webp');
 
         // In-hero identity thumbnail (128-192 CSS px, DPR up to ~3). Replaces
