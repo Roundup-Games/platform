@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Console\Dev\CwvDemoSeedCommand;
 use App\Console\Dev\DemoSeedCommand;
 use App\Console\Dev\DemoTeardownCommand;
 use App\Console\Dev\PostHogTestEvent;
@@ -270,6 +271,7 @@ class AppServiceProvider extends ServiceProvider
         // defense-in-depth for non-production environments.)
         if (! $this->app->isProduction()) {
             $this->commands([
+                CwvDemoSeedCommand::class,
                 DemoSeedCommand::class,
                 DemoTeardownCommand::class,
                 PostHogTestEvent::class,

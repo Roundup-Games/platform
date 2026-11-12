@@ -2,17 +2,17 @@
 
 namespace App\Filament\Pages\System;
 
-use App\Models\CwvMeasurement;
 use App\Models\GscSnapshot;
+use App\SEO\CwvTrendService;
 use App\SEO\LlmsTxtService;
 use Filament\Pages\Page;
-use Illuminate\Support\Carbon;
 
 /**
  * Search Performance admin page (SEO track 2026-10-15): the SEO
  * measurement loop in one view — Google Search Console digest trend
- * (weekly snapshots from seo:gsc-digest), latest Core Web Vitals
- * per template (cwv:check), and the IndexNow pipeline state.
+ * (weekly snapshots from seo:gsc-digest), the Core Web Vitals fleet
+ * summary (full trend view lives on CoreWebVitalsPage since
+ * 2026-11-12), and the IndexNow pipeline state.
  */
 class SearchPerformancePage extends Page
 {
@@ -42,7 +42,7 @@ class SearchPerformancePage extends Page
         return [
             'latest' => GscSnapshot::query()->latest('range_end')->first(),
             'trend' => GscSnapshot::query()->orderBy('range_end')->limit(12)->get(),
-            'cwv' => $this->latestCwvPerTemplate(),
+            'cwvSummary' => app(CwvTrendService::class)->summaryLine(),
             'aiSurfaces' => $this->aiSurfacesData(),
         ];
     }
@@ -69,44 +69,5 @@ class SearchPerformancePage extends Page
             'robotsTxtUrl' => $base.'/robots.txt',
             'fetchesLast7Days' => app(LlmsTxtService::class)->fetchCountsLast7Days(),
         ];
-    }
-
-    /**
-     * Latest measurement per (template, strategy) — the freshest CWV
-     * reading for every monitored template.
-     *
-     * @return list<array{template: string, strategy: string, performance: int|null, lcp_ms: int|null, inp_ms: int|null, cls: float|null, url: string, fetched_at: string}>
-     */
-    private function latestCwvPerTemplate(): array
-    {
-        $rows = [];
-
-        $measurements = CwvMeasurement::query()
-            ->whereIn('id', CwvMeasurement::selectRaw('DISTINCT ON (template, strategy) id')
-                ->from('cwv_measurements as latest')
-                ->orderBy('template')
-                ->orderBy('strategy')
-                ->orderByDesc('fetched_at')
-                ->select('latest.id'))
-            ->orderBy('template')
-            ->orderBy('strategy')
-            ->get();
-
-        foreach ($measurements as $measurement) {
-            $rows[] = [
-                'template' => $measurement->template,
-                'strategy' => $measurement->strategy,
-                'performance' => $measurement->performance_score,
-                'lcp_ms' => $measurement->lcp_ms,
-                'inp_ms' => $measurement->inp_ms,
-                'cls' => $measurement->cls,
-                'url' => $measurement->url,
-                'fetched_at' => $measurement->fetched_at !== ''
-                    ? Carbon::parse($measurement->fetched_at)->toDateTimeString('minute')
-                    : '',
-            ];
-        }
-
-        return $rows;
     }
 }

@@ -133,40 +133,18 @@
         </x-filament::section>
     @endif
 
-    @if(count($cwv) > 0)
+    @if($cwvSummary !== null)
         <x-filament::section>
-            <x-slot:heading>Core Web Vitals — latest per template</x-slot:heading>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="border-b border-gray-200 dark:border-gray-700">
-                            <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Template</th>
-                            <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Strategy</th>
-                            <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400">Perf.</th>
-                            <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400">LCP</th>
-                            <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400">INP</th>
-                            <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-gray-400">CLS</th>
-                            <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-gray-400">Checked</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($cwv as $row)
-                            <tr class="border-b border-gray-100 dark:border-gray-800">
-                                <td class="px-3 py-2">{{ $row['template'] }}</td>
-                                <td class="px-3 py-2 capitalize">{{ $row['strategy'] }}</td>
-                                <td class="px-3 py-2 text-right {{ ($row['performance'] ?? 100) >= 80 ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400' }}">{{ $row['performance'] ?? '—' }}</td>
-                                <td class="px-3 py-2 text-right">{{ $row['lcp_ms'] ? number_format($row['lcp_ms']).'ms' : '—' }}</td>
-                                <td class="px-3 py-2 text-right">{{ $row['inp_ms'] ? number_format($row['inp_ms']).'ms' : '—' }}</td>
-                                <td class="px-3 py-2 text-right">{{ $row['cls'] !== null ? number_format($row['cls'], 3) : '—' }}</td>
-                                <td class="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">{{ $row['fetched_at'] }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+            <x-slot:heading>Core Web Vitals</x-slot:heading>
+            <div class="flex flex-wrap items-baseline justify-between gap-3">
+                <div>
+                    <p class="text-2xl font-semibold">{{ $cwvSummary['passing'] }}<span class="text-base text-gray-400"> / {{ $cwvSummary['total'] }} checks ≥ {{ config('cwv.thresholds.performance_score') }}</span></p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                        Desktop average {{ $cwvSummary['desktopAvg'] }} · Mobile average {{ $cwvSummary['mobileAvg'] }} · lab scores · {{ $cwvSummary['window'] }}
+                    </p>
+                </div>
+                <a href="{{ \App\Filament\Pages\System\CoreWebVitalsPage::getUrl() }}" class="text-sm font-semibold text-blue-600 hover:underline dark:text-blue-400">Open the trend view →</a>
             </div>
-            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                Field metrics (LCP/INP/CLS) appear once CrUX has real-user data for the URL. Weekly check: <code class="text-xs">cwv:check</code>.
-            </p>
         </x-filament::section>
     @endif
 

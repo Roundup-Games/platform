@@ -3,16 +3,22 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasPlatformUuid;
+use Carbon\CarbonInterface;
+use Database\Factories\CwvMeasurementFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 /**
  * One Core Web Vitals measurement run from the PageSpeed Insights API for
  * a (template, url, strategy) tuple. Rows are append-only — trend history
  * is the point, latest-per-template is derived by fetched_at.
+ *
+ * @property CarbonInterface $fetched_at
  */
 class CwvMeasurement extends Model
 {
-    use HasPlatformUuid;
+    /** @use HasFactory<CwvMeasurementFactory> */
+    use HasFactory, HasPlatformUuid;
 
     protected $fillable = [
         'template',
