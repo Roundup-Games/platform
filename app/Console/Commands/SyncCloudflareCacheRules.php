@@ -55,6 +55,7 @@ class SyncCloudflareCacheRules extends Command
             $this->line('The API token needs these permissions:');
             $this->line('  • Zone → Cache Rules → Edit');
             $this->line('  • Zone → Cache Purge → Purge');
+            $this->line('  • Zone → Zone Settings → Edit (only for --early-hints)');
 
             return self::FAILURE;
         }
@@ -63,7 +64,9 @@ class SyncCloudflareCacheRules extends Command
 
         // Optional zone-setting toggle (CWV 2026-11): Early Hints replays the
         // Link headers emitted by EmitPreloadLinkHeaders as a 103 before the
-        // origin answers. Independent of the cache-rule sync below.
+        // origin answers. Independent of the cache-rule sync below: a failure
+        // here warns and fails the exit code, but the sync still runs.
+        $earlyHintsFailed = false;
         $earlyHints = $this->option('early-hints');
         if (is_string($earlyHints) && $earlyHints !== '') {
             if (! in_array($earlyHints, ['on', 'off'], true)) {
@@ -72,7 +75,14 @@ class SyncCloudflareCacheRules extends Command
                 return self::FAILURE;
             }
             $this->info('Setting zone Early Hints setting to '.$earlyHints.'...');
-            $client->setEarlyHints($earlyHints);
+            try {
+                $client->setEarlyHints($earlyHints);
+            } catch (\RuntimeException $e) {
+                report($e);
+                $this->warn($e->getMessage());
+                $this->warn('Continuing with the cache-rule sync.');
+                $earlyHintsFailed = true;
+            }
         }
 
         // Fetch current rules
@@ -116,7 +126,7 @@ class SyncCloudflareCacheRules extends Command
         if (! $this->option('force') && $this->isInSync($managedRules, $desiredRules)) {
             $this->info('No changes needed — cache rules are in sync.');
 
-            return self::SUCCESS;
+            return $earlyHintsFailed ? self::FAILURE : self::SUCCESS;
         }
 
         // Merge: manual rules first (preserved), then managed rules
@@ -139,7 +149,7 @@ class SyncCloudflareCacheRules extends Command
 
         $this->info('Cache rules synced successfully.');
 
-        return self::SUCCESS;
+        return $earlyHintsFailed ? self::FAILURE : self::SUCCESS;
     }
 
     // ── Route Resolution ───────────────────────────────────────────────────
@@ -487,6 +497,9 @@ class CloudflareClient
             if (str_contains($msg, 'authentication scheme') || $code === 10405) {
                 $hint = "\n\n  The API token needs: Zone → Cache Rules → Edit permission.\n"
                     .'  Create at: https://dash.cloudflare.com/profile/api-tokens';
+            } elseif ($context === 'set early hints' && ($code === 9109 || str_contains($msg, 'Unauthorized to access requested resource'))) {
+                $hint = "\n\n  The API token needs: Zone → Zone Settings → Edit permission.\n"
+                    .'  Edit at: https://dash.cloudflare.com/profile/api-tokens';
             }
 
             throw new \RuntimeException("Cloudflare API error ({$context}): {$msg}{$hint}");
