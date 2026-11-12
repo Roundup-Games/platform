@@ -13,6 +13,11 @@ RUN --mount=type=cache,target=/root/.npm npm ci
 COPY vite.config.js ./
 COPY resources/ resources/
 
+# Livewire ESM runtime for the manually-bundled front end (app.js imports it
+# from vendor/). Everything else under vendor/ stays out of the build
+# context — see the targeted .dockerignore negations.
+COPY vendor/livewire/livewire/dist/livewire.esm.js vendor/livewire/livewire/dist/
+
 RUN npm run build
 
 # Stage 2: Shared base — all apt installs live here, BEFORE any source COPY.
