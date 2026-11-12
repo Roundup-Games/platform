@@ -1,6 +1,6 @@
         {{-- ── Base Game Quick Info (for expansions) ──────────────── --}}
         @if($system->baseGame && filled($system->baseGame->slug))
-            <section class="bg-surface-container rounded-xl shadow-ambient p-5">
+            <section class="bg-surface-container rounded-xl shadow-ambient p-5 [content-visibility:auto] [contain-intrinsic-size:auto_220px]">
                 <h2 class="text-sm font-heading font-bold text-primary uppercase tracking-wide mb-3">{{ __('games.content_base_game') }}</h2>
                 <a href="{{ route('game-systems.show', $system->baseGame->slug) }}" wire:navigate class="flex items-center gap-4 p-3 bg-surface rounded-lg hover:bg-primary/5 transition-colors group">
                     <div class="shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-surface-container-high">
@@ -35,7 +35,7 @@
              would make route('game-systems.show') throw UrlGenerationException. --}}
         @php($linkableExpansions = $system->expansions->filter(fn ($expansion) => filled($expansion->slug)))
         @if($linkableExpansions->count() > 0)
-            <section>
+            <section class="[content-visibility:auto] [contain-intrinsic-size:auto_600px]">
                 <h2 class="text-lg font-heading font-bold text-on-surface mb-4 flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary" aria-hidden="true">extension</span>
                     {{ __('games.heading_expansions') }}

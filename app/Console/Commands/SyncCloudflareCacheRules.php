@@ -11,7 +11,8 @@ class SyncCloudflareCacheRules extends Command
 {
     protected $signature = 'cloudflare:cache-rules
                             {--dry-run : Show what would change without applying}
-                            {--force : Apply even if no changes detected}';
+                            {--force : Apply even if no changes detected}
+                            {--early-hints= : Also set the zone Early Hints setting (on|off; no change when omitted)}';
 
     protected $description = 'Sync Cloudflare Cache Rules from public Laravel routes';
 
@@ -59,6 +60,20 @@ class SyncCloudflareCacheRules extends Command
         }
 
         $client = new CloudflareClient($zoneId, $apiToken);
+
+        // Optional zone-setting toggle (CWV 2026-11): Early Hints replays the
+        // Link headers emitted by EmitPreloadLinkHeaders as a 103 before the
+        // origin answers. Independent of the cache-rule sync below.
+        $earlyHints = $this->option('early-hints');
+        if (is_string($earlyHints) && $earlyHints !== '') {
+            if (! in_array($earlyHints, ['on', 'off'], true)) {
+                $this->error('--early-hints accepts on|off only.');
+
+                return self::FAILURE;
+            }
+            $this->info('Setting zone Early Hints setting to '.$earlyHints.'...');
+            $client->setEarlyHints($earlyHints);
+        }
 
         // Fetch current rules
         $this->info('Fetching current Cloudflare cache rules...');
@@ -438,6 +453,25 @@ class CloudflareClient
         ]);
 
         $this->checkResponse($response, 'purge cache');
+    }
+
+    /**
+     * Set the zone-level Early Hints setting ("on"|"off").
+     *
+     * Cloudflare caches Link headers (rel=preload/preconnect) from prior
+     * 200 responses and replays them as 103 Early Hints on subsequent
+     * requests while the origin is still generating the response.
+     */
+    public function setEarlyHints(string $value): void
+    {
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$this->apiToken}",
+            'Content-Type' => 'application/json',
+        ])->timeout(15)->connectTimeout(5)->patch("{$this->baseUrl}/zones/{$this->zoneId}/settings/early_hints", [
+            'value' => $value,
+        ]);
+
+        $this->checkResponse($response, 'set early hints');
     }
 
     protected function checkResponse(Response $response, string $context): void

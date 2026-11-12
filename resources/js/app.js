@@ -7,6 +7,17 @@ import { initPushSubscriptions } from './push';
 import { showOfflineToast as showOfflineActionToast, showToast } from './toast';
 import './site-header';
 
+// ── Livewire + Alpine (manually bundled) ──────────────────────────────────────
+// Bundled through Vite instead of the auto-injected script tag: ES modules are
+// spec-deferred (never render-blocking), join the hashed/immutable build
+// graph, and drop one request from the critical path (CWV 2026-11). The layout
+// provides window.livewireScriptConfig via @livewireScriptConfig — it executes
+// in <head> before this module runs.
+// NOTE: static import only — dynamic import() breaks $wire on Safari
+// (livewire/livewire#5080). Rebuild assets after every Livewire composer
+// update (CI already runs npm run build).
+import { Livewire, Alpine } from '../../vendor/livewire/livewire/dist/livewire.esm';
+
 // ── Offline indicator immediate bridge ────────────────────────────────────────
 // Ensures the offline indicator is visible before Alpine bootstraps.
 // The Alpine component (offlineIndicator) takes over once initialized.
@@ -98,6 +109,11 @@ document.addEventListener('livewire:init', () => {
         });
     });
 });
+
+// ── Livewire bootstrap ───────────────────────────────────────────────────────
+// Starts Livewire (and Alpine inside it) after every alpine:init/livewire:init
+// listener above has been registered.
+Livewire.start();
 
 // ── Service Worker Registration ───────────────────────────────────────────────
 let swRegistration = null;

@@ -9,16 +9,22 @@
     </div>
 
     {{-- ── Hero Section ──────────────────────────────────────── --}}
-    @php($coverUrl = $system->coverImageUrl())
-    @if($coverUrl)
+    {{-- LCP asset strategy (CWV 2026-11): hero background + thumbnail use
+         right-sized webp conversions ('hero' 800w / 'card' 480w) instead of
+         the original file (~235KB at 1037×1500). coverImageUrl() falls back
+         to thumbnail_url until media-library:regenerate has produced the
+         conversions, so the page stays correct pre-regeneration. --}}
+    @php($heroUrl = $system->coverImageUrl('hero'))
+    @php($cardUrl = $system->coverImageUrl('card'))
+    @if($heroUrl)
         @push('preload')
-            <link rel="preload" as="image" href="{{ $coverUrl }}" fetchpriority="high">
+            <link rel="preload" as="image" href="{{ $heroUrl }}" fetchpriority="high">
         @endpush
     @endif
     <section class="relative bg-primary text-on-primary overflow-hidden min-h-[280px] sm:min-h-[380px]">
-        @if($coverUrl)
+        @if($heroUrl)
             <div class="absolute inset-0">
-                <img src="{{ $coverUrl }}" alt="" class="w-full h-full object-cover opacity-95 blur-xs scale-105" aria-hidden="true" fetchpriority="high" data-fallback="hide">
+                <img src="{{ $heroUrl }}" alt="" class="w-full h-full object-cover opacity-95 blur-xs scale-105" aria-hidden="true" fetchpriority="high" data-fallback="hide">
             </div>
             <div class="absolute inset-0 bg-linear-to-b from-primary/85 via-primary/95 to-primary"></div>
         @endif
@@ -26,8 +32,9 @@
         <div class="relative max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-14 text-center">
             {{-- Small centered thumbnail --}}
             <div class="mx-auto w-32 h-32 sm:w-48 sm:h-48 rounded-xl overflow-hidden shadow-lg bg-on-primary/10 mb-5">
-                @if($coverUrl)
-                    <img src="{{ $coverUrl }}" alt="{{ $system->name }}" class="w-full h-full object-cover" loading="lazy" data-fallback="hide">
+                @if($cardUrl)
+                    {{-- Above the fold, inside the hero: eager, never lazy --}}
+                    <img src="{{ $cardUrl }}" alt="{{ $system->name }}" class="w-full h-full object-cover" data-fallback="hide">
                 @else
                     <div class="w-full h-full flex items-center justify-center">
                         <span class="material-symbols-outlined text-4xl text-on-primary/40" aria-hidden="true">casino</span>

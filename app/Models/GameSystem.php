@@ -291,6 +291,23 @@ class GameSystem extends Model implements HasMedia, TicketSubject
             ->width(150)
             ->height(150)
             ->sharpen(10);
+
+        // Landing-page hero background (CWV optimization, 2026-11): the old
+        // flow served the untouched original (often 1000×1500+, ~235KB) behind
+        // blur-xs + a from-primary/85 gradient overlay — Lighthouse flagged
+        // 83% of those bytes as waste. 800px is visually lossless under that
+        // blur+overlay; webp q72 lands ~40-60KB.
+        $this->addMediaConversion('hero')
+            ->width(800)
+            ->quality(72)
+            ->format('webp');
+
+        // In-hero identity thumbnail (128-192 CSS px, DPR up to ~3). Replaces
+        // the original in that slot too; 480px keeps it crisp on retina.
+        $this->addMediaConversion('card')
+            ->width(480)
+            ->quality(78)
+            ->format('webp');
     }
 
     /**

@@ -56,8 +56,16 @@
 
     @stack('preload')
 
+    {{-- Livewire config only — the actual Livewire+Alpine runtime is bundled
+         through Vite (resources/js/app.js imports the vendor ESM build) so it
+         loads as a spec-deferred module instead of a synchronous script tag
+         in <head> that blocked parsing and delayed FCP/LCP (CWV 2026-11).
+         @livewireScriptConfig must execute before app.js runs; inline here in
+         <head> that is guaranteed, since module scripts defer until after
+         document parse. --}}
+    @livewireScriptConfig
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @livewireScripts
 </head>
 <body class="font-sans text-on-surface antialiased bg-surface">
     {{-- Skip to content link --}}

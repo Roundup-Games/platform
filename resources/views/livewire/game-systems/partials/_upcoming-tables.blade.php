@@ -7,7 +7,7 @@
      evergreen fallback keeps the page useful and indexable (MEM999) —
      never a dead panel and never the old mis-scoped
      content_no_game_systems_available_yet_short copy. --}}
-<section class="bg-surface-container rounded-xl shadow-ambient p-6" aria-labelledby="game-system-upcoming-heading">
+<section class="bg-surface-container rounded-xl shadow-ambient p-6 [content-visibility:auto] [contain-intrinsic-size:auto_800px]" aria-labelledby="game-system-upcoming-heading">
     <h2 id="game-system-upcoming-heading" class="text-lg font-heading font-bold text-on-surface mb-2 flex items-center gap-2">
         <span class="material-symbols-outlined text-primary" aria-hidden="true">event_upcoming</span>
         {{ __('games.heading_upcoming_tables') }}

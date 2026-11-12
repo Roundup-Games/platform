@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\CachePublicPages;
 use App\Http\Middleware\CaptureFirstTouch;
+use App\Http\Middleware\EmitPreloadLinkHeaders;
 use App\Http\Middleware\EnsureLocaleDefaults;
 use App\Http\Middleware\EnsureProfileComplete;
 use App\Http\Middleware\EnsureUserNotDisabled;
@@ -50,6 +51,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(EnsureLocaleDefaults::class);
         $middleware->append(CaptureFirstTouch::class);
         $middleware->append(CachePublicPages::class);
+        $middleware->append(EmitPreloadLinkHeaders::class);
         $middleware->append(TrackAppVisit::class);
         $middleware->append(PostHogIdentifyUsers::class);
         $middleware->append(ProcessShareIntent::class);

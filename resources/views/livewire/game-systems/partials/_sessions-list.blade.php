@@ -1,7 +1,7 @@
         {{-- ── Active Sessions & Campaigns Discovery ────────────────── --}}
         @php($isTtrpg = $system->type === 'ttrpg')
         @php($sessionRoute = $isTtrpg ? 'discover.adventures' : 'discover.board-games')
-        <section class="bg-surface-container rounded-xl shadow-ambient p-6">
+        <section class="bg-surface-container rounded-xl shadow-ambient p-6 [content-visibility:auto] [contain-intrinsic-size:auto_320px]">
             <h2 class="text-lg font-heading font-bold text-on-surface mb-2 flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary" aria-hidden="true">explore</span>
                 {{ __('games.heading_game_sessions') }}
