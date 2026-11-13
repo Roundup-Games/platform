@@ -43,6 +43,31 @@ describe('game detail hero rendition', function () {
             // The untouched original must not be painted by the page.
             ->not->toContain('src="'.parse_url($game->resolveCoverUrl(), PHP_URL_PATH).'"');
     });
+
+    it('renders the system card avatar from the thumb conversion, not the original', function () {
+        Storage::fake('public');
+
+        $owner = User::factory()->create(['profile_complete' => true]);
+        $system = GameSystem::factory()->create(['name' => ['en' => 'System Card Avatar']]);
+        $system->addMedia(UploadedFile::fake()->image('cover.jpg', 1133, 1133))
+            ->toMediaCollection('cover');
+        $system = $system->fresh();
+
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'game_system_id' => $system->id,
+            'visibility' => 'public',
+            'status' => 'scheduled',
+            'name' => ['en' => 'System Card Game'],
+        ]);
+
+        // The 56px game-system-info avatar: thumb src + DPR srcset, never the
+        // ~300KB original (Lighthouse image-delivery finding on game pages).
+        get(route('games.detail', $game->id))
+            ->assertOk()
+            ->assertSee('src="'.$system->coverImageUrl('thumb').'"', false)
+            ->assertDontSee('src="'.$system->coverImageUrl().'"', false);
+    });
 });
 
 describe('game-systems grid srcset', function () {

@@ -5,10 +5,12 @@
     $system = $entity->gameSystem;
     if (!$system) return;
 
-    $coverUrl = $system->getFirstMediaUrl('cover');
-    if (!$coverUrl && $system->thumbnail_url) {
-        $coverUrl = $system->thumbnail_url;
-    }
+    // 'thumb' rendition + DPR-aware srcset (CWV 2026-11): this 56-64px avatar
+    // slot used to ship the ORIGINAL cover (~300KB at 1133px, Lighthouse
+    // image-delivery waste) — coverImageUrl('thumb') carries the same
+    // thumbnail_url fallback without a second file_exists dance.
+    $coverUrl = $system->coverImageUrl('thumb');
+    $coverSrcset = $system->coverImageSrcset();
 
     $hasRichData = $system->description
         || $system->categories->count()
@@ -39,7 +41,7 @@
     <div class="p-5 sm:p-6 flex items-center gap-4">
         @if($coverUrl)
             <div class="shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shadow-md bg-surface-container-high">
-                <img src="{{ $coverUrl }}" alt="{{ $system->name }}" class="w-full h-full object-cover" loading="lazy">
+                <img src="{{ $coverUrl }}" @if($coverSrcset) srcset="{{ $coverSrcset }}" sizes="64px" @endif alt="{{ $system->name }}" class="w-full h-full object-cover" loading="lazy">
             </div>
         @else
             <div class="shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-primary/10 flex items-center justify-center">
