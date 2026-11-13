@@ -4,14 +4,22 @@ use App\Models\User;
 use App\Services\PostHogClient;
 use App\Services\PostHogExceptionReporter;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Console\Application as ArtisanConsole;
+use Illuminate\Console\Command;
+use Illuminate\Contracts\Console\Kernel as ConsoleKernel;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Illuminate\Session\TokenMismatchException;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\Console\Exception\InvalidArgumentException as ConsoleInvalidArgumentException;
+use Symfony\Component\Console\Exception\InvalidOptionException;
+use Symfony\Component\Console\Input\ArgvInput;
+use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -103,6 +111,104 @@ describe('4xx exception pipeline', function () {
         $handler->report(ValidationException::withMessages(['email' => 'Invalid email']));
 
         expect($this->posthogClient->capturedCalls)->toHaveCount(0);
+    });
+});
+
+describe('console input errors', function () {
+    // An operator typing a command the console cannot parse is the CLI form
+    // of a 4xx: nothing in the application failed, yet each typo used to open
+    // a fresh error-tracking issue. Real argv goes through Kernel::handle()
+    // the same way the artisan binary dispatches it — no shortcut that would
+    // skip the frame shape the skip decision is built on.
+    it('does NOT capture a mistyped artisan command', function (array $argv) {
+        $exitCode = app(ConsoleKernel::class)->handle(
+            new ArgvInput(['artisan', ...$argv, '--no-interaction']),
+            new BufferedOutput,
+        );
+
+        expect($exitCode)->toBe(1)
+            ->and($this->posthogClient->capturedCalls)->toHaveCount(0);
+    })->with([
+        'unknown command' => [['definitely-not-a-command']],
+        'unknown option' => [['about', '--no-such-flag']],
+        'too many arguments' => [['about', 'unexpected-extra-argument']],
+        'missing required argument' => [['make:model']],
+    ]);
+
+    it('captures bad input that application code passes to Artisan::call', function () {
+        // Same failure, different provenance: programmatic invocations bind
+        // an ArrayInput inside Application::call, so the input is code, not
+        // typing — a reportable bug. Artisan::call throws to its caller; the
+        // surrounding job or request routes it to the handler, mirrored
+        // here. The catch is narrowed to the console contract so the test's
+        // own failure assertion can never be swallowed and reported
+        // (CodeRabbit on #96: catch (Throwable) made this vacuous).
+        $thrown = null;
+
+        try {
+            Artisan::call('about', ['--no-such-flag' => true]);
+        } catch (InvalidOptionException $e) {
+            $thrown = $e;
+        }
+
+        expect($thrown)->toBeInstanceOf(InvalidOptionException::class);
+
+        app(ExceptionHandler::class)->report($thrown);
+
+        expect($this->posthogClient->capturedCalls)->toHaveCount(1);
+    });
+
+    it('captures bad input a command passes to another command via $this->call', function () {
+        // CallsCommands::runCommand() runs the child Command directly with
+        // an ArrayInput — no Application::call frame — so without its own
+        // programmatic marker this app-code bug would read as operator
+        // input and be skipped (CodeRabbit on #96).
+        ArtisanConsole::starting(
+            fn ($artisan) => $artisan->add(new ReporterBadSubcallCommand),
+        );
+
+        $exitCode = app(ConsoleKernel::class)->handle(
+            new ArgvInput(['artisan', 'testing:reporter-bad-subcall', '--no-interaction']),
+            new BufferedOutput,
+        );
+
+        expect($exitCode)->toBe(1)
+            ->and($this->posthogClient->capturedCalls)->toHaveCount(1);
+    });
+
+    it('captures a console exception thrown from command code', function () {
+        app(ExceptionHandler::class)->report(
+            new ConsoleInvalidArgumentException('The "typo" option does not exist.'),
+        );
+
+        expect($this->posthogClient->capturedCalls)->toHaveCount(1);
+    });
+});
+
+describe('message normalization', function () {
+    it('groups the retries of one mail-provider blip into one fingerprint', function () {
+        $handler = app(ExceptionHandler::class);
+
+        // The same cURL connect failure reported from each retry: libcurl
+        // prints the elapsed time, which differs per attempt (the first hits
+        // the connect timeout, later ones fail at once). Without collapsing
+        // the elapsed time each retry opened its own error-tracking issue.
+        $handler->report(new RuntimeException(
+            'cURL error 7: Failed to connect to api.resend.com port 443 after 4001 ms: Couldn\'t connect to server',
+        ));
+        $handler->report(new RuntimeException(
+            'cURL error 7: Failed to connect to api.resend.com port 443 after 0 ms: Couldn\'t connect to server',
+        ));
+
+        expect($this->posthogClient->capturedCalls)->toHaveCount(2);
+
+        [$first, $second] = $this->posthogClient->capturedCalls;
+        expect($first['properties']['$exception_fingerprint'])
+            ->toBe($second['properties']['$exception_fingerprint'])
+            // The stored description must carry the same collapsed shape,
+            // or the issue title would still fragment per attempt.
+            ->and($first['properties']['$exception_list'][0]['value'])
+            ->toContain('port * after *: Couldn\'t connect to server');
     });
 });
 
@@ -282,3 +388,22 @@ it('builds stack trace starting with exception class and location via reporter',
         ->and($exceptionList[0]['type'])->toBe(RuntimeException::class)
         ->and($exceptionList[0])->toHaveKey('stacktrace');
 });
+
+/**
+ * Fixture for the command-to-command regression above: a command whose
+ * handle() passes a bad option to a child via $this->call() — application
+ * code, not operator typing, so the reporter must capture it.
+ */
+class ReporterBadSubcallCommand extends Command
+{
+    protected $signature = 'testing:reporter-bad-subcall';
+
+    protected $description = 'Passes a bad option to a child command (reporter regression fixture)';
+
+    public function handle(): int
+    {
+        $this->call('about', ['--no-such-flag' => true]);
+
+        return self::SUCCESS;
+    }
+}

@@ -1,6 +1,9 @@
 <?php
 
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Http;
 
 // 2026-11-04 incident regression guard: the Cloudflare "Public pages" cache
@@ -54,4 +57,86 @@ describe('SyncCloudflareCacheRules — public expression exclusions', function (
             ->and($output)->toContain('not http.cookie contains "roundup-games-session"')
             ->and($output)->toContain('not http.cookie contains "XSRF-TOKEN"');
     });
+});
+
+// 2026-11-12: the first --early-hints=on run hit a token without the
+// zone-settings permission; the uncaught 403 also stopped the cache-rule
+// sync. The toggle failure must warn and fail the exit code while the sync
+// and purge still run.
+describe('SyncCloudflareCacheRules — Early Hints toggle', function () {
+    test('a permission failure warns but the sync and purge still run', function () {
+        Http::fake([
+            'api.cloudflare.com/*/settings/early_hints' => Http::response([
+                'success' => false,
+                'errors' => [['code' => 9109, 'message' => 'Unauthorized to access requested resource']],
+            ], 403),
+            'api.cloudflare.com/*/rulesets/phases/http_request_cache_settings/entrypoint' => Http::response([
+                'result' => ['id' => 'rs-test', 'rules' => []],
+                'success' => true,
+            ]),
+            'api.cloudflare.com/*/rulesets/rs-test' => Http::response(['success' => true]),
+            'api.cloudflare.com/*/purge_cache' => Http::response(['success' => true]),
+        ]);
+
+        $exitCode = Artisan::call('cloudflare:cache-rules', ['--early-hints' => 'on']);
+        $output = (string) preg_replace('/\s+/', ' ', Artisan::output());
+
+        expect($exitCode)->toBe(1)
+            ->and($output)->toContain('Zone → Zone Settings → Edit')
+            ->and($output)->toContain('Continuing with the cache-rule sync')
+            ->and($output)->toContain('Cache rules synced successfully.');
+
+        Http::assertSent(fn (Request $r) => $r->method() === 'PUT' && str_ends_with($r->url(), '/rulesets/rs-test'));
+        Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/purge_cache'));
+        Exceptions::assertReported(RuntimeException::class);
+    });
+
+    test('succeeds silently when the toggle is accepted', function () {
+        Http::fake([
+            'api.cloudflare.com/*/settings/early_hints' => Http::response(['success' => true]),
+            'api.cloudflare.com/*/rulesets/phases/http_request_cache_settings/entrypoint' => Http::response([
+                'result' => ['id' => 'rs-test', 'rules' => []],
+                'success' => true,
+            ]),
+            'api.cloudflare.com/*/rulesets/rs-test' => Http::response(['success' => true]),
+            'api.cloudflare.com/*/purge_cache' => Http::response(['success' => true]),
+        ]);
+
+        $exitCode = Artisan::call('cloudflare:cache-rules', ['--early-hints' => 'on']);
+
+        expect($exitCode)->toBe(0)
+            ->and((string) preg_replace('/\s+/', ' ', Artisan::output()))->toContain('Cache rules synced successfully.');
+    });
+
+    test('lists the zone-settings permission when credentials are missing', function () {
+        config(['services.cloudflare.api_token' => null]);
+
+        $exitCode = Artisan::call('cloudflare:cache-rules');
+
+        expect($exitCode)->toBe(1)
+            ->and((string) preg_replace('/\s+/', ' ', Artisan::output()))
+            ->toContain('Zone → Zone Settings → Edit (only for --early-hints)');
+    });
+});
+
+// CodeRabbit on #96: a transport-level failure (timeout, connection refused)
+// throws ConnectionException, not RuntimeException — without it in the catch,
+// a 5-second connect blip on the toggle still aborted the sync.
+test('an Early Hints connection failure also keeps the sync running', function () {
+    Http::fake([
+        'api.cloudflare.com/*/settings/early_hints' => Http::failedConnection(),
+        'api.cloudflare.com/*/rulesets/phases/http_request_cache_settings/entrypoint' => Http::response([
+            'result' => ['id' => 'rs-test', 'rules' => []],
+            'success' => true,
+        ]),
+        'api.cloudflare.com/*/rulesets/rs-test' => Http::response(['success' => true]),
+        'api.cloudflare.com/*/purge_cache' => Http::response(['success' => true]),
+    ]);
+
+    $exitCode = Artisan::call('cloudflare:cache-rules', ['--early-hints' => 'on']);
+
+    expect($exitCode)->toBe(1)
+        ->and((string) preg_replace('/\s+/', ' ', Artisan::output()))->toContain('Cache rules synced successfully.');
+    Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/purge_cache'));
+    Exceptions::assertReported(ConnectionException::class);
 });

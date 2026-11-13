@@ -227,14 +227,21 @@ it('keeps a missed occurrence outside outage windows a plain regression', functi
         ]);
     }
 
-    pageRenders()
+    $html = pageRenders()
         ->assertOk()
         ->assertSee('Missed occurrence')
-        // Row-only annotation strings (the attention banner mentions
-        // "during scheduler outage" generically, and the recent-outages
-        // panel legitimately renders for the hour-ago grid gap — neither
-        // means THIS row was annotated).
-        ->assertDontSee('self-clears at next occurrence');
+        ->html();
+
+    // The verdict is about THIS row: horizon:snapshot's missed occurrence
+    // must read as a fresh regression, not an outage artifact. Other rows
+    // legitimately carry the annotation depending on the real clock — any
+    // daily task due inside the hour-ago grid gap is an outage casualty too
+    // (the CI flake of 2026-11-12: page-wide assertDontSee failed whenever
+    // CI ran 04:00–07:59 UTC and the daily cluster 02:00–06:45 landed in the
+    // gap) — so the assertion is scoped to the snapshot row, not the page.
+    expect(preg_match('/<tr\b(?:(?!<\/tr>).)*horizon:snapshot(?:(?!<\/tr>).)*<\/tr>/s', $html, $row))
+        ->toBe(1, 'the horizon:snapshot row must render')
+        ->and($row[0])->not->toContain('self-clears at next occurrence');
 });
 
 it('shows an ongoing-silence indicator when the run grid has gone quiet', function () {
