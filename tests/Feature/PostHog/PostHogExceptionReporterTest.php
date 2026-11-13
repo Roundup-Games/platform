@@ -106,6 +106,33 @@ describe('4xx exception pipeline', function () {
     });
 });
 
+describe('message normalization', function () {
+    it('groups the retries of one mail-provider blip into one fingerprint', function () {
+        $handler = app(ExceptionHandler::class);
+
+        // The same cURL connect failure reported from each retry: libcurl
+        // prints the elapsed time, which differs per attempt (the first hits
+        // the connect timeout, later ones fail at once). Without collapsing
+        // the elapsed time each retry opened its own error-tracking issue.
+        $handler->report(new RuntimeException(
+            'cURL error 7: Failed to connect to api.resend.com port 443 after 4001 ms: Couldn\'t connect to server',
+        ));
+        $handler->report(new RuntimeException(
+            'cURL error 7: Failed to connect to api.resend.com port 443 after 0 ms: Couldn\'t connect to server',
+        ));
+
+        expect($this->posthogClient->capturedCalls)->toHaveCount(2);
+
+        [$first, $second] = $this->posthogClient->capturedCalls;
+        expect($first['properties']['$exception_fingerprint'])
+            ->toBe($second['properties']['$exception_fingerprint'])
+            // The stored description must carry the same collapsed shape,
+            // or the issue title would still fragment per attempt.
+            ->and($first['properties']['$exception_list'][0]['value'])
+            ->toContain('port * after *: Couldn\'t connect to server');
+    });
+});
+
 describe('PostHog failure resilience', function () {
     it('exception handler does not throw when PostHog capture fails', function () {
         // PostHogClient::capture() catches SDK errors internally.
