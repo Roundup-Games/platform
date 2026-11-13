@@ -108,6 +108,27 @@ return [
             'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
         ],
 
+        // Dedicated DB index for web sessions (in production since
+        // 2026-11-13: SESSION_DRIVER=database put a read+write on Postgres
+        // every request — the DB load multiplier at scale). Own index so
+        // session keys stay inspectable/flushable independently of cache
+        // (db 1) and queue state, and never sit under a differently-tuned
+        // eviction policy. The shared redis runs maxmemory=0/noeviction,
+        // which is what a session store wants: sessions expire by TTL,
+        // never by eviction.
+        'sessions' => [
+            'url' => env('REDIS_URL'),
+            'host' => env('REDIS_HOST', '127.0.0.1'),
+            'username' => env('REDIS_USERNAME'),
+            'password' => env('REDIS_PASSWORD'),
+            'port' => env('REDIS_PORT', '6379'),
+            'database' => env('REDIS_SESSION_DB', '2'),
+            'max_retries' => env('REDIS_MAX_RETRIES', 3),
+            'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
+            'backoff_base' => env('REDIS_BACKOFF_BASE', 100),
+            'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
+        ],
+
     ],
 
 ];
