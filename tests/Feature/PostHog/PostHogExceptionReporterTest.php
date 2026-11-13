@@ -4,6 +4,8 @@ use App\Models\User;
 use App\Services\PostHogClient;
 use App\Services\PostHogExceptionReporter;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Console\Application as ArtisanConsole;
+use Illuminate\Console\Command;
 use Illuminate\Contracts\Console\Kernel as ConsoleKernel;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -15,6 +17,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\Console\Exception\InvalidArgumentException as ConsoleInvalidArgumentException;
+use Symfony\Component\Console\Exception\InvalidOptionException;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -136,15 +139,41 @@ describe('console input errors', function () {
         // Same failure, different provenance: programmatic invocations bind
         // an ArrayInput inside Application::call, so the input is code, not
         // typing — a reportable bug. Artisan::call throws to its caller; the
-        // surrounding job or request routes it to the handler, mirrored here.
+        // surrounding job or request routes it to the handler, mirrored
+        // here. The catch is narrowed to the console contract so the test's
+        // own failure assertion can never be swallowed and reported
+        // (CodeRabbit on #96: catch (Throwable) made this vacuous).
+        $thrown = null;
+
         try {
             Artisan::call('about', ['--no-such-flag' => true]);
-            $this->fail('Artisan::call should reject the unknown option.');
-        } catch (Throwable $e) {
-            app(ExceptionHandler::class)->report($e);
+        } catch (InvalidOptionException $e) {
+            $thrown = $e;
         }
 
+        expect($thrown)->toBeInstanceOf(InvalidOptionException::class);
+
+        app(ExceptionHandler::class)->report($thrown);
+
         expect($this->posthogClient->capturedCalls)->toHaveCount(1);
+    });
+
+    it('captures bad input a command passes to another command via $this->call', function () {
+        // CallsCommands::runCommand() runs the child Command directly with
+        // an ArrayInput — no Application::call frame — so without its own
+        // programmatic marker this app-code bug would read as operator
+        // input and be skipped (CodeRabbit on #96).
+        ArtisanConsole::starting(
+            fn ($artisan) => $artisan->add(new ReporterBadSubcallCommand),
+        );
+
+        $exitCode = app(ConsoleKernel::class)->handle(
+            new ArgvInput(['artisan', 'testing:reporter-bad-subcall', '--no-interaction']),
+            new BufferedOutput,
+        );
+
+        expect($exitCode)->toBe(1)
+            ->and($this->posthogClient->capturedCalls)->toHaveCount(1);
     });
 
     it('captures a console exception thrown from command code', function () {
@@ -359,3 +388,22 @@ it('builds stack trace starting with exception class and location via reporter',
         ->and($exceptionList[0]['type'])->toBe(RuntimeException::class)
         ->and($exceptionList[0])->toHaveKey('stacktrace');
 });
+
+/**
+ * Fixture for the command-to-command regression above: a command whose
+ * handle() passes a bad option to a child via $this->call() — application
+ * code, not operator typing, so the reporter must capture it.
+ */
+class ReporterBadSubcallCommand extends Command
+{
+    protected $signature = 'testing:reporter-bad-subcall';
+
+    protected $description = 'Passes a bad option to a child command (reporter regression fixture)';
+
+    public function handle(): int
+    {
+        $this->call('about', ['--no-such-flag' => true]);
+
+        return self::SUCCESS;
+    }
+}

@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Exceptions;
@@ -116,4 +117,26 @@ describe('SyncCloudflareCacheRules — Early Hints toggle', function () {
             ->and((string) preg_replace('/\s+/', ' ', Artisan::output()))
             ->toContain('Zone → Zone Settings → Edit (only for --early-hints)');
     });
+});
+
+// CodeRabbit on #96: a transport-level failure (timeout, connection refused)
+// throws ConnectionException, not RuntimeException — without it in the catch,
+// a 5-second connect blip on the toggle still aborted the sync.
+test('an Early Hints connection failure also keeps the sync running', function () {
+    Http::fake([
+        'api.cloudflare.com/*/settings/early_hints' => Http::failedConnection(),
+        'api.cloudflare.com/*/rulesets/phases/http_request_cache_settings/entrypoint' => Http::response([
+            'result' => ['id' => 'rs-test', 'rules' => []],
+            'success' => true,
+        ]),
+        'api.cloudflare.com/*/rulesets/rs-test' => Http::response(['success' => true]),
+        'api.cloudflare.com/*/purge_cache' => Http::response(['success' => true]),
+    ]);
+
+    $exitCode = Artisan::call('cloudflare:cache-rules', ['--early-hints' => 'on']);
+
+    expect($exitCode)->toBe(1)
+        ->and((string) preg_replace('/\s+/', ' ', Artisan::output()))->toContain('Cache rules synced successfully.');
+    Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/purge_cache'));
+    Exceptions::assertReported(ConnectionException::class);
 });

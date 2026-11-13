@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
@@ -81,7 +82,7 @@ class SyncCloudflareCacheRules extends Command
             $this->info('Setting zone Early Hints setting to '.$earlyHints.'...');
             try {
                 $client->setEarlyHints($earlyHints);
-            } catch (\RuntimeException $e) {
+            } catch (ConnectionException|\RuntimeException $e) {
                 report($e);
                 $this->warn($e->getMessage());
                 $this->warn('Continuing with the cache-rule sync.');

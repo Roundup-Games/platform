@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use PostHog\ExceptionPayloadBuilder;
 use Symfony\Component\Console\Application as ConsoleApplication;
+use Symfony\Component\Console\Command\Command as SymfonyCommand;
 use Symfony\Component\Console\Exception\ExceptionInterface as ConsoleException;
 use Symfony\Component\Console\Input\Input as ConsoleInput;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -166,12 +167,13 @@ class PostHogExceptionReporter
      * These throw while the console resolves the command name or binds
      * real argv to the command definition, before any command code runs.
      * The same exception classes thrown from application code
-     * (Artisan::call() with a bad option, getOption() on an undefined
-     * name) must keep reporting — there the bad input is a code bug, so
-     * the detection is structural, not by class: programmatic invocations
-     * always carry an Illuminate\Console\Application::call frame, while
-     * operator-typed commands arrive through Kernel::handle() with argv
-     * input only.
+     * (Artisan::call() with a bad option, a command calling another
+     * command via $this->call(), getOption() on an undefined name) must
+     * keep reporting — there the bad input is a code bug, so the
+     * detection is structural, not by class: programmatic invocations
+     * always carry an Application::call frame or a CallsCommands
+     * runCommand frame, while operator-typed commands arrive through
+     * Kernel::handle() with argv input only.
      */
     private function isConsoleInputError(Throwable $e): bool
     {
@@ -188,7 +190,12 @@ class PostHogExceptionReporter
             // Programmatic invocation: an exception surfacing through
             // Artisan::call()/Kernel::call() means application code passed
             // bad input — report regardless of where it was thrown.
-            if ($class === ArtisanApplication::class && $function === 'call') {
+            // Command-to-command invocation ($this->call() inside a
+            // command) needs its own marker: CallsCommands::runCommand()
+            // runs the child Command directly with an ArrayInput, without
+            // an Application::call frame.
+            if (($class === ArtisanApplication::class && $function === 'call')
+                || ($function === 'runCommand' && is_a($class, SymfonyCommand::class, true))) {
                 return false;
             }
 

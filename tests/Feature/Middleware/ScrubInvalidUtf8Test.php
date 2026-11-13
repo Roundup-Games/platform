@@ -62,7 +62,11 @@ it('passes valid UTF-8 through byte-identical', function () {
 it('leaves the raw request body untouched for webhook signature checks', function () {
     $raw = "name=Broken+\xED\xA0\xBD";
 
-    $response = $this->call('POST', '_testing/echo-input', [], [], [], [
+    // The parsed input arrives as call()'s third argument: Symfony's request
+    // factory does not parse the raw body into the input bag in tests, so
+    // the bag and the raw bytes are two independent things here — exactly
+    // what lets this test assert both halves of the contract.
+    $response = $this->call('POST', '_testing/echo-input', ['name' => "Broken \xED\xA0\xBD"], [], [], [
         'CONTENT_TYPE' => 'application/x-www-form-urlencoded',
     ], $raw);
 
@@ -70,5 +74,5 @@ it('leaves the raw request body untouched for webhook signature checks', functio
     // The parsed bag is scrubbed, but signature verifiers read the raw
     // body — it must still carry the original bytes.
     expect(base64_decode((string) $response->json('raw_content')))->toBe($raw)
-        ->and(mb_check_encoding((string) $response->json('input.name'), 'UTF-8'))->toBeTrue();
+        ->and($response->json('input.name'))->toBe('Broken ???');
 });
