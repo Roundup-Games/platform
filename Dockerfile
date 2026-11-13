@@ -185,6 +185,17 @@ USER www-data
 # (rm, COPY ini/service definitions, touch) and the ~120s apt step is gone.
 FROM app AS worker
 
+# `docker stop` / compose recreate send the image's STOPSIGNAL to PID 1
+# (s6-svscan). The serversideup base declares STOPSIGNAL SIGQUIT — correct
+# for its nginx (graceful quit), and this stage strips nginx — but s6-overlay
+# deliberately ignores SIGQUIT, so every stop signalled a no-op handler,
+# waited out the full stop_grace_period (5m) and SIGKILLed the tree
+# mid-flight (2026-11-13 deploy: worker roll took 5m23s, hard kill). The
+# worker's correct stop signal is SIGTERM: s6 forwards it to the services,
+# Horizon drains its current job and exits, and the grace period becomes a
+# ceiling for a 300s-timeout job instead of the always-paid floor.
+STOPSIGNAL SIGTERM
+
 USER root
 
 # Remove nginx and php-fpm from the service tree. serversideup restructured

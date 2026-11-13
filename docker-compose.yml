@@ -150,10 +150,12 @@ services:
     container_name: roundup-games-worker
     profiles: ["live"]
     restart: unless-stopped
-    # Horizon jobs may run up to 300s (horizon.php production timeout). The
-    # compose default grace is 10s, which SIGKILLs mid-run jobs on every
-    # deploy — duplicating expensive work when retry_after re-releases them.
-    # 5m lets `horizon:terminate` finish current jobs before the stop.
+    # Horizon jobs may run up to 300s (horizon.php production timeout).
+    # With the worker image's STOPSIGNAL SIGTERM, `docker stop`/recreate now
+    # reaches s6 → horizon, which drains its current job and exits — usually
+    # in seconds. This grace is the CEILING for a worst-case 300s job to
+    # finish draining before a SIGKILL (and the mail retry backoff makes a
+    # kill mid-mail non-fatal), not an always-paid wait.
     stop_grace_period: 5m
     env_file:
       - .env.production

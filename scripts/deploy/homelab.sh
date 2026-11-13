@@ -275,6 +275,11 @@ roll_worker() {  # $1 = tag — off the critical path, after the flip
         return 0
     fi
     log "rolling worker ($cur → $want)"
+    # compose stops the old container with the image's STOPSIGNAL (SIGTERM
+    # since 2026-11-13): s6 forwards it, Horizon drains its current job and
+    # exits — seconds in the common case, bounded by stop_grace_period (5m)
+    # for a worst-case 300s job. Before that fix this step always paid the
+    # full 5m grace and ended in a mid-flight SIGKILL.
     DEPLOY_TAG="$1" docker compose up -d --no-deps worker
     wait_healthy roundup-games-worker 300 || log "WARN: worker not healthy yet (draining long jobs?) — not user-facing"
 }
