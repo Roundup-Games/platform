@@ -14,6 +14,8 @@ return [
     'action_leave_waitlist' => 'Leave Waitlist',
     'action_load_more' => 'Load more',
     'action_mark_complete' => 'Mark Complete',
+    'action_play_video' => 'Play video: :title',
+    'action_watch_video_external' => 'Watch “:title” on YouTube',
     'action_promote' => 'Promote',
     'action_yes' => 'Yes',
     'action_no' => 'No',

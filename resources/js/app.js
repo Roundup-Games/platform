@@ -6,6 +6,7 @@ import './timezone-beacon';
 import { initPushSubscriptions } from './push';
 import { showOfflineToast as showOfflineActionToast, showToast } from './toast';
 import './site-header';
+import './video-facade';
 
 // ── Livewire + Alpine (manually bundled) ──────────────────────────────────────
 // Bundled through Vite instead of the auto-injected script tag: ES modules are

@@ -14,6 +14,8 @@ return [
     'action_leave_waitlist' => 'Warteliste verlassen',
     'action_load_more' => 'Mehr laden',
     'action_mark_complete' => 'Als abgeschlossen markieren',
+    'action_play_video' => 'Video abspielen: :title',
+    'action_watch_video_external' => '„:title“ auf YouTube ansehen',
     'action_promote' => 'Nachrücken lassen',
     'action_yes' => 'Ja',
     'action_no' => 'Nein',

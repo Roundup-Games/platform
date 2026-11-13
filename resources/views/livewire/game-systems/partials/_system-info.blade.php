@@ -58,14 +58,11 @@
                             {!! nl2br(e($instructions['description'])) !!}
                         </div>
                         @if(!empty($instructions['videoUrl']))
-                            <div class="mt-4 aspect-video rounded-xl overflow-hidden shadow-md">
-                                <iframe src="{{ $instructions['videoUrl'] }}"
-                                        title="{{ $instructions['title'] ?? $system->name . ' — How to Play' }}"
-                                        class="w-full h-full"
-                                        frameborder="0"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                        allowfullscreen
-                                        loading="lazy"></iframe>
+                            {{-- Click-to-load facade (CWV 2026-11): the direct iframe
+                                 pulled ~855KB of YouTube JS into view on video-bearing
+                                 system pages (game-system-ttrpg measured 57-59 mobile). --}}
+                            <div class="mt-4">
+                                <x-youtube-facade :url="$instructions['videoUrl']" :title="$instructions['title'] ?? $system->name.' — How to Play'" />
                             </div>
                         @endif
                     </section>
