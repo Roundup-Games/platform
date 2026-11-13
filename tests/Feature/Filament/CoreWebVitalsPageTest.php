@@ -88,10 +88,14 @@ describe('CoreWebVitalsPage — trend surface', function () {
         seedCwvRun('2026-11-02 05:00:00', ['home' => 95]);
         seedCwvRun('2026-11-09 05:00:00', ['home' => 99, 'game-system' => 87]);
 
+        // Fleet check count = templates × locales × strategies (52 since the
+        // 2026-11-12 template expansion) — derived, never hardcoded.
+        $expectedChecks = (string) (count(config('cwv.templates')) * count(config('cwv.locales')) * count(config('cwv.strategies')));
+
         Livewire\Livewire::test(CoreWebVitalsPage::class)
             ->assertOk()
-            // Fleet: 24 checks, all ≥ 80; home improved 95 → 99.
-            ->assertSee('24')
+            // Fleet: every template×locale×strategy check, all ≥ 80; home improved 95 → 99.
+            ->assertSee($expectedChecks)
             ->assertSee('▲ 4')
             // Lanes render worst-of-locales as the headline number.
             ->assertSee('Game system')
