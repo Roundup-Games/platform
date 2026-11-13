@@ -19,6 +19,11 @@
 /** @type {import('posthog-js').PostHog | null} Populated by the dynamic import below. */
 let posthog = null;
 
+// Web-vitals reporter (static import: the four on* subscriptions are tiny
+// and tree-shaken; posthog.js itself is a deferred entry so this never
+// blocks rendering).
+import { initWebVitalsRum } from './web-vitals-rum.js';
+
 const apiKey = document.querySelector('meta[name="posthog-api-key"]')?.content;
 const apiHost = document.querySelector('meta[name="posthog-api-host"]')?.content;
 
@@ -87,6 +92,14 @@ function initPostHog() {
         if (import.meta.env.DEV) {
             console.log('[PostHog] Initialized with host:', apiHost);
         }
+
+        // ── Web vitals RUM (CWV field data) ──────────────
+        // First-party Core Web Vitals segmented by the cwv.php template
+        // keys — CrUX needs a traffic threshold this site won't cross soon,
+        // so real-visitor LCP/INP/CLS/TTFB come from here instead. Runs only
+        // post-consent (this init path), full page loads only — see
+        // web-vitals-rum.js for the scope rationale.
+        initWebVitalsRum((event, properties) => posthog.capture(event, properties));
 
         // ── Surveys ──────────────────────────────────────────
         const surveysEnabled = document.querySelector(
