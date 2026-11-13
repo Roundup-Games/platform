@@ -16,6 +16,15 @@ use function Pest\Laravel\get;
 // ═══════════════════════════════════════════════════════════
 
 describe('YouTubeFacade::parseYouTubeUrl', function () {
+    it('is registered as the youtube-facade tag alias (case-sensitivity pin)', function () {
+        // Str::studly('youtube-facade') = 'YoutubeFacade' ≠ YouTubeFacade —
+        // without the explicit alias, Blade falls back to an ANONYMOUS
+        // component on case-sensitive filesystems (production Linux),
+        // which 500s video-bearing pages. macOS dev cannot catch this
+        // (case-insensitive autoload), so the registration is pinned here.
+        expect(Blade::getClassComponentAliases()['youtube-facade'] ?? null)
+            ->toBe(YouTubeFacade::class);
+    });
     it('extracts ids from every YouTube URL shape', function (string $url, string $id) {
         expect(YouTubeFacade::parseYouTubeUrl($url))->toBe(['id' => $id, 'params' => '']);
     })->with([

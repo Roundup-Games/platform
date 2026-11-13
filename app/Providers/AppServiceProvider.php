@@ -69,6 +69,7 @@ use App\Services\WaitlistService;
 use App\Support\CacheMetrics;
 use App\Translation\MissingTranslationCollector;
 use App\Translation\TrackingTranslator;
+use App\View\Components\YouTubeFacade;
 use Escalated\Laravel\Contracts\EscalatedUiRenderer;
 use Escalated\Laravel\Models\ApiToken;
 use Escalated\Laravel\Models\Article;
@@ -244,6 +245,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Explicit alias for the video facade component: its tag <x-youtube-facade>
+        // does NOT studly-round-trip to the class name (Str::studly makes
+        // 'YoutubeFacade', the class is 'YouTubeFacade'), so Blade's guess
+        // misses and falls back to an anonymous component — which worked on
+        // macOS (case-insensitive autoload) but 500'd on production Linux.
+        // Registration resolves the tag deterministically everywhere.
+        // Convention: kebab-case tags must studly-round-trip their class name
+        // (x-distance-display ↔ DistanceDisplay); register an alias only for
+        // brand-cased exceptions like this one.
+        Blade::component('youtube-facade', YouTubeFacade::class);
+
         // Strict Eloquent in every non-production environment (Laravel
         // best-practices skill: "Prevent Lazy Loading in Development").
         // Throws on lazy-loaded relationships (N+1 detection), accesses of
