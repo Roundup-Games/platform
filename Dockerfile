@@ -53,11 +53,14 @@ RUN install-php-extensions gd intl bcmath exif
 
 # Production opcache tuning. The image boots with PHP's defaults, which are
 # shaped for development: validate_timestamps=1 stats()s every cached file,
-# the 10k max_accelerated_files cap is below this app's file count (~700 app
-# files + ~290 vendor packages → eviction churn), and JIT stays off. Deploys
-# are new containers — code is never hot-swapped in place — so timestamp
-# validation is pure overhead. Baked into the image (not env vars) so every
-# runtime (FPM, Horizon, artisan) shares identical settings.
+# the 10k max_accelerated_files cap is below this app's file count (~800 app
+# files + ~26k vendor files = 26.7k total as of 2026-11-13; PHP rounds
+# max_accelerated_files up to a fixed prime, and the cap silently stops
+# caching scripts past it — no error, just per-request recompiles), and JIT
+# stays off. Deploys are new containers — code is never hot-swapped in
+# place — so timestamp validation is pure overhead. 50k gives ~2x headroom
+# over the current vendor tree. Baked into the image (not env vars) so
+# every runtime (FPM, Horizon, artisan) shares identical settings.
 #
 # 2026-10-17 production incident: opcache.jit=tracing caused deterministic
 # FPM SIGSEGVs (502s on every full public page render — /en, /de — while
@@ -76,7 +79,7 @@ RUN printf '%s\n' \
     'opcache.enable_cli=1' \
     'opcache.validate_timestamps=0' \
     'opcache.memory_consumption=256' \
-    'opcache.max_accelerated_files=30000' \
+    'opcache.max_accelerated_files=50000' \
     'opcache.interned_strings_buffer=16' \
     'opcache.jit=disable' \
     'opcache.jit_buffer_size=0' \
