@@ -8,6 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Queue\Attributes\Backoff;
 use Illuminate\Queue\SerializesModels;
 
 /**
@@ -22,6 +23,7 @@ use Illuminate\Queue\SerializesModels;
  * no lang keys, no locale handling. Rows serialize by id via
  * SerializesModels and are re-hydrated on the queue worker.
  */
+#[Backoff([10, 60])]
 class ObservabilityAlertMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;

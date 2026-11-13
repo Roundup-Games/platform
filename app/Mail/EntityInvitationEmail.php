@@ -7,8 +7,10 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Queue\Attributes\Backoff;
 use Illuminate\Queue\SerializesModels;
 
+#[Backoff([10, 60])]
 class EntityInvitationEmail extends Mailable implements ShouldQueue
 {
     use Queueable;
