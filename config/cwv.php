@@ -19,6 +19,29 @@ return [
         'city-hub' => '/cities/berlin',
         'game-system' => '/game-systems/carcassonne',
         'static-pricing' => '/pricing',
+
+        // ── 2026-11-12 expansion — representative URLs verified live (200,
+        // expected template shape) before adding. Entity detail URLs are
+        // PERMANENT per the retention model (public + non-canceled games and
+        // campaigns stay indexable and guest-renderable indefinitely), so
+        // these are set-and-forget; reselection would only ever be about
+        // representativeness (e.g. wanting the completed-game lifecycle
+        // layout once one exists), never URL death. Deferred until inventory
+        // exists: campaign public detail (0 public URLs), events (0
+        // published), game-detail-completed (no completed public game yet).
+        // Quota: 13 templates × 2 locales × 2 strategies = 52 PSI runs/week.
+        'game-systems-index' => '/game-systems',
+        // Boardgame template shape — cover-backed system (hero webp path).
+        'game-detail' => '/games/cb6bccb2-7de1-44b1-a2fd-c45de82b280f',
+        // TTRPG template shape (player_range/creator/designers modules);
+        // icon-fallback hero path — many TTRPG systems carry no cover art.
+        'game-system-ttrpg' => '/game-systems/dungeons-and-dragons-5e',
+        'venue-detail' => '/venue/spielwiese',
+        // GM public profile — the fandom/adoption surface GMs link to from
+        // external communities; badge + bio + reviews modules.
+        'gm-public-profile' => '/u/vasile-burghelea',
+        'gm-directory' => '/gms',
+        'for-organizers' => '/for-organizers',
     ],
 
     'locales' => ['en', 'de'],
