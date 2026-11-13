@@ -1,4 +1,8 @@
-@props(['url', 'title', 'videoId', 'embedParams', 'posterUrl'])
+{{-- No @props here by design: class-based components pass their public
+     properties to the view automatically — combining @props with a class
+     component made the computed properties ($videoId, …) vanish from the
+     view in production containers (500 on video-bearing pages) while
+     rendering fine in local dev. Canonical form only. --}}
 
 @if($videoId !== '')
     {{-- Poster + play button only — the iframe is created on click by
