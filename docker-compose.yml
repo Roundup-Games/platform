@@ -68,6 +68,17 @@ services:
     restart: unless-stopped
     env_file:
       - .env.production
+    environment:
+      # Sized 2026-11-13 (see app-green for the full rationale): warm FPM
+      # workers measured at 82-90MB RSS; static 32 ≈ 2.75GB per live slot
+      # against 41GB free on the box, within 16-vCPU x2 for I/O-bound
+      # 40-100ms requests. The image default (ondemand/20) paid 50-200ms
+      # worker-spawn on the request path whenever traffic ramped from idle.
+      # max_requests=1000 recycles workers as a memory-leak guard; static
+      # respawns them instantly, so no request ever waits on a spawn.
+      PHP_FPM_PM_CONTROL: static
+      PHP_FPM_PM_MAX_CHILDREN: "32"
+      PHP_FPM_PM_MAX_REQUESTS: "1000"
     volumes:
       - app_storage:/var/www/html/storage
     # Dependency-aware health (MEM1147): /up checks DB + Redis + cache.
@@ -101,6 +112,14 @@ services:
     restart: unless-stopped
     env_file:
       - .env.production
+    environment:
+      # Keep in lockstep with `app` (blue) — the slots must be
+      # interchangeable: the deploy script health-gates and flips between
+      # them without config knowledge. Pinned together by
+      # tests/Feature/Deployment/AppSlotPoolTuningTest.php.
+      PHP_FPM_PM_CONTROL: static
+      PHP_FPM_PM_MAX_CHILDREN: "32"
+      PHP_FPM_PM_MAX_REQUESTS: "1000"
     volumes:
       - app_storage:/var/www/html/storage
     healthcheck:
