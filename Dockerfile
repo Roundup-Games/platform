@@ -62,8 +62,14 @@ RUN install-php-extensions gd intl bcmath exif
 # 2026-10-17 production incident: opcache.jit=tracing caused deterministic
 # FPM SIGSEGVs (502s on every full public page render — /en, /de — while
 # light routes like /up and /en/login stayed 200). CLI rendered fine;
-# disabling the JIT restored service immediately. Tracing JIT stays OFF
-# until the triggering path is understood on a PHP release that fixes it.
+# disabling the JIT restored service immediately.
+#
+# Retested 2026-11-13 (PHP 8.5.12, idle blue slot, FPM verified running
+# tracing/64M): the crash class is gone — 5,000 concurrent full renders
+# across /en, /de and the game-systems listings, zero faults. But the
+# measured win is zero too (medians within noise: ~42ms and ~101ms with
+# and without JIT) — request time is I/O-dominated, not CPU-bound. JIT
+# stays disabled: no measurable benefit to buy back its incident risk.
 # opcache itself (the big win) is unaffected.
 RUN printf '%s\n' \
     'opcache.enable=1' \
