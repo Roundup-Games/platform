@@ -4,14 +4,19 @@ use App\Models\User;
 use App\Services\PostHogClient;
 use App\Services\PostHogExceptionReporter;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Contracts\Console\Kernel as ConsoleKernel;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Illuminate\Session\TokenMismatchException;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\Console\Exception\InvalidArgumentException as ConsoleInvalidArgumentException;
+use Symfony\Component\Console\Input\ArgvInput;
+use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -103,6 +108,51 @@ describe('4xx exception pipeline', function () {
         $handler->report(ValidationException::withMessages(['email' => 'Invalid email']));
 
         expect($this->posthogClient->capturedCalls)->toHaveCount(0);
+    });
+});
+
+describe('console input errors', function () {
+    // An operator typing a command the console cannot parse is the CLI form
+    // of a 4xx: nothing in the application failed, yet each typo used to open
+    // a fresh error-tracking issue. Real argv goes through Kernel::handle()
+    // the same way the artisan binary dispatches it — no shortcut that would
+    // skip the frame shape the skip decision is built on.
+    it('does NOT capture a mistyped artisan command', function (array $argv) {
+        $exitCode = app(ConsoleKernel::class)->handle(
+            new ArgvInput(['artisan', ...$argv, '--no-interaction']),
+            new BufferedOutput,
+        );
+
+        expect($exitCode)->toBe(1)
+            ->and($this->posthogClient->capturedCalls)->toHaveCount(0);
+    })->with([
+        'unknown command' => [['definitely-not-a-command']],
+        'unknown option' => [['about', '--no-such-flag']],
+        'too many arguments' => [['about', 'unexpected-extra-argument']],
+        'missing required argument' => [['make:model']],
+    ]);
+
+    it('captures bad input that application code passes to Artisan::call', function () {
+        // Same failure, different provenance: programmatic invocations bind
+        // an ArrayInput inside Application::call, so the input is code, not
+        // typing — a reportable bug. Artisan::call throws to its caller; the
+        // surrounding job or request routes it to the handler, mirrored here.
+        try {
+            Artisan::call('about', ['--no-such-flag' => true]);
+            $this->fail('Artisan::call should reject the unknown option.');
+        } catch (Throwable $e) {
+            app(ExceptionHandler::class)->report($e);
+        }
+
+        expect($this->posthogClient->capturedCalls)->toHaveCount(1);
+    });
+
+    it('captures a console exception thrown from command code', function () {
+        app(ExceptionHandler::class)->report(
+            new ConsoleInvalidArgumentException('The "typo" option does not exist.'),
+        );
+
+        expect($this->posthogClient->capturedCalls)->toHaveCount(1);
     });
 });
 

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Console\Application as ArtisanApplication;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
@@ -10,16 +11,20 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use PostHog\ExceptionPayloadBuilder;
+use Symfony\Component\Console\Application as ConsoleApplication;
+use Symfony\Component\Console\Exception\ExceptionInterface as ConsoleException;
+use Symfony\Component\Console\Input\Input as ConsoleInput;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Throwable;
 
 /**
  * Captures PHP exceptions as PostHog '$exception' events for error tracking.
  *
- * Only reports 5xx and unhandled exceptions (skips 4xx HTTP exceptions).
- * Rate-limited to 10 reports/minute per exception type to prevent flooding.
- * All PostHog calls are wrapped in try/catch so analytics failures never
- * block error reporting or app responses.
+ * Only reports 5xx and unhandled exceptions (skips 4xx HTTP exceptions
+ * and mistyped artisan commands). Rate-limited to 10 reports/minute per
+ * exception type to prevent flooding. All PostHog calls are wrapped in
+ * try/catch so analytics failures never block error reporting or app
+ * responses.
  */
 class PostHogExceptionReporter
 {
@@ -148,7 +153,58 @@ class PostHogExceptionReporter
             return true;
         }
 
-        return false;
+        // Console input errors — the CLI form of a 4xx
+        return $this->isConsoleInputError($e);
+    }
+
+    /**
+     * Check if an operator typed an artisan command the console cannot
+     * parse: an unknown command, an unknown option, or a wrong argument
+     * count (error tracking 2026-11-12 — each typo opened a new issue even
+     * though nothing in the application failed).
+     *
+     * These throw while the console resolves the command name or binds
+     * real argv to the command definition, before any command code runs.
+     * The same exception classes thrown from application code
+     * (Artisan::call() with a bad option, getOption() on an undefined
+     * name) must keep reporting — there the bad input is a code bug, so
+     * the detection is structural, not by class: programmatic invocations
+     * always carry an Illuminate\Console\Application::call frame, while
+     * operator-typed commands arrive through Kernel::handle() with argv
+     * input only.
+     */
+    private function isConsoleInputError(Throwable $e): bool
+    {
+        if (! $e instanceof ConsoleException) {
+            return false;
+        }
+
+        $duringInputParsing = false;
+
+        foreach ($e->getTrace() as $frame) {
+            $class = $frame['class'] ?? '';
+            $function = $frame['function'];
+
+            // Programmatic invocation: an exception surfacing through
+            // Artisan::call()/Kernel::call() means application code passed
+            // bad input — report regardless of where it was thrown.
+            if ($class === ArtisanApplication::class && $function === 'call') {
+                return false;
+            }
+
+            // Operator-typed argv: command-name resolution (unknown
+            // command) or input binding/validation (unknown option, wrong
+            // argument count). Symfony's Input base class carries bind/
+            // validate for every input flavour; the call-frame check above
+            // is what keeps programmatic ArrayInput failures reported.
+            if (($class === ConsoleApplication::class && $function === 'find')
+                || (is_a($class, ConsoleInput::class, true)
+                    && in_array($function, ['bind', 'validate'], true))) {
+                $duringInputParsing = true;
+            }
+        }
+
+        return $duringInputParsing;
     }
 
     /**
