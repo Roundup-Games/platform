@@ -16,6 +16,7 @@ use App\Services\Discord\DiscordRsvpMenuRenderer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * Receives Discord HTTP Interactions at POST /discord/interactions.
@@ -112,13 +113,17 @@ class DiscordInteractionController extends Controller
         $customId = $this->customId($request);
         $parsed = $this->parseCustomId($customId);
 
+        // Clicker-facing ephemeral copy renders in the clicker's Discord client
+        // locale (payload `locale`), falling back to the app locale.
+        $locale = $this->interactionLocale($request);
+
         if ($parsed === null) {
             Log::info('discord_interaction.malformed_custom_id', [
                 'has_custom_id' => $customId !== null,
             ]);
 
             return $this->ephemeralMessage(
-                "This button couldn't be processed. Try RSVPing on roundup, or tap the game's link for the latest details."
+                __('notifications.error_rsvp_unprocessable', [], $locale)
             );
         }
 
@@ -130,7 +135,7 @@ class DiscordInteractionController extends Controller
         );
 
         return match ($action) {
-            self::ACTION_MENU => $this->handleMenuRequest($gameId, $user, $guildId),
+            self::ACTION_MENU => $this->handleMenuRequest($gameId, $user, $guildId, $locale),
             self::ACTION_JOIN => $this->handleDeferredAction(
                 $gameId, $user, $guildId, $this->interactionToken($request), ProcessDiscordRsvp::class, 'join_dispatched'
             ),
@@ -138,7 +143,7 @@ class DiscordInteractionController extends Controller
                 $gameId, $user, $guildId, $this->interactionToken($request), ProcessDiscordLeave::class, 'leave_dispatched'
             ),
             default => $this->ephemeralMessage(
-                "This button couldn't be processed. Try RSVPing on roundup, or tap the game's link for the latest details."
+                __('notifications.error_rsvp_unprocessable', [], $locale)
             ),
         };
     }
@@ -154,7 +159,7 @@ class DiscordInteractionController extends Controller
      * Unlinked clickers get the ephemeral deep-link (the menu is meaningless
      * without a linked identity).
      */
-    private function handleMenuRequest(string $gameId, ?User $user, string $guildId): JsonResponse
+    private function handleMenuRequest(string $gameId, ?User $user, string $guildId, string $locale): JsonResponse
     {
         if (! $user instanceof User) {
             Log::info('discord_interaction.unlinked_deep_link', [
@@ -169,11 +174,11 @@ class DiscordInteractionController extends Controller
 
         if (! $game instanceof Game) {
             return $this->ephemeralMessage(
-                "This game couldn't be found — it may have been removed."
+                __('notifications.error_rsvp_game_not_found', [], $locale)
             );
         }
 
-        $context = $this->buildMenuContext($game, $user);
+        $context = $this->buildMenuContext($game, $user, $locale);
         $menu = $this->menuRenderer->render($game, $context);
 
         Log::info('discord_interaction.menu_shown', [
@@ -183,13 +188,13 @@ class DiscordInteractionController extends Controller
             'current_status' => $context->currentStatus?->value,
         ]);
 
-        return response()->json($menu->toResponse($context->appUrl, $gameId));
+        return response()->json($menu->toResponse($context->appUrl, $gameId, $locale));
     }
 
     /**
      * Resolve the clicker's current roster state from the pre-loaded Game.
      */
-    private function buildMenuContext(Game $game, User $user): DiscordRsvpMenuContext
+    private function buildMenuContext(Game $game, User $user, string $locale): DiscordRsvpMenuContext
     {
         $isOwner = $game->owner_id === $user->id;
 
@@ -206,6 +211,7 @@ class DiscordInteractionController extends Controller
             approvedCount: $game->participants->where('status', ParticipantStatus::Approved)->count(),
             maxPlayers: $game->max_players,
             appUrl: is_string(config('app.url')) ? config('app.url') : null,
+            locale: $locale,
         );
     }
 
@@ -369,6 +375,35 @@ class DiscordInteractionController extends Controller
         $baseUrl = is_string(config('app.url')) ? rtrim(config('app.url'), '/') : '';
 
         return $baseUrl.'/games/'.$gameId;
+    }
+
+    /**
+     * Resolve the locale for clicker-facing ephemeral copy (the RSVP menu and
+     * the interaction-path error strings): the interaction payload's `locale`
+     * field — Discord sends the clicker's client locale on every interaction
+     * (e.g. "de", "en-US", "pt-BR") — normalized to its primary subtag and
+     * validated against config('app.available_locales'). Falls back to the
+     * app locale when absent or unsupported (mirrors the guild-locale
+     * precedent in {@see resolveGuildLocale}, but audience = the clicker).
+     */
+    private function interactionLocale(Request $request): string
+    {
+        $available = config('app.available_locales');
+        $available = is_array($available) ? array_filter($available, 'is_string') : [];
+
+        $payloadLocale = $request->input('locale');
+
+        if (is_string($payloadLocale) && $payloadLocale !== '') {
+            $primary = strtolower(Str::before($payloadLocale, '-'));
+
+            if (in_array($primary, $available, true)) {
+                return $primary;
+            }
+        }
+
+        $appLocale = config('app.locale');
+
+        return is_string($appLocale) && $appLocale !== '' ? $appLocale : 'en';
     }
 
     private function ephemeralMessage(string $content): JsonResponse

@@ -5,6 +5,8 @@ namespace App\Notifications\Channels;
 use App\Dto\PushPayload;
 use App\Models\PushSubscription;
 use App\Models\User;
+use App\Notifications\ResolvesNotificationCategory;
+use App\Services\NotificationEngagementCounters;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
 use Minishlink\WebPush\MessageSentReport;
@@ -28,10 +30,21 @@ use Minishlink\WebPush\WebPush;
  * place push success is recorded (Laravel's NotificationSent event fires but
  * carries no device-level receipt; Web Push is request/response, so flush()'s
  * MessageSentReport IS the per-device delivery receipt).
+ *
+ * Each report outcome also bumps the per-(date, category, channel, event)
+ * daily aggregate in notification_engagement_counters (D284): sent /
+ * send_failed / subscription_expired on the push channel, attributed to the
+ * notification's category ({@see resolveCategory()}) — one increment per
+ * device report, matching the per-device push.sent log. Counter writes are
+ * best-effort: a failure is logged and swallowed, never allowed to break
+ * delivery or subscription cleanup.
  */
 class PushChannel
 {
+    use ResolvesNotificationCategory;
+
     public function __construct(
+        private readonly NotificationEngagementCounters $counters,
         private ?WebPush $webPush,
     ) {}
 
@@ -67,6 +80,7 @@ class PushChannel
         }
 
         $notificationType = $notification::class;
+        $category = $this->resolveCategory($notification, $notifiable);
         $userId = $notifiable->id;
 
         // endpoint → user_id for attributing flush() receipts back to a user.
@@ -99,7 +113,7 @@ class PushChannel
                 if (! $report instanceof MessageSentReport) {
                     continue;
                 }
-                $this->handleReport($report, $notificationType, $userIdByEndpoint, $userId);
+                $this->handleReport($report, $notificationType, $userIdByEndpoint, $userId, $category);
             }
         } catch (\Throwable $e) {
             Log::warning('push.flush_failed', [
@@ -111,8 +125,8 @@ class PushChannel
     }
 
     /**
-     * Handle a push delivery report — log the outcome and clean up expired
-     * subscriptions.
+     * Handle a push delivery report — log the outcome, count it, and clean up
+     * expired subscriptions.
      *
      * @param  array<string, int|string>  $userIdByEndpoint
      */
@@ -121,6 +135,7 @@ class PushChannel
         string $notificationType,
         array $userIdByEndpoint,
         int|string $fallbackUserId,
+        string $category,
     ): void {
         $endpoint = $report->getEndpoint();
         $userId = $userIdByEndpoint[$endpoint] ?? $fallbackUserId;
@@ -133,6 +148,8 @@ class PushChannel
                 'notification_type' => $notificationType,
                 'endpoint' => $endpoint,
             ]);
+
+            $this->count($category, 'sent');
 
             return;
         }
@@ -150,6 +167,8 @@ class PushChannel
                 'notification_type' => $notificationType,
                 'endpoint' => $endpoint,
             ]);
+
+            $this->count($category, 'subscription_expired');
         } else {
             Log::warning('push.send_failed', [
                 'user_id' => $userId,
@@ -157,6 +176,27 @@ class PushChannel
                 'endpoint' => $endpoint,
                 'reason' => $report->getReason(),
                 'status_code' => $report->getResponse()?->getStatusCode(),
+            ]);
+
+            $this->count($category, 'send_failed');
+        }
+    }
+
+    /**
+     * Best-effort engagement counter increment (D284): push delivery and
+     * subscription cleanup are the load-bearing behavior, so a counter write
+     * failure is logged and swallowed — it must never break either.
+     */
+    private function count(string $category, string $event): void
+    {
+        try {
+            $this->counters->incrementFor($category, 'push', $event);
+        } catch (\Throwable $e) {
+            Log::warning('notifications.engagement_counter_failed', [
+                'category' => $category,
+                'channel' => 'push',
+                'event' => $event,
+                'error' => $e->getMessage(),
             ]);
         }
     }

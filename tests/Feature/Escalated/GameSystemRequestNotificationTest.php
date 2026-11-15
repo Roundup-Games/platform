@@ -164,7 +164,8 @@ describe('Mail channel rendering', function () {
 
         $mail = (new GameSystemRequestRejected($ticket))->toMail($user);
 
-        expect($mail->subject)->toBe('Game System Request Update')
+        expect($mail->subject)
+            ->toBe(__('notifications.subject_game_system_request_rejected_reason', ['name' => 'Monopoly', 'reason' => 'Not enough info.']))
             ->and($mail->actionUrl)->toBeNull();
     });
 
@@ -176,7 +177,8 @@ describe('Mail channel rendering', function () {
 
         $mail = (new GameSystemRequestRejected($ticket))->toMail($user);
 
-        expect($mail->subject)->toBe('Game System Request Update')
+        expect($mail->subject)
+            ->toBe(__('notifications.subject_game_system_request_rejected', ['name' => 'Risk']))
             ->and($mail->actionUrl)->toBeNull();
     });
 
@@ -189,7 +191,7 @@ describe('Mail channel rendering', function () {
 
         $mail = (new GameSystemRequestDuplicate($ticket, $existingSystem))->toMail($user);
 
-        expect($mail->subject)->toBe('Game System Already Exists')
+        expect($mail->subject)->toBe(__('notifications.subject_game_system_request_duplicate', ['name' => 'Catan']))
             ->and($mail->actionUrl)->toContain('/game-systems/catan')
             ->and($mail->actionText)->toBe('View Game System');
     });

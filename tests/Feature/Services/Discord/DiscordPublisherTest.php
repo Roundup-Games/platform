@@ -941,12 +941,13 @@ class DiscordPublisherTest extends TestCase
     }
 
     #[Test]
-    public function per_session_thread_starter_carries_the_community_wall_time()
+    public function per_session_thread_starter_carries_native_discord_timestamps()
     {
-        // Same late-night instant as the title test: 2026-11-05 23:30 UTC is
-        // 00:30 on Nov 6 in Berlin — the starter's 📅 line must show the
-        // Berlin wall clock, matching the card and thread title beside it,
-        // not the stored UTC label (R089).
+        // T02: the starter's 📅 line carries native <t:F> + <t:R> so every
+        // member sees the instant in their OWN timezone — matching the card's
+        // When field beside it. (The thread TITLE keeps the community wall
+        // date, per the test above: Discord does not render timestamp markup
+        // in thread names.)
         config(['services.discord.publishing_enabled' => false]);
         [$game, $guild] = $this->publicGameInOptedInGuild();
         $game->forceFill(['date_time' => Carbon::parse('2026-11-05 23:30:00', 'UTC')])->saveQuietly();
@@ -955,7 +956,9 @@ class DiscordPublisherTest extends TestCase
 
         $this->makePublisher()->publish($game);
 
-        Http::assertSent(function (Request $request): bool {
+        $epoch = Carbon::parse('2026-11-05 23:30:00', 'UTC')->getTimestamp();
+
+        Http::assertSent(function (Request $request) use ($epoch): bool {
             // The starter is the POST into the fresh thread (thread-1); the
             // card POST targets the games channel instead.
             if ($request->method() !== 'POST' || ! str_ends_with($request->url(), '/channels/thread-1/messages')) {
@@ -964,8 +967,9 @@ class DiscordPublisherTest extends TestCase
             $data = $request->data();
             $content = is_array($data) ? (string) ($data['content'] ?? '') : '';
 
-            return str_contains($content, '6 Nov 2026 · 00:30')
-                && ! str_contains($content, '5 Nov 2026 · 23:30');
+            return str_contains($content, "<t:{$epoch}:F>")
+                && str_contains($content, "<t:{$epoch}:R>")
+                && ! str_contains($content, '5 Nov 2026');
         });
     }
 }

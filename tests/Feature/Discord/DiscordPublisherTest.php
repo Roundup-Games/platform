@@ -207,7 +207,13 @@ describe('Discord bridge with attached tables present', function () {
                 ->toContain('Catan')
                 ->toContain('Wingspan')
                 ->not->toContain('Dune')
-                ->not->toContain('Xyzzyq');
+                ->not->toContain('Xyzzyq')
+                // Structural mention guard (D288 rider, M080/S04/T04): the
+                // publisher passes no explicit allowlist, so the posted card
+                // wire shape must carry allowed_mentions parse:[] — user
+                // text (game/venue names) can never trigger pings from a
+                // bot post.
+                ->and($request->data()['allowed_mentions'] ?? null)->toBe(['parse' => []]);
             $cardPosted = true;
 
             return true;
@@ -218,5 +224,78 @@ describe('Discord bridge with attached tables present', function () {
         // idempotency applies to tables exactly as to ordinary games).
         crossPollinationPublisher()->publish($table);
         expect(DiscordCardMessage::where('game_id', $table->id)->count())->toBe(1);
+    });
+
+    it('keeps an @everyone-named game inert on the wire via the allowed_mentions default', function () {
+        // Adversarial case for the structural mention guard (D288 rider,
+        // M080/S04/T04): the game NAME is user-controlled text, and the
+        // thread-starter even interpolates it into plain message content.
+        // A hostile '@everyone' name must render as inert text — the
+        // parse:[] default on the wire shape means Discord parses no
+        // mention from it, so the bot post can never ping the guild.
+        $owner = User::factory()->create();
+
+        $table = Game::factory()
+            ->gathering()
+            ->create([
+                'owner_id' => $owner->id,
+                'name' => ['en' => 'Boardgame @everyone and @here Night'],
+                'visibility' => 'public',
+                'status' => 'scheduled',
+                'date_time' => now()->addDays(10)->setTime(12, 0),
+            ]);
+
+        $guild = DiscordGuild::factory()
+            ->configured()
+            ->create(['owner_user_id' => User::factory()->create()->id]);
+        DiscordGuildOrganizer::factory()
+            ->optedIn()
+            ->create(['guild_id' => $guild->id, 'user_id' => $owner->id]);
+
+        config(['services.discord.publishing_enabled' => true]);
+        crossPollinationFakeDiscord();
+
+        crossPollinationPublisher()->publish($table);
+
+        $channel = $guild->games_channel_id;
+        $cardPosted = false;
+        $starterPosted = false;
+        Http::assertSent(function (Request $request) use (&$cardPosted, &$starterPosted): bool {
+            // Both plain-content surfaces: the card POST goes to the games
+            // channel, the thread-starter to the thread channel the fake
+            // mints as 'thread-1' (K013's exact risk surface).
+            if ($request->method() !== 'POST'
+                || ! str_ends_with($request->url(), '/messages')) {
+                return false;
+            }
+
+            $body = $request->data();
+
+            if (isset($body['content']) && is_string($body['content']) && $body['content'] !== '') {
+                // Thread-starter: the game name is interpolated into PLAIN
+                // message content — the exact surface K013 guards. The hostile
+                // name must ride verbatim while the wire shape allows no
+                // mention parsing.
+                expect($body['content'])->toContain('@everyone');
+                expect($body['allowed_mentions'] ?? null)->toBe(['parse' => []]);
+                $starterPosted = true;
+
+                return true;
+            }
+
+            // Card POST (embeds, no plain content): the hostile name renders
+            // verbatim as card text (the guard is Discord-side parsing
+            // suppression, not sanitization)...
+            expect(json_encode($body['embeds'][0] ?? []))->toContain('@everyone');
+            // ...but the wire shape allows no mention parsing at all.
+            expect($body['allowed_mentions'] ?? null)->toBe(['parse' => []]);
+            expect($body['allowed_mentions'])->not->toHaveKey('users')
+                ->and($body['allowed_mentions'])->not->toHaveKey('roles');
+            $cardPosted = true;
+
+            return true;
+        });
+        expect($cardPosted)->toBeTrue()
+            ->and($starterPosted)->toBeTrue('the thread-starter post — the plain-content ping vector — must also be pinned.');
     });
 });

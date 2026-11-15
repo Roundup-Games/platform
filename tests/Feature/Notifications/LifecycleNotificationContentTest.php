@@ -5,8 +5,11 @@ use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Notifications\DebriefingAvailable;
+use App\Notifications\EntityUpdated;
 use App\Notifications\PlayerBenched;
 use App\Notifications\PromotedFromBench;
+use App\Notifications\SeatDemoted;
+use App\Notifications\SessionAddedToCampaign;
 use App\Notifications\WaitlistPlaced;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 
@@ -120,7 +123,7 @@ describe('PlayerBenched content', function () {
         $rendered = (string) $mail->render();
         $text = strip_tags($rendered);
         expect($text)->toContain(str_replace('**', '', __('notifications.body_player_benched', ['entity' => $game->name])))
-            ->and($rendered)->toContain(unsubscribePath($user, 'player_benched'));
+            ->and($rendered)->toContain(unsubscribePath($user, 'bench_updates'));
 
         $data = $notification->toDatabase($user);
         expect($data['type'])->toBe('player_benched')
@@ -209,7 +212,7 @@ describe('DebriefingAvailable content', function () {
         $text = strip_tags($rendered);
         expect($text)->toContain(str_replace('**', '', __('notifications.body_debriefing_available', ['game' => $game->name])))
             ->and($rendered)->toContain(__('games.action_submit_debriefing'))
-            ->and($rendered)->toContain(unsubscribePath($user, 'debriefing_available'));
+            ->and($rendered)->toContain(unsubscribePath($user, 'session_content'));
     });
 
     it('carries the entity identity in the database payload', function () {
@@ -238,5 +241,109 @@ describe('DebriefingAvailable content', function () {
             ->and($embed['title'])->toBe($push->title)
             ->and($embed['description'])->toBe($push->body)
             ->and($embed['url'])->toBe($push->url);
+    });
+});
+
+// ════════════════════════════════════════════════════
+// EntityUpdated — update mails scope the subject with what changed (M080/S04/T03)
+// ════════════════════════════════════════════════════
+
+describe('EntityUpdated content', function () {
+    it('composes a game mail whose subject fronts the game and scopes it with the change summary', function () {
+        $user = contentUser();
+        $game = contentGame();
+        $summary = __('common.field_location');
+        $notification = new EntityUpdated($game, [$summary]);
+
+        $mail = $notification->toMail($user);
+        expect($mail->subject)
+            ->toBe(__('notifications.subject_game_updated', ['game' => $game->name, 'summary' => $summary]))
+            ->and($mail->subject)->toStartWith($game->name)
+            ->and($mail->subject)->toContain($summary);
+
+        $rendered = (string) $mail->render();
+        $text = strip_tags($rendered);
+        expect($text)->toContain(str_replace('**', '', __('notifications.body_game_updated', ['game' => $game->name, 'fields' => $summary])))
+            ->and($rendered)->toContain(__('notifications.action_view_game'))
+            ->and($rendered)->toContain(unsubscribePath($user, 'game_updated'));
+    });
+
+    it('composes a campaign mail whose subject fronts the campaign and scopes it with the change summary', function () {
+        $user = contentUser();
+        $campaign = contentCampaign();
+        $summary = __('campaigns.field_campaign_name');
+        $notification = new EntityUpdated($campaign, [$summary]);
+
+        $mail = $notification->toMail($user);
+        expect($mail->subject)
+            ->toBe(__('notifications.subject_campaign_updated', ['campaign' => $campaign->name, 'summary' => $summary]))
+            ->and($mail->subject)->toStartWith($campaign->name)
+            ->and($mail->subject)->toContain($summary)
+            ->and((string) $mail->render())->toContain(__('notifications.action_view_campaign'))
+            ->and((string) $mail->render())->toContain(unsubscribePath($user, 'campaign_updated'));
+    });
+
+    it('keeps the subject scope localized when rendered in German', function () {
+        app()->setLocale('de');
+        $user = contentUser();
+        $game = contentGame();
+        $summary = __('common.field_location', [], 'de');
+
+        $mail = (new EntityUpdated($game, [$summary]))->toMail($user);
+
+        expect($mail->subject)
+            ->toBe(__('notifications.subject_game_updated', ['game' => $game->name, 'summary' => $summary], 'de'))
+            ->and($mail->subject)->toStartWith($game->name)
+            ->and($mail->subject)->toContain($summary);
+    });
+});
+
+// ════════════════════════════════════════════════════
+// SessionAddedToCampaign — Game-framed view action (M080/S04/T03)
+// ════════════════════════════════════════════════════
+
+describe('SessionAddedToCampaign content', function () {
+    it('composes mail with the campaign subject and the Game-framed view action', function () {
+        $user = contentUser();
+        $game = contentGame();
+        $campaign = contentCampaign();
+        $notification = new SessionAddedToCampaign($game, $campaign);
+
+        $mail = $notification->toMail($user);
+        expect($mail->subject)
+            ->toBe(__('notifications.subject_session_added_to_campaign', ['campaign' => $campaign->name]));
+
+        $rendered = (string) $mail->render();
+        $text = strip_tags($rendered);
+        expect($text)->toContain(str_replace('**', '', __('notifications.body_session_added_to_campaign', ['campaign' => $campaign->name])))
+            ->and($rendered)->toContain(__('notifications.action_session_added_to_campaign'))
+            ->and($rendered)->toContain(unsubscribePath($user, 'session_added_to_campaign'))
+            ->and($mail->actionUrl)->toBe(route('games.show', ['locale' => 'en', 'id' => $game]));
+    });
+});
+
+// ════════════════════════════════════════════════════
+// SeatDemoted — host-action voice in the German mail (M080/S04/T03)
+// ════════════════════════════════════════════════════
+
+describe('SeatDemoted content', function () {
+    it('composes the English mail with the reclaimed-seat subject and unsubscribe line', function () {
+        $user = contentUser();
+        $game = contentGame();
+        $mail = (new SeatDemoted($game, 'roster reduced'))->toMail($user);
+
+        expect($mail->subject)->toBe(__('notifications.subject_seat_demoted', ['entity' => $game->name]))
+            ->and((string) $mail->render())->toContain(unsubscribePath($user, 'seat_demoted'));
+    });
+
+    it('phrases the German mail as a host action, never a self-relinquished seat', function () {
+        app()->setLocale('de');
+        $user = contentUser();
+        $game = contentGame();
+        $mail = (new SeatDemoted($game, 'Kader verkleinert'))->toMail($user);
+
+        expect($mail->subject)->toBe(__('notifications.subject_seat_demoted', ['entity' => $game->name], 'de'))
+            ->and($mail->subject)->not->toContain('abgegeben')
+            ->and((string) $mail->render())->not->toContain('abgegeben');
     });
 });

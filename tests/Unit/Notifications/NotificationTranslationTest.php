@@ -25,6 +25,21 @@ describe('Notification Translations', function () {
         ['de', 'notifications.subject_new_follower',  ['follower' => 'Alice']],
         ['de', 'notifications.subject_game_invitation', ['inviter' => 'Bob']],
         ['de', 'common.field_hey_name',          ['name' => 'Charlie']],
+        // S04/T03 — new interpolation contracts: update subjects carry the
+        // change scope (:summary), game-system-request subjects carry the
+        // system (:name) and, on rejection with a reason, the reason itself.
+        ['en', 'notifications.subject_game_updated', ['game' => 'Waterdeep Dungeon', 'summary' => 'Date, Location']],
+        ['en', 'notifications.subject_campaign_updated', ['campaign' => 'Shadow over Waterdeep', 'summary' => 'Description']],
+        ['en', 'notifications.subject_game_system_request_rejected', ['name' => 'Gloomhaven']],
+        ['en', 'notifications.subject_game_system_request_rejected_reason', ['name' => 'Gloomhaven', 'reason' => 'Duplicate entry']],
+        ['en', 'notifications.subject_game_system_request_duplicate', ['name' => 'Gloomhaven']],
+        ['en', 'notifications.subject_seat_demoted', ['entity' => 'Waterdeep Dungeon']],
+        ['de', 'notifications.subject_game_updated', ['game' => 'Waterdeep Dungeon', 'summary' => 'Datum, Ort']],
+        ['de', 'notifications.subject_campaign_updated', ['campaign' => 'Shadow over Waterdeep', 'summary' => 'Beschreibung']],
+        ['de', 'notifications.subject_game_system_request_rejected', ['name' => 'Gloomhaven']],
+        ['de', 'notifications.subject_game_system_request_rejected_reason', ['name' => 'Gloomhaven', 'reason' => 'Existiert bereits']],
+        ['de', 'notifications.subject_game_system_request_duplicate', ['name' => 'Gloomhaven']],
+        ['de', 'notifications.subject_seat_demoted', ['entity' => 'Waterdeep Dungeon']],
     ]);
 
     it('renders notification layout blade view without errors', function () {

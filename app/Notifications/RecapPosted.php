@@ -37,7 +37,7 @@ class RecapPosted extends BaseNotification
                 'game' => $this->game->name,
             ]))
             ->action(__('notifications.action_view_recap'), route('games.show', ['locale' => $locale, 'id' => $this->game]))
-            ->line($this->unsubscribeLine($notifiable, 'recap_posted'));
+            ->line($this->unsubscribeLine($notifiable, 'session_content'));
     }
 
     /**

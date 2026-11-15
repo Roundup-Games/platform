@@ -2,8 +2,11 @@
 
 use App\Enums\NotificationCategory;
 use App\Models\EmailSuppression;
+use App\Models\NotificationEngagementCounter;
 use App\Models\User;
 use App\Services\NotificationService;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Testing\TestResponse;
 use Tests\Traits\CapturesLogRecords;
 
@@ -18,6 +21,11 @@ uses(CapturesLogRecords::class);
 beforeEach(function () {
     $this->captureLogRecords();
     config(['services.resend.webhook_secret' => $this->webhookSecret = 'whsec_'.base64_encode(random_bytes(32))]);
+    // Freeze the clock: counter rows bucket on the UTC calendar date of the
+    // event instant, so a test straddling UTC midnight would write and read
+    // different daily rows and false-fail (same hazard class the frozen-clock
+    // leak guard exists for).
+    $this->travelTo(Carbon::parse('2026-11-14 12:00:00'));
 });
 
 // ── Svix signing helper — mirrors Resend\WebhookSignature::sign() exactly. ──
@@ -69,6 +77,40 @@ function bouncedPayload(string $email, string $bounceType = 'Permanent'): string
     ]);
 }
 
+/**
+ * Engagement-webhook payload whose data.tags carry the roundup_category
+ * dispatch tag (the shape TaggedMailChannel stamps and Resend echoes back,
+ * per resend.com/docs/webhooks/emails/delivered). Null $category omits tags.
+ *
+ * @param  array<string, mixed>  $extraData
+ */
+function engagementPayload(string $type, ?string $category = null, array $extraData = []): string
+{
+    $data = array_merge([
+        'email_id' => 'e-counter',
+        'message_id' => '<c-1@x.com>',
+        'to' => ['reader@example.com'],
+        'subject' => 'Your game tonight',
+    ], $extraData);
+
+    if ($category !== null) {
+        $data['tags'] = ['roundup_category' => $category];
+    }
+
+    return json_encode(['type' => $type, 'created_at' => now()->toIso8601String(), 'data' => $data]);
+}
+
+/** Today's mail counter for one (category, event) — the D284 aggregate row. */
+function counterCount(string $category, string $event): int
+{
+    return (int) NotificationEngagementCounter::query()
+        ->where('date', now()->toDateString())
+        ->where('category', $category)
+        ->where('channel', 'mail')
+        ->where('event', $event)
+        ->value('count');
+}
+
 // ══════════════════════════════════════════════════════
 // Signature verification — fail closed
 // ══════════════════════════════════════════════════════
@@ -79,7 +121,8 @@ it('rejects a request with no svix-signature header', function () {
 
     postResendWebhook($body, $svix, dropSignature: true)->assertStatus(400);
 
-    expect(EmailSuppression::count())->toBe(0);
+    expect(EmailSuppression::count())->toBe(0)
+        ->and(NotificationEngagementCounter::count())->toBe(0); // nothing runs before verification
 });
 
 it('rejects a request signed with the wrong secret', function () {
@@ -228,15 +271,18 @@ it('returns 500 so Resend retries when a bounce suppression write fails', functi
     postResendWebhook($body, $svix)->assertStatus(500);
 
     expect(EmailSuppression::count())->toBe(0)
+        ->and(NotificationEngagementCounter::count())->toBe(0) // counted only after suppression succeeded — no retry double-count
         ->and($this->logRecord('resend.webhook_processing_failed'))->not->toBeNull();
 });
 
 it('still returns 200 when a telemetry-only (delivered) event fails processing', function () {
     // Telemetry events stay best-effort: a processing failure there must NOT
-    // trigger a Resend retry (that would only add noise). We assert the contract
-    // by confirming the delivered path returns 200 even though it cannot suppress
-    // — paired with the bounce test above, this pins the 500 specifically to
-    // suppression-bearing events.
+    // trigger a Resend retry (that would only add noise). The delivered path
+    // has no throwing collaborator of its own, so the failure is injected at
+    // the one seam every handler touches: the Log facade. The thrown error
+    // reaches the controller's outer catch, whose type dispatch must answer
+    // 200 for non-suppression events — paired with the bounce test above,
+    // this pins the 500 specifically to suppression-bearing events.
     $body = json_encode([
         'type' => 'email.delivered',
         'created_at' => now()->toIso8601String(),
@@ -244,5 +290,140 @@ it('still returns 200 when a telemetry-only (delivered) event fails processing',
     ]);
     $svix = svixHeaders($body, $this->webhookSecret);
 
+    Log::shouldReceive('info')
+        ->once()
+        ->withArgs(fn (string $message): bool => $message === 'mail.delivered')
+        ->andThrow(new RuntimeException('log transport down'));
+    Log::shouldReceive('error')
+        ->once()
+        ->withArgs(fn (string $message): bool => $message === 'resend.webhook_processing_failed');
+    Log::shouldReceive('warning')->zeroOrMoreTimes();
+
     postResendWebhook($body, $svix)->assertStatus(200);
+
+    // The counter write is never reached (handle() threw before it).
+    expect(NotificationEngagementCounter::count())->toBe(0);
+});
+
+// ══════════════════════════════════════════════════════
+// Engagement counters (D284) — one signed case per event type
+// ══════════════════════════════════════════════════════
+
+it('counts a delivered event under its tagged category', function () {
+    $body = engagementPayload('email.delivered', 'session_reminder');
+    $svix = svixHeaders($body, $this->webhookSecret);
+
+    postResendWebhook($body, $svix)->assertStatus(200);
+
+    expect(counterCount('session_reminder', 'delivered'))->toBe(1)
+        ->and(EmailSuppression::count())->toBe(0);
+});
+
+it('counts an opened event under its tagged category', function () {
+    $body = engagementPayload('email.opened', 'game_invitation', [
+        'user_agent' => 'Mozilla/5.0',
+        'ip' => '203.0.113.9',
+    ]);
+    $svix = svixHeaders($body, $this->webhookSecret);
+
+    postResendWebhook($body, $svix)->assertStatus(200);
+
+    expect(counterCount('game_invitation', 'opened'))->toBe(1)
+        ->and($this->logRecord('mail.opened'))->not->toBeNull()
+        ->and(EmailSuppression::count())->toBe(0);
+});
+
+it('counts a clicked event under its tagged category', function () {
+    $body = engagementPayload('email.clicked', 'waitlist_promoted', [
+        'click' => ['url' => 'https://roundup.test/games/42', 'timestamp' => now()->timestamp],
+    ]);
+    $svix = svixHeaders($body, $this->webhookSecret);
+
+    postResendWebhook($body, $svix)->assertStatus(200);
+
+    expect(counterCount('waitlist_promoted', 'clicked'))->toBe(1)
+        ->and($this->logRecord('mail.clicked'))->not->toBeNull()
+        ->and(EmailSuppression::count())->toBe(0);
+});
+
+it('counts a failed event under its tagged category without suppressing', function () {
+    $body = engagementPayload('email.failed', 'session_reminder', [
+        'error' => ['message' => 'Email address is invalid', 'name' => 'validation_error'],
+    ]);
+    $svix = svixHeaders($body, $this->webhookSecret);
+
+    postResendWebhook($body, $svix)->assertStatus(200);
+
+    expect(counterCount('session_reminder', 'failed'))->toBe(1)
+        ->and($this->logRecord('mail.failed'))->not->toBeNull()
+        ->and(EmailSuppression::count())->toBe(0);
+});
+
+it('counts a permanent bounce under its tagged category and still suppresses', function () {
+    $body = engagementPayload('email.bounced', 'digest', [
+        'bounce' => ['message' => 'mailbox does not exist', 'type' => 'Permanent'],
+    ]);
+    $svix = svixHeaders($body, $this->webhookSecret);
+
+    postResendWebhook($body, $svix)->assertStatus(200);
+
+    expect(EmailSuppression::where('email', 'reader@example.com')->value('reason'))->toBe('hard_bounce')
+        ->and(counterCount('digest', 'bounced'))->toBe(1)
+        ->and($this->logRecord('mail.suppressed'))->not->toBeNull();
+});
+
+it('counts a complaint under its tagged category and still suppresses', function () {
+    $body = engagementPayload('email.complained', 'session_reminder');
+    $svix = svixHeaders($body, $this->webhookSecret);
+
+    postResendWebhook($body, $svix)->assertStatus(200);
+
+    expect(EmailSuppression::where('email', 'reader@example.com')->value('reason'))->toBe('complaint')
+        ->and(counterCount('session_reminder', 'complained'))->toBe(1);
+});
+
+it('counts a transient bounce without suppressing', function () {
+    $body = engagementPayload('email.bounced', 'game_invitation', [
+        'bounce' => ['message' => 'mailbox full', 'type' => 'Transient'],
+    ]);
+    $svix = svixHeaders($body, $this->webhookSecret);
+
+    postResendWebhook($body, $svix)->assertStatus(200);
+
+    expect(EmailSuppression::count())->toBe(0)
+        ->and(counterCount('game_invitation', 'bounced'))->toBe(1);
+});
+
+it('counts untagged and foreign-tagged events under the untagged category', function () {
+    $noTags = engagementPayload('email.opened'); // no tags key at all
+    postResendWebhook($noTags, svixHeaders($noTags, $this->webhookSecret))->assertStatus(200);
+
+    $foreignTags = engagementPayload('email.opened', null, ['tags' => ['newsletter' => 'weekly']]);
+    postResendWebhook($foreignTags, svixHeaders($foreignTags, $this->webhookSecret))->assertStatus(200);
+
+    expect(counterCount('untagged', 'opened'))->toBe(2);
+});
+
+it('accumulates repeated webhook events on one aggregate row, never per-event rows', function () {
+    $body = engagementPayload('email.delivered', 'session_reminder');
+
+    postResendWebhook($body, svixHeaders($body, $this->webhookSecret))->assertStatus(200);
+    postResendWebhook($body, svixHeaders($body, $this->webhookSecret))->assertStatus(200);
+
+    expect(NotificationEngagementCounter::count())->toBe(1)
+        ->and(counterCount('session_reminder', 'delivered'))->toBe(2);
+});
+
+it('keeps returning 200 when the counter write itself fails', function () {
+    // A category longer than the varchar(64) column forces a QueryException
+    // inside the upsert (Postgres enforces varchar length; the test DB is pgsql)
+    // — same deterministic mechanism as the suppression-failure test above.
+    $body = engagementPayload('email.delivered', str_repeat('x', 300));
+    $svix = svixHeaders($body, $this->webhookSecret);
+
+    postResendWebhook($body, $svix)->assertStatus(200);
+
+    expect(NotificationEngagementCounter::count())->toBe(0)
+        ->and($this->logRecord('mail.delivered'))->not->toBeNull() // telemetry logging still ran
+        ->and($this->logRecord('resend.engagement_counter_failed'))->not->toBeNull();
 });

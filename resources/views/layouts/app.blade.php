@@ -446,6 +446,29 @@
                         </div>
                     </header>
 
+                    {{-- Discord default-shift notice (M080/S05, D282 companion):
+                         one-shot banner flashed by OAuthController when linking
+                         Discord re-points the notification defaults (Discord DMs
+                         on for actionable categories, urgency-tier email off).
+                         Rendered at layout level because the post-link landing
+                         page varies (profile, onboarding, dashboard, game join
+                         target); the copy resolves here so it follows the
+                         landing page's locale. --}}
+                    @if (session()->has('discord_default_shift_notice'))
+                        <div class="px-6 py-4 bg-primary-container border-b border-outline-variant/15" role="status" aria-live="polite">
+                            <div class="max-w-4xl mx-auto flex items-start gap-3">
+                                <span class="material-symbols-outlined text-xl text-on-primary-container shrink-0" aria-hidden="true">notifications_active</span>
+                                <p class="text-sm leading-relaxed text-on-primary-container">
+                                    {{ __('notifications.flash_discord_link_default_shift') }}
+                                    <a href="{{ route('settings.show', app()->getLocale()) }}#notifications"
+                                       class="ml-2 font-semibold underline underline-offset-4 hover:no-underline whitespace-nowrap">
+                                        {{ __('notifications.action_discord_notification_settings') }}
+                                    </a>
+                                </p>
+                            </div>
+                        </div>
+                    @endif
+
                     {{-- Page Content --}}
                     <main id="main-content" class="flex-1 p-6">
                         {{ $slot }}

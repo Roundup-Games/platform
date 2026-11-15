@@ -82,6 +82,29 @@ class WeeklyDigest extends BaseNotification
     }
 
     /**
+     * Category identity for engagement attribution (M080/S03): 'digest' is
+     * the canonical counter vocabulary — the Resend-webhook counters attribute
+     * mail via this type, and NotificationController::unsubscribeDigest()
+     * counts its opt-outs under the same key, so the digest's delivered-vs-
+     * unsubscribed funnel joins on one row set (D284).
+     *
+     * NOT a bell-row declaration: supportedChannels() stays mail-only, so the
+     * framework's DatabaseChannel never runs and no in-app notification is
+     * created — the payload exists so ResolvesNotificationCategory (and the
+     * corpus render harness) see 'digest' instead of the 'WeeklyDigest'
+     * class-basename fallback.
+     *
+     * @return array<string, mixed>
+     */
+    public function toDatabase(User $notifiable): array
+    {
+        return [
+            'type' => 'digest',
+            'count' => $this->notifications->count(),
+        ];
+    }
+
+    /**
      * Discord opted out (D130): mail-only by design — the digest summarizes
      * in-app notifications, so a DM would duplicate the channel it exists
      * to supplement.

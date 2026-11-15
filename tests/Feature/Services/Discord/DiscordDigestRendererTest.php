@@ -54,8 +54,12 @@ class DiscordDigestRendererTest extends TestCase
 
         $embeds = $payload->toArray()['embeds'];
         $this->assertCount(2, $embeds);
-        $this->assertStringContainsString('15', $embeds[0]['title']); // sorted ascending
-        $this->assertStringContainsString('16', $embeds[1]['title']);
+        // Server-side date headings (Discord renders <t:…> markup only in
+        // content/descriptions/field values — literal in titles), one per
+        // bucket, sorted ascending (T02's viewer-local times stay in the
+        // field values).
+        $this->assertSame('Saturday 15 Aug', $embeds[0]['title']);
+        $this->assertSame('Sunday 16 Aug', $embeds[1]['title']);
     }
 
     #[Test]
@@ -77,8 +81,10 @@ class DiscordDigestRendererTest extends TestCase
         $this->assertStringContainsString('Catan', $value);
         $this->assertStringContainsString('Carcassonne', $value);
         $this->assertStringContainsString('Azul', $value);
-        $this->assertStringContainsString('19:00', $value);
-        $this->assertStringContainsString('21:00', $value);
+        // Times are native <t:t> short-time timestamps on each game's exact
+        // instant (T02) — Discord renders HH:MM in the viewer's timezone.
+        $this->assertStringContainsString(sprintf('<t:%s:t>', $gameA->date_time->getTimestamp()), $value);
+        $this->assertStringContainsString(sprintf('<t:%s:t>', $gameC->date_time->getTimestamp()), $value);
     }
 
     #[Test]
@@ -133,7 +139,7 @@ class DiscordDigestRendererTest extends TestCase
         $payload = $this->renderer->render(collect([$game]), $context);
         $line = $payload->toArray()['embeds'][0]['fields'][0]['value'];
 
-        $this->assertStringContainsString('19:00', $line);
+        $this->assertStringContainsString(sprintf('<t:%s:t>', $game->date_time->getTimestamp()), $line);
         $this->assertStringContainsString('[Catan Night](https://roundup.test/games/01234567-89ab-cdef-0123-456789abcdef)', $line);
         $this->assertStringContainsString('Catan', $line);
         $this->assertStringContainsString('3/5', $line);
@@ -184,7 +190,7 @@ class DiscordDigestRendererTest extends TestCase
 
         $line = $this->lineFor($game, $this->context());
 
-        $this->assertStringContainsString('19:00', $line);
+        $this->assertStringContainsString(sprintf('<t:%s:t>', $game->date_time->getTimestamp()), $line);
         // Still a valid roster segment; no systems segment.
         $this->assertStringNotContainsString('· ·', $line);
     }
@@ -192,11 +198,14 @@ class DiscordDigestRendererTest extends TestCase
     // ── Date heading ─────────────────────────────────────
 
     #[Test]
-    public function date_heading_is_locale_aware_day_and_month()
+    public function date_heading_is_a_translated_community_clock_day_and_month()
     {
         $game = $this->makeGameOn('2026-08-15 19:00:00'); // 2026-08-15 is a Saturday
         $payload = $this->renderer->render(collect([$game]), new DiscordDigestContext(locale: 'en'));
 
+        // Titles render no Discord markup (<t:…> is literal text in embed
+        // titles), so the heading formats server-side on the community wall
+        // clock (R089) in the guild locale — matching the dateKey grouping.
         $this->assertSame('Saturday 15 Aug', $payload->toArray()['embeds'][0]['title']);
     }
 

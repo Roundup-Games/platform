@@ -4,12 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Enums\NotificationCategory;
 use App\Models\User;
+use App\Services\NotificationEngagementCounters;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class NotificationController extends Controller
 {
+    public function __construct(private readonly NotificationEngagementCounters $counters) {}
+
     /**
      * Handle a signed email unsubscribe link.
      * Sets the mail channel OFF for the given notification category.
@@ -42,7 +47,8 @@ class NotificationController extends Controller
 
         $user->update(['notification_settings' => $settings]);
 
-        // If the user is logged in and is the same user, redirect to profile with flash message
+        $this->countUnsubscribe($category);
+
         if (Auth::check() && Auth::id() === $user->id) {
             return redirect()
                 ->route('profile.show', ['locale' => $locale])
@@ -70,6 +76,8 @@ class NotificationController extends Controller
 
         $user->update(['weekly_digest_enabled' => false]);
 
+        $this->countUnsubscribe('digest');
+
         if (Auth::check() && Auth::id() === $user->id) {
             return redirect()
                 ->route('profile.show', ['locale' => $locale])
@@ -79,5 +87,25 @@ class NotificationController extends Controller
         return redirect()
             ->route('home', ['locale' => $locale])
             ->with('status', __('notifications.unsubscribe_digest_success'));
+    }
+
+    /**
+     * Best-effort unsubscribe counter (D284, M080/S03): the settings write
+     * above is the load-bearing behavior, so a counter failure is logged and
+     * swallowed — it must never turn a successful unsubscribe into an error
+     * page for the user.
+     */
+    private function countUnsubscribe(string $category): void
+    {
+        try {
+            $this->counters->incrementFor($category, 'mail', 'unsubscribed');
+        } catch (Throwable $e) {
+            Log::warning('notifications.engagement_counter_failed', [
+                'category' => $category,
+                'channel' => 'mail',
+                'event' => 'unsubscribed',
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

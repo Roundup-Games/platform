@@ -272,7 +272,8 @@ function startPostgresContainerWithRetry(string $pgVersion): StartedGenericConta
                 $attempt,
                 $maxAttempts,
                 $e::class,
-                $e->getMessage()
+                $e->getMessage(),
+                $backoff
             ));
             sleep($backoff);
         }

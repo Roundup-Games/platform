@@ -685,10 +685,12 @@ class DiscordPublisher
         $resolvedLocale = is_string($resolvedLocale) ? $resolvedLocale : 'en';
 
         $name = trim($game->name);
-        // Community display zone (R089): the stored instant renders on the
-        // Berlin wall clock — the starter's date AND time must match the
-        // card and thread title beside it, not the UTC label.
-        $when = $game->date_time?->copy()->setTimezone(community_timezone())->format('j M Y · H:i');
+        // Native Discord timestamps (T02): the 📅 line carries <t:F> + <t:R>
+        // so every member sees their own timezone, matching the card's When
+        // field beside it. (The thread TITLE keeps the community wall date:
+        // Discord does not render timestamp markup in thread names.)
+        $epoch = $game->date_time?->getTimestamp();
+        $when = $epoch !== null ? "<t:{$epoch}:F> (<t:{$epoch}:R>)" : null;
 
         $lines = [];
         $lines[] = '💬 '.Lang::get('discord.content_thread_starter_welcome', ['name' => $name !== '' ? $name : Lang::get('discord.content_thread_starter_this_session', [], $resolvedLocale)], $resolvedLocale);

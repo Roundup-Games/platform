@@ -4,11 +4,14 @@ namespace Tests\Feature\Notifications;
 
 use App\Enums\OAuthProvider;
 use App\Models\LinkedAccount;
+use App\Models\NotificationEngagementCounter;
 use App\Models\User;
 use App\Notifications\BaseNotification;
 use App\Notifications\Channels\DiscordChannel;
 use App\Services\Discord\DiscordWebhookClient;
 use App\Services\Discord\DiscordWebhookPayload;
+use App\Services\NotificationEngagementCounters;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Client\Request;
 use Illuminate\Notifications\Notification;
@@ -52,9 +55,17 @@ class DiscordChannelTest extends TestCase
     {
         parent::setUp();
 
+        // Freeze the clock: counter rows bucket on the UTC calendar date, so
+        // a test straddling UTC midnight would write and read different daily
+        // rows and false-fail.
+        $this->travelTo(Carbon::parse('2026-11-14 12:00:00'));
+
         // Default to "fully configured"; individual tests opt out of gates.
         config()->set('services.discord.publishing_enabled', true);
         config()->set('services.discord.bot_token', 'test-bot-token');
+        // Dev/prod identity (D282): the app_id_short log marker is the last 4
+        // characters of the configured application id.
+        config()->set('services.discord.bot_application_id', '123456789012345678'); // gitleaks:allow — synthetic test-only Discord app id
     }
 
     private function makeClient(): DiscordWebhookClient
@@ -72,7 +83,21 @@ class DiscordChannelTest extends TestCase
 
     private function channel(): DiscordChannel
     {
-        return new DiscordChannel($this->makeClient());
+        return new DiscordChannel(new NotificationEngagementCounters, $this->makeClient());
+    }
+
+    /**
+     * Today's (category, discord, event) engagement counter — the D284 daily
+     * aggregate row (M080/S03/T04).
+     */
+    private function discordCounterCount(string $category, string $event): int
+    {
+        return (int) NotificationEngagementCounter::query()
+            ->where('date', now()->toDateString())
+            ->where('category', $category)
+            ->where('channel', 'discord')
+            ->where('event', $event)
+            ->value('count');
     }
 
     /**
@@ -160,6 +185,9 @@ class DiscordChannelTest extends TestCase
 
     /**
      * Notification that overrides toDiscord() (used for opt-out + verbatim tests).
+     * Carries toDatabase() like every real BaseNotification subclass — without
+     * it the category fallback is the anonymous reflection name, which embeds
+     * a NUL byte Postgres text columns cannot store.
      */
     private function discordOverrideNotification(?DiscordWebhookPayload $payload): Notification
     {
@@ -170,6 +198,11 @@ class DiscordChannelTest extends TestCase
             public function via(object $notifiable): array
             {
                 return [];
+            }
+
+            public function toDatabase(object $notifiable): array
+            {
+                return ['type' => 'waitlist_promoted'];
             }
 
             public function toDiscord(object $notifiable): ?DiscordWebhookPayload
@@ -255,8 +288,40 @@ class DiscordChannelTest extends TestCase
                 return $message === 'notification.discord_dm_sent'
                     && ($context['user_id'] ?? null) === $user->id
                     && ($context['category'] ?? null) === 'waitlist_promoted'
+                    && ($context['app_id_short'] ?? null) === '5678'
                     && ($context['dm_channel_id'] ?? null) === self::DM_CHANNEL;
             })
+            ->once();
+
+        // D284: the successful delivery is counted under the notification's
+        // toDatabase() category on the discord channel — and nothing else.
+        $this->assertSame(1, $this->discordCounterCount('waitlist_promoted', 'dm_sent'));
+        $this->assertSame(0, $this->discordCounterCount('waitlist_promoted', 'dm_failed'));
+        $this->assertSame(1, NotificationEngagementCounter::query()->count());
+    }
+
+    #[Test]
+    public function sent_log_carries_a_null_app_id_short_marker_when_no_application_id_is_configured(): void
+    {
+        config()->set('services.discord.bot_application_id', null);
+
+        Http::fake([
+            'discord.test/*' => Http::response(['id' => self::MESSAGE_ID], 200),
+        ]);
+
+        Log::spy();
+
+        $user = $this->linkedUser();
+
+        $this->channel()->send($user, $this->databaseNotification());
+
+        // Unconfigured application id: the marker stays present in the context
+        // (uniform shape) but is null, so an unattributed line is visible
+        // rather than silently missing the key.
+        Log::shouldHaveReceived('info')
+            ->withArgs(fn (string $m, array $c) => $m === 'notification.discord_dm_sent'
+                && array_key_exists('app_id_short', $c)
+                && $c['app_id_short'] === null)
             ->once();
     }
 
@@ -276,8 +341,11 @@ class DiscordChannelTest extends TestCase
 
         Log::shouldHaveReceived('info')
             ->withArgs(fn (string $m, array $c) => $m === 'notification.discord_dm_skipped'
-                && ($c['reason'] ?? null) === 'no_linked_account')
+                && ($c['reason'] ?? null) === 'no_linked_account'
+                && ($c['app_id_short'] ?? null) === '5678')
             ->once();
+
+        $this->assertSame(1, $this->discordCounterCount('waitlist_promoted', 'dm_skipped:no_linked_account'));
     }
 
     #[Test]
@@ -297,6 +365,8 @@ class DiscordChannelTest extends TestCase
             ->withArgs(fn (string $m, array $c) => $m === 'notification.discord_dm_skipped'
                 && ($c['reason'] ?? null) === 'publishing_disabled')
             ->once();
+
+        $this->assertSame(1, $this->discordCounterCount('waitlist_promoted', 'dm_skipped:publishing_disabled'));
     }
 
     #[Test]
@@ -316,6 +386,8 @@ class DiscordChannelTest extends TestCase
             ->withArgs(fn (string $m, array $c) => $m === 'notification.discord_dm_skipped'
                 && ($c['reason'] ?? null) === 'bot_token_missing')
             ->once();
+
+        $this->assertSame(1, $this->discordCounterCount('waitlist_promoted', 'dm_skipped:bot_token_missing'));
     }
 
     #[Test]
@@ -327,7 +399,7 @@ class DiscordChannelTest extends TestCase
         $user = $this->linkedUser();
 
         // Null client = Discord unconfigured (mirrors PushChannel's null guard).
-        (new DiscordChannel(null))->send($user, $this->databaseNotification());
+        (new DiscordChannel(new NotificationEngagementCounters, null))->send($user, $this->databaseNotification());
 
         Http::assertNothingSent();
 
@@ -335,6 +407,9 @@ class DiscordChannelTest extends TestCase
             ->withArgs(fn (string $m, array $c) => $m === 'notification.discord_dm_skipped'
                 && ($c['reason'] ?? null) === 'bot_token_missing')
             ->once();
+
+        // Same counter event as the empty-token path (one reason vocabulary).
+        $this->assertSame(1, $this->discordCounterCount('waitlist_promoted', 'dm_skipped:bot_token_missing'));
     }
 
     #[Test]
@@ -353,6 +428,8 @@ class DiscordChannelTest extends TestCase
             ->withArgs(fn (string $m, array $c) => $m === 'notification.discord_dm_skipped'
                 && ($c['reason'] ?? null) === 'dm_opt_out')
             ->once();
+
+        $this->assertSame(1, $this->discordCounterCount('waitlist_promoted', 'dm_skipped:dm_opt_out'));
     }
 
     #[Test]
@@ -402,6 +479,8 @@ class DiscordChannelTest extends TestCase
             ->withArgs(fn (string $m, array $c) => $m === 'notification.discord_dm_skipped'
                 && ($c['reason'] ?? null) === 'no_discord_payload')
             ->once();
+
+        $this->assertSame(1, $this->discordCounterCount('waitlist_promoted', 'dm_skipped:no_discord_payload'));
     }
 
     // ── Failure paths: graceful, never throws ───────────
@@ -430,6 +509,12 @@ class DiscordChannelTest extends TestCase
             ->withArgs(fn (string $m, array $c) => $m === 'notification.discord_dm_skipped'
                 && ($c['reason'] ?? null) === 'dm_channel_failed')
             ->once();
+
+        // D284: an API failure deliberately lands in TWO rows — dm_failed
+        // ("did the Discord API fail?") and dm_skipped:dm_channel_failed
+        // ("what was the send outcome?").
+        $this->assertSame(1, $this->discordCounterCount('waitlist_promoted', 'dm_failed'));
+        $this->assertSame(1, $this->discordCounterCount('waitlist_promoted', 'dm_skipped:dm_channel_failed'));
     }
 
     /**
@@ -477,6 +562,48 @@ class DiscordChannelTest extends TestCase
         Log::shouldHaveReceived('info')
             ->withArgs(fn (string $m, array $c) => $m === 'notification.discord_dm_skipped'
                 && ($c['reason'] ?? null) === 'send_failed')
+            ->once();
+
+        // D284: the post-message failure — dm_failed plus the failure-induced
+        // skip outcome (two-row semantics per the class docblock).
+        $this->assertSame(1, $this->discordCounterCount('waitlist_promoted', 'dm_failed'));
+        $this->assertSame(1, $this->discordCounterCount('waitlist_promoted', 'dm_skipped:send_failed'));
+    }
+
+    #[Test]
+    public function a_counter_write_failure_never_breaks_the_dm_delivery(): void
+    {
+        $calls = [];
+
+        Http::fake(function (Request $request) use (&$calls) {
+            $calls[] = $request->url();
+
+            if (str_contains($request->url(), 'users/@me/channels')) {
+                return Http::response(['id' => self::DM_CHANNEL], 200);
+            }
+
+            return Http::response(['id' => self::MESSAGE_ID], 200);
+        });
+
+        Log::spy();
+
+        $counters = \Mockery::mock(NotificationEngagementCounters::class);
+        $counters->shouldReceive('incrementFor')->andThrow(new \RuntimeException('counters unavailable'));
+
+        $user = $this->linkedUser();
+
+        // Telemetry is best-effort (D284): the DM delivery is load-bearing, so
+        // a counter failure is logged and swallowed — the DM is still posted.
+        (new DiscordChannel($counters, $this->makeClient()))
+            ->send($user, $this->databaseNotification());
+
+        $this->assertCount(2, $calls, 'both Discord REST calls must still happen');
+
+        Log::shouldHaveReceived('warning')
+            ->withArgs(fn (string $m, array $c) => $m === 'notifications.engagement_counter_failed'
+                && ($c['channel'] ?? null) === 'discord'
+                && ($c['event'] ?? null) === 'dm_sent'
+                && str_contains((string) ($c['error'] ?? ''), 'counters unavailable'))
             ->once();
     }
 

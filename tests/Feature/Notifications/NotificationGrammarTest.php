@@ -206,3 +206,63 @@ describe('gender-safe entity copy', function () {
             ->toContain('**Schatten über Waterdeep**');
     });
 });
+
+// ══════════════════════════════════════════════════════
+// Update and game-system-request subjects front-load the
+// entity and state what happened (M080/S04/T03)
+// ══════════════════════════════════════════════════════
+
+describe('update-mail subject shape', function () {
+    it('front-loads the entity and carries the change summary in both locales', function (string $locale) {
+        $gameSubject = __('notifications.subject_game_updated', ['game' => 'Waterdeep Dungeon', 'summary' => 'Date, Location'], $locale);
+
+        expect($gameSubject)->toStartWith('Waterdeep Dungeon')
+            ->and($gameSubject)->toContain('Date, Location');
+
+        $campaignSubject = __('notifications.subject_campaign_updated', ['campaign' => 'Shadow over Waterdeep', 'summary' => 'Description'], $locale);
+
+        expect($campaignSubject)->toStartWith('Shadow over Waterdeep')
+            ->and($campaignSubject)->toContain('Description');
+    })->with(['en', 'de']);
+});
+
+describe('game-system-request subject shape', function () {
+    it('declines the request by system name and carries the reason when present', function (string $locale) {
+        $withReason = __('notifications.subject_game_system_request_rejected_reason', ['name' => 'Gloomhaven', 'reason' => 'Duplicate entry'], $locale);
+
+        expect($withReason)->toContain('Gloomhaven')
+            ->and($withReason)->toContain('Duplicate entry')
+            ->and($withReason)->not->toContain(':reason');
+
+        $withoutReason = __('notifications.subject_game_system_request_rejected', ['name' => 'Gloomhaven'], $locale);
+
+        expect($withoutReason)->toContain('Gloomhaven')
+            ->and($withoutReason)->not->toContain(':name')
+            ->and($withoutReason)->not->toContain(':reason');
+    })->with(['en', 'de']);
+
+    it('names the requested system on the duplicate subject', function (string $locale) {
+        $subject = __('notifications.subject_game_system_request_duplicate', ['name' => 'Gloomhaven'], $locale);
+
+        expect($subject)->toContain('Gloomhaven')
+            ->and($subject)->not->toContain(':name');
+    })->with(['en', 'de']);
+});
+
+describe('German demotion and reminder voice', function () {
+    it('phrases the seat demotion as a host action, never a self-relinquished seat', function () {
+        $subject = __('notifications.subject_seat_demoted', ['entity' => 'Waterdeep'], 'de');
+        $body = __('notifications.body_seat_demoted', ['entity' => 'Waterdeep', 'reason' => 'Kader verkleinert'], 'de');
+
+        expect($subject)->not->toContain('abgegeben')
+            ->and($body)->not->toContain('abgegeben');
+    });
+
+    it('frames the same-day reminder push title around the Runde', function () {
+        $title = __('notifications.push_title_session_reminder', [], 'de');
+
+        expect($title)->toContain('Runde')
+            ->and($title)->not->toContain('Spielerinnerung')
+            ->and(__('notifications.push_title_session_reminder_24h', [], 'de'))->toContain('Runde');
+    });
+});

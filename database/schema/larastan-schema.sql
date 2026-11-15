@@ -13,6 +13,20 @@ CREATE TABLE public.activity_logs (
     id varchar NOT NULL
 );
 
+CREATE TABLE public.alertable_errors (
+    id varchar NOT NULL,
+    message_hash varchar(255) NOT NULL,
+    message text NOT NULL,
+    level varchar(16) NOT NULL,
+    channel varchar(64) NOT NULL,
+    context json NULL,
+    occurrences bigint NOT NULL DEFAULT '1'::bigint,
+    first_seen_at timestamp(0) with time zone NOT NULL,
+    last_seen_at timestamp(0) with time zone NOT NULL,
+    last_notified_at timestamp(0) with time zone NULL,
+    resolved_at timestamp(0) with time zone NULL
+);
+
 CREATE TABLE public.attendance_reports (
     id varchar NOT NULL,
     game_id varchar NOT NULL,
@@ -168,7 +182,7 @@ CREATE TABLE public.campaign_participants (
     confirmation_expires_at timestamp NULL,
     confirmation_attempts integer NULL,
     created_at timestamp NULL,
-    CONSTRAINT campaign_participants_join_source_check CHECK (((join_source)::text = ANY (ARRAY[('friend_invite'::varchar)::text, ('share_link'::varchar)::text, ('application'::varchar)::text, ('email_invite'::varchar)::text, ('short_link'::varchar)::text, ('discord'::varchar)::text]))),
+    CONSTRAINT campaign_participants_join_source_check CHECK (((join_source)::text = ANY ((ARRAY['friend_invite'::varchar, 'share_link'::varchar, 'application'::varchar, 'email_invite'::varchar, 'short_link'::varchar, 'discord'::varchar, 'mcp_agent'::varchar])::text[]))),
     CONSTRAINT campaign_participants_role_check CHECK (((role)::text = ANY (ARRAY[('owner'::varchar)::text, ('player'::varchar)::text, ('invited'::varchar)::text, ('applicant'::varchar)::text]))),
     CONSTRAINT campaign_participants_status_check CHECK (((status)::text = ANY (ARRAY[('approved'::varchar)::text, ('rejected'::varchar)::text, ('pending'::varchar)::text, ('waitlisted'::varchar)::text, ('benched'::varchar)::text, ('removed'::varchar)::text])))
 );
@@ -372,7 +386,8 @@ CREATE TABLE public.escalated_agent_capacity (
     current_count integer NOT NULL DEFAULT 0,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    user_id varchar NULL
+    user_id varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_agent_profiles (
@@ -382,14 +397,16 @@ CREATE TABLE public.escalated_agent_profiles (
     created_at timestamp NULL,
     updated_at timestamp NULL,
     chat_status varchar(255) NOT NULL DEFAULT 'offline'::varchar,
-    user_id varchar NULL
+    user_id varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_agent_skill (
     id bigint NOT NULL,
     skill_id bigint NOT NULL,
     proficiency integer NOT NULL DEFAULT 1,
-    user_id varchar NULL
+    user_id varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_api_tokens (
@@ -403,7 +420,8 @@ CREATE TABLE public.escalated_api_tokens (
     expires_at timestamp NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    tokenable_id varchar NULL
+    tokenable_id varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_article_categories (
@@ -414,7 +432,8 @@ CREATE TABLE public.escalated_article_categories (
     "position" integer NOT NULL DEFAULT 0,
     description text NULL,
     created_at timestamp NULL,
-    updated_at timestamp NULL
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_articles (
@@ -430,7 +449,28 @@ CREATE TABLE public.escalated_articles (
     published_at timestamp NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    author_id varchar NULL
+    author_id varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
+);
+
+CREATE TABLE public.escalated_attachment_migration_locks (
+    id integer NOT NULL,
+    owner varchar NOT NULL,
+    started_at timestamp NOT NULL
+);
+
+CREATE TABLE public.escalated_attachment_migrations (
+    id bigint NOT NULL,
+    attachment_id bigint NOT NULL,
+    source_disk varchar(255) NOT NULL,
+    source_path text NOT NULL,
+    destination_disk varchar(255) NOT NULL,
+    destination_path text NOT NULL,
+    status varchar(255) NOT NULL DEFAULT 'pending'::varchar,
+    checksum varchar(64) NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_attachments (
@@ -444,7 +484,8 @@ CREATE TABLE public.escalated_attachments (
     path varchar(255) NOT NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    attachable_id varchar NULL
+    attachable_id varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_audit_logs (
@@ -457,7 +498,8 @@ CREATE TABLE public.escalated_audit_logs (
     ip_address varchar(255) NULL,
     user_agent varchar(255) NULL,
     created_at timestamp NULL,
-    user_id varchar NULL
+    user_id varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_automations (
@@ -469,7 +511,9 @@ CREATE TABLE public.escalated_automations (
     "position" integer NOT NULL DEFAULT 0,
     last_run_at timestamp NULL,
     created_at timestamp NULL,
-    updated_at timestamp NULL
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C",
+    repeat_after_hours integer NULL
 );
 
 CREATE TABLE public.escalated_business_schedules (
@@ -479,7 +523,8 @@ CREATE TABLE public.escalated_business_schedules (
     is_default boolean NOT NULL DEFAULT false,
     schedule json NOT NULL,
     created_at timestamp NULL,
-    updated_at timestamp NULL
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_canned_responses (
@@ -490,7 +535,8 @@ CREATE TABLE public.escalated_canned_responses (
     is_shared boolean NOT NULL DEFAULT true,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    created_by varchar NULL
+    created_by varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_chat_routing_rules (
@@ -506,7 +552,8 @@ CREATE TABLE public.escalated_chat_routing_rules (
     is_active boolean NOT NULL DEFAULT true,
     "position" integer NOT NULL DEFAULT 0,
     created_at timestamp NULL,
-    updated_at timestamp NULL
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_chat_sessions (
@@ -523,7 +570,8 @@ CREATE TABLE public.escalated_chat_sessions (
     rating_comment text NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    agent_id varchar NULL
+    agent_id varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_contacts (
@@ -533,7 +581,9 @@ CREATE TABLE public.escalated_contacts (
     metadata json NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    user_id varchar NULL
+    user_id varchar NULL,
+    marketing_opt_out_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_custom_field_values (
@@ -543,7 +593,8 @@ CREATE TABLE public.escalated_custom_field_values (
     value text NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    entity_id varchar NULL
+    entity_id varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_custom_fields (
@@ -561,7 +612,8 @@ CREATE TABLE public.escalated_custom_fields (
     active boolean NOT NULL DEFAULT true,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    conditions json NULL
+    conditions json NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_custom_object_records (
@@ -569,7 +621,8 @@ CREATE TABLE public.escalated_custom_object_records (
     object_id bigint NOT NULL,
     data json NOT NULL,
     created_at timestamp NULL,
-    updated_at timestamp NULL
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_custom_objects (
@@ -577,6 +630,17 @@ CREATE TABLE public.escalated_custom_objects (
     name varchar(255) NOT NULL,
     slug varchar(255) NOT NULL,
     fields_schema json NOT NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
+);
+
+CREATE TABLE public.escalated_customer_presence (
+    id bigint NOT NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C",
+    subject_type varchar(191) NOT NULL,
+    subject_id varchar(64) NOT NULL,
+    last_seen_at timestamp NOT NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL
 );
@@ -591,12 +655,14 @@ CREATE TABLE public.escalated_delayed_actions (
     executed boolean NOT NULL DEFAULT false,
     cancelled boolean NOT NULL DEFAULT false,
     created_at timestamp NULL,
-    updated_at timestamp NULL
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_department_agent (
     department_id bigint NOT NULL,
-    agent_id varchar NULL
+    agent_id varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_departments (
@@ -606,7 +672,9 @@ CREATE TABLE public.escalated_departments (
     description text NULL,
     is_active boolean NOT NULL DEFAULT true,
     created_at timestamp NULL,
-    updated_at timestamp NULL
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C",
+    business_schedule_id bigint NULL
 );
 
 CREATE TABLE public.escalated_escalation_rules (
@@ -620,7 +688,22 @@ CREATE TABLE public.escalated_escalation_rules (
     is_active boolean NOT NULL DEFAULT true,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    category varchar(255) NOT NULL DEFAULT 'Uncategorized'::varchar
+    category varchar(255) NOT NULL DEFAULT 'Uncategorized'::varchar,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C",
+    repeat_after_hours integer NULL
+);
+
+CREATE TABLE public.escalated_guest_verifications (
+    id varchar NOT NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C",
+    email text NOT NULL,
+    purpose varchar(20) NOT NULL,
+    code_hash varchar(64) NOT NULL,
+    attempts smallint NOT NULL DEFAULT '0'::smallint,
+    expires_at timestamp NOT NULL,
+    used_at timestamp NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL
 );
 
 CREATE TABLE public.escalated_holidays (
@@ -630,7 +713,8 @@ CREATE TABLE public.escalated_holidays (
     date date NOT NULL,
     recurring boolean NOT NULL DEFAULT false,
     created_at timestamp NULL,
-    updated_at timestamp NULL
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_import_jobs (
@@ -645,7 +729,8 @@ CREATE TABLE public.escalated_import_jobs (
     completed_at timestamp NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    user_id varchar NULL
+    user_id varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_import_source_maps (
@@ -654,7 +739,8 @@ CREATE TABLE public.escalated_import_source_maps (
     entity_type varchar(50) NOT NULL,
     source_id varchar(255) NOT NULL,
     escalated_id varchar(255) NOT NULL,
-    created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_inbound_emails (
@@ -674,7 +760,8 @@ CREATE TABLE public.escalated_inbound_emails (
     error_message text NULL,
     processed_at timestamp NULL,
     created_at timestamp NULL,
-    updated_at timestamp NULL
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_macros (
@@ -686,7 +773,8 @@ CREATE TABLE public.escalated_macros (
     "order" integer NOT NULL DEFAULT 0,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    created_by varchar NULL
+    created_by varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_mentions (
@@ -695,7 +783,92 @@ CREATE TABLE public.escalated_mentions (
     read_at timestamp NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    user_id varchar NULL
+    user_id varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
+);
+
+CREATE TABLE public.escalated_newsletter_deliveries (
+    id bigint NOT NULL,
+    newsletter_id bigint NOT NULL,
+    contact_id bigint NOT NULL,
+    email_at_send varchar(320) NOT NULL,
+    status varchar(255) NOT NULL DEFAULT 'pending'::varchar,
+    tracking_token varchar(40) NOT NULL,
+    sent_at timestamp NULL,
+    opened_at timestamp NULL,
+    last_clicked_at timestamp NULL,
+    clicks_count integer NOT NULL DEFAULT 0,
+    bounce_reason text NULL,
+    failure_reason text NULL,
+    attempt_count smallint NOT NULL DEFAULT '0'::smallint,
+    claimed_at timestamp NULL,
+    next_attempt_at timestamp NULL,
+    is_test boolean NOT NULL DEFAULT false,
+    created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C",
+    CONSTRAINT escalated_newsletter_deliveries_status_check CHECK (((status)::text = ANY ((ARRAY['pending'::varchar, 'queued'::varchar, 'sent'::varchar, 'bounced'::varchar, 'complained'::varchar, 'suppressed'::varchar, 'failed'::varchar])::text[])))
+);
+
+CREATE TABLE public.escalated_newsletter_list_members (
+    id bigint NOT NULL,
+    list_id bigint NOT NULL,
+    contact_id bigint NOT NULL,
+    added_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    added_by varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
+);
+
+CREATE TABLE public.escalated_newsletter_lists (
+    id bigint NOT NULL,
+    name varchar(255) NOT NULL,
+    description text NULL,
+    kind varchar(255) NOT NULL,
+    filter_json json NULL,
+    created_by varchar NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C",
+    CONSTRAINT escalated_newsletter_lists_kind_check CHECK (((kind)::text = ANY ((ARRAY['static'::varchar, 'dynamic'::varchar])::text[])))
+);
+
+CREATE TABLE public.escalated_newsletter_templates (
+    id bigint NOT NULL,
+    name varchar(255) NOT NULL,
+    theme varchar(64) NOT NULL DEFAULT 'default'::varchar,
+    subject_template varchar(998) NULL,
+    body_markdown text NOT NULL,
+    merge_fields_schema json NULL,
+    created_by varchar NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
+);
+
+CREATE TABLE public.escalated_newsletters (
+    id bigint NOT NULL,
+    subject varchar(998) NOT NULL,
+    from_email varchar(320) NOT NULL,
+    from_name varchar(255) NULL,
+    reply_to varchar(320) NULL,
+    target_list_id bigint NOT NULL,
+    template_id bigint NULL,
+    theme varchar(64) NULL,
+    body_markdown text NULL,
+    status varchar(255) NOT NULL DEFAULT 'draft'::varchar,
+    scheduled_at timestamp NULL,
+    sent_at timestamp NULL,
+    created_by varchar NULL,
+    sent_by varchar NULL,
+    summary_total integer NOT NULL DEFAULT 0,
+    summary_sent integer NOT NULL DEFAULT 0,
+    summary_opened integer NOT NULL DEFAULT 0,
+    summary_clicked integer NOT NULL DEFAULT 0,
+    summary_bounced integer NOT NULL DEFAULT 0,
+    summary_complained integer NOT NULL DEFAULT 0,
+    created_at timestamp NULL,
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C",
+    CONSTRAINT escalated_newsletters_status_check CHECK (((status)::text = ANY ((ARRAY['draft'::varchar, 'scheduled'::varchar, 'sending'::varchar, 'sent'::varchar, 'paused'::varchar, 'failed'::varchar])::text[])))
 );
 
 CREATE TABLE public.escalated_permissions (
@@ -713,7 +886,8 @@ CREATE TABLE public.escalated_plugin_store (
     key varchar(255),
     data json NULL,
     created_at timestamp NULL,
-    updated_at timestamp NULL
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_plugins (
@@ -738,17 +912,20 @@ CREATE TABLE public.escalated_replies (
     updated_at timestamp NULL,
     deleted_at timestamp NULL,
     is_pinned boolean NOT NULL DEFAULT false,
-    author_id varchar NULL
+    author_id varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_role_permission (
     role_id bigint NOT NULL,
-    permission_id bigint NOT NULL
+    permission_id bigint NOT NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_role_user (
     role_id bigint NOT NULL,
-    user_id varchar NULL
+    user_id varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_roles (
@@ -757,6 +934,18 @@ CREATE TABLE public.escalated_roles (
     slug varchar(255) NOT NULL,
     description text NULL,
     is_system boolean NOT NULL DEFAULT false,
+    created_at timestamp NULL,
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
+);
+
+CREATE TABLE public.escalated_rule_executions (
+    id bigint NOT NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C",
+    rule_type varchar(32) NOT NULL,
+    rule_id bigint NOT NULL,
+    ticket_id bigint NOT NULL,
+    fired_at timestamp NOT NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL
 );
@@ -768,7 +957,8 @@ CREATE TABLE public.escalated_satisfaction_ratings (
     comment text NULL,
     rated_by_type varchar(255) NULL,
     created_at timestamp NULL,
-    rated_by_id varchar NULL
+    rated_by_id varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_saved_views (
@@ -782,7 +972,8 @@ CREATE TABLE public.escalated_saved_views (
     color varchar(255) NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    user_id varchar NULL
+    user_id varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_settings (
@@ -790,7 +981,8 @@ CREATE TABLE public.escalated_settings (
     key varchar(255) NOT NULL,
     value text NULL,
     created_at timestamp NULL,
-    updated_at timestamp NULL
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_side_conversation_replies (
@@ -799,7 +991,8 @@ CREATE TABLE public.escalated_side_conversation_replies (
     body text NOT NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    author_id varchar NULL
+    author_id varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_side_conversations (
@@ -810,7 +1003,8 @@ CREATE TABLE public.escalated_side_conversations (
     status varchar(255) NOT NULL DEFAULT 'open'::varchar,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    created_by varchar NULL
+    created_by varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_skills (
@@ -818,7 +1012,10 @@ CREATE TABLE public.escalated_skills (
     name varchar(255) NOT NULL,
     slug varchar(255) NOT NULL,
     created_at timestamp NULL,
-    updated_at timestamp NULL
+    updated_at timestamp NULL,
+    routing_tag_ids json NULL,
+    routing_department_ids json NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_sla_policies (
@@ -831,6 +1028,47 @@ CREATE TABLE public.escalated_sla_policies (
     business_hours_only boolean NOT NULL DEFAULT false,
     is_active boolean NOT NULL DEFAULT true,
     created_at timestamp NULL,
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C",
+    department_id bigint NULL,
+    ticket_type varchar(255) NULL,
+    business_schedule_id bigint NULL
+);
+
+CREATE TABLE public.escalated_slack_events (
+    id bigint NOT NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C",
+    app_key varchar(64) NOT NULL,
+    workspace_id varchar(64) NOT NULL,
+    channel_id varchar(64) NOT NULL,
+    thread_ts varchar(32) NOT NULL,
+    thread_key varchar(64) NOT NULL,
+    ticket_id bigint NULL,
+    event_key varchar(64) NOT NULL,
+    message_key varchar(64) NOT NULL,
+    event_id varchar(128) NOT NULL,
+    payload_hash varchar(64) NOT NULL,
+    payload text NOT NULL,
+    status varchar(20) NOT NULL DEFAULT 'pending'::varchar,
+    attempts integer NOT NULL DEFAULT 0,
+    available_at timestamp NULL,
+    processed_at timestamp NULL,
+    last_error varchar(255) NULL,
+    reply_id bigint NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL
+);
+
+CREATE TABLE public.escalated_slack_threads (
+    id bigint NOT NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C",
+    app_key varchar(64) NOT NULL,
+    workspace_id varchar(64) NOT NULL,
+    channel_id varchar(64) NOT NULL,
+    thread_ts varchar(32) NOT NULL,
+    thread_key varchar(64) NOT NULL,
+    ticket_id bigint NULL,
+    created_at timestamp NULL,
     updated_at timestamp NULL
 );
 
@@ -840,7 +1078,8 @@ CREATE TABLE public.escalated_tags (
     slug varchar(255) NOT NULL,
     color varchar(255) NOT NULL DEFAULT '#6B7280'::varchar,
     created_at timestamp NULL,
-    updated_at timestamp NULL
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_ticket_activities (
@@ -851,14 +1090,16 @@ CREATE TABLE public.escalated_ticket_activities (
     properties json NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    causer_id varchar NULL
+    causer_id varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_ticket_followers (
     ticket_id bigint NOT NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    user_id varchar NULL
+    user_id varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_ticket_links (
@@ -866,6 +1107,17 @@ CREATE TABLE public.escalated_ticket_links (
     parent_ticket_id bigint NOT NULL,
     child_ticket_id bigint NOT NULL,
     link_type varchar(255) NOT NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
+);
+
+CREATE TABLE public.escalated_ticket_reads (
+    id bigint NOT NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C",
+    user_id varchar NOT NULL,
+    ticket_id bigint NOT NULL,
+    last_read_at timestamp NULL,
     created_at timestamp NULL,
     updated_at timestamp NULL
 );
@@ -880,7 +1132,8 @@ CREATE TABLE public.escalated_ticket_statuses (
     "position" integer NOT NULL DEFAULT 0,
     is_default boolean NOT NULL DEFAULT false,
     created_at timestamp NULL,
-    updated_at timestamp NULL
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_ticket_subjects (
@@ -891,12 +1144,14 @@ CREATE TABLE public.escalated_ticket_subjects (
     role varchar(255) NULL,
     "position" integer NOT NULL DEFAULT 0,
     created_at timestamp NULL,
-    updated_at timestamp NULL
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_ticket_tag (
     ticket_id bigint NOT NULL,
-    tag_id bigint NOT NULL
+    tag_id bigint NOT NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_tickets (
@@ -934,7 +1189,16 @@ CREATE TABLE public.escalated_tickets (
     contact_id bigint NULL,
     requester_id varchar NULL,
     assigned_to varchar NULL,
-    snoozed_by varchar NULL
+    snoozed_by varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C",
+    guest_access_hash varchar(64) NULL,
+    guest_access_expires_at timestamp NULL,
+    guest_email_verified_at timestamp NULL,
+    guest_verified_email varchar(255) NULL,
+    external_reference varchar(255) NULL,
+    account_type varchar(255) COLLATE pg_catalog."C" NULL,
+    account_id varchar(255) COLLATE pg_catalog."C" NULL,
+    last_customer_activity_at timestamp NULL
 );
 
 CREATE TABLE public.escalated_two_factor (
@@ -957,7 +1221,8 @@ CREATE TABLE public.escalated_webhook_deliveries (
     attempts smallint NOT NULL DEFAULT '0'::smallint,
     delivered_at timestamp NULL,
     created_at timestamp NULL,
-    updated_at timestamp NULL
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_webhooks (
@@ -967,7 +1232,8 @@ CREATE TABLE public.escalated_webhooks (
     secret varchar(255) NULL,
     active boolean NOT NULL DEFAULT true,
     created_at timestamp NULL,
-    updated_at timestamp NULL
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_workflow_logs (
@@ -981,7 +1247,8 @@ CREATE TABLE public.escalated_workflow_logs (
     started_at timestamp NULL,
     completed_at timestamp NULL,
     created_at timestamp NULL,
-    updated_at timestamp NULL
+    updated_at timestamp NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.escalated_workflows (
@@ -997,7 +1264,8 @@ CREATE TABLE public.escalated_workflows (
     trigger_count integer NOT NULL DEFAULT 0,
     created_at timestamp NULL,
     updated_at timestamp NULL,
-    created_by varchar NULL
+    created_by varchar NULL,
+    tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C"
 );
 
 CREATE TABLE public.event_announcements (
@@ -1130,7 +1398,7 @@ CREATE TABLE public.game_participants (
     approved_at timestamp NULL,
     promoted_manually boolean NOT NULL DEFAULT false,
     CONSTRAINT game_participants_attendance_status_check CHECK (((attendance_status)::text = ANY (ARRAY[('attended'::varchar)::text, ('no_show'::varchar)::text, ('late_cancel'::varchar)::text, ('excused'::varchar)::text, ('cancelled_early'::varchar)::text]))),
-    CONSTRAINT game_participants_join_source_check CHECK (((join_source)::text = ANY (ARRAY[('friend_invite'::varchar)::text, ('share_link'::varchar)::text, ('application'::varchar)::text, ('email_invite'::varchar)::text, ('short_link'::varchar)::text, ('discord'::varchar)::text]))),
+    CONSTRAINT game_participants_join_source_check CHECK (((join_source)::text = ANY ((ARRAY['friend_invite'::varchar, 'share_link'::varchar, 'application'::varchar, 'email_invite'::varchar, 'short_link'::varchar, 'discord'::varchar, 'mcp_agent'::varchar])::text[]))),
     CONSTRAINT game_participants_role_check CHECK (((role)::text = ANY (ARRAY[('owner'::varchar)::text, ('player'::varchar)::text, ('invited'::varchar)::text, ('applicant'::varchar)::text]))),
     CONSTRAINT game_participants_status_check CHECK (((status)::text = ANY (ARRAY[('approved'::varchar)::text, ('rejected'::varchar)::text, ('pending'::varchar)::text, ('waitlisted'::varchar)::text, ('benched'::varchar)::text, ('removed'::varchar)::text])))
 );
@@ -1425,6 +1693,30 @@ CREATE TABLE public.locations (
     seo_description json NULL
 );
 
+CREATE TABLE public.mcp_calls (
+    id varchar NOT NULL,
+    mcp_client_id varchar NOT NULL,
+    user_id varchar NULL,
+    tool varchar(255) NOT NULL,
+    arguments_hash varchar(64) NOT NULL,
+    latency_ms integer NOT NULL,
+    created_at timestamp(0) with time zone NOT NULL,
+    actor varchar(16) NOT NULL DEFAULT 'agent'::varchar,
+    target_type varchar(32) NULL,
+    target_id varchar(64) NULL
+);
+
+CREATE TABLE public.mcp_clients (
+    id varchar NOT NULL,
+    user_id varchar NOT NULL,
+    name varchar(255) NOT NULL,
+    rate_limit_tier varchar(32) NOT NULL DEFAULT 'standard'::varchar,
+    personal_access_token_id bigint NULL,
+    revoked_at timestamp NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL
+);
+
 CREATE TABLE public.media (
     model_type varchar(255) NOT NULL,
     model_id varchar NOT NULL,
@@ -1488,6 +1780,17 @@ CREATE TABLE public.nearby_discovery_views (
     updated_at timestamp NULL,
     user_id varchar NOT NULL,
     id varchar NOT NULL
+);
+
+CREATE TABLE public.notification_engagement_counters (
+    id bigint NOT NULL,
+    date date NOT NULL,
+    category varchar(64) NOT NULL,
+    channel varchar(32) NOT NULL,
+    event varchar(64) NOT NULL,
+    count bigint NOT NULL DEFAULT '1'::bigint,
+    created_at timestamp NULL,
+    updated_at timestamp NULL
 );
 
 CREATE TABLE public.notifications (
@@ -1862,6 +2165,8 @@ CREATE TABLE public.users (
     signup_content_type varchar(50) NULL,
     signup_content_slug varchar(255) NULL,
     seo_title json NULL,
-    seo_description json NULL
+    seo_description json NULL,
+    timezone varchar(64) NULL,
+    timezone_manually_set boolean NOT NULL DEFAULT false
 );
 

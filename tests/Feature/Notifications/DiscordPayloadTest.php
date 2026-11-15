@@ -275,6 +275,60 @@ class DiscordPayloadTest extends TestCase
         $this->assertSame(0x5865F2, $embed['color']);
     }
 
+    // -- Structural mention guard (allowed_mentions parse:[] default) ------
+
+    /**
+     * D288 rider (M080/S04/T04): no notification passes an explicit
+     * allowlist, so every DM payload's serialized wire shape must carry the
+     * structural parse:[] default. Discord's absent-field behavior parses
+     * every mention in content — the default makes user-controlled text
+     * (game names, venue names) structurally unable to trigger pings.
+     */
+    public function test_discord_payloads_carry_the_allowed_mentions_parse_default(): void
+    {
+        $game = Game::factory()->create();
+        $campaign = Campaign::factory()->create();
+        $follower = User::factory()->create();
+        $notifiable = User::factory()->create(['preferred_language' => ContentLanguage::En]);
+
+        $payloads = [
+            (new AttendanceNudge($game, Carbon::parse('2026-11-06 18:00:00', 'UTC')))->toDiscord($notifiable),
+            (new EntityCancelled($campaign))->toDiscord($notifiable),
+            (new NewFollower($follower))->toDiscord($notifiable),
+        ];
+
+        foreach ($payloads as $payload) {
+            $this->assertSame(
+                ['parse' => []],
+                $payload->toArray()['allowed_mentions'],
+                get_class($payload).' must serialize with the structural mention guard',
+            );
+        }
+    }
+
+    /**
+     * Adversarial case: an entity name that literally contains @everyone
+     * still renders as inert embed text — the parse:[] default means Discord
+     * parses no mention out of it, so a hostile name can never ping the
+     * guild's everyone-role from a bot DM.
+     */
+    public function test_entity_name_containing_everyone_mention_stays_inert(): void
+    {
+        $game = Game::factory()->create(['name' => ['en' => 'Ping @everyone and @here heist']]);
+        $notifiable = User::factory()->create(['preferred_language' => ContentLanguage::En]);
+
+        $payload = (new AttendanceNudge($game, Carbon::parse('2026-11-06 18:00:00', 'UTC')))->toDiscord($notifiable);
+
+        $body = $payload->toArray();
+        // The hostile name renders verbatim as embed text (no sanitization —
+        // the guard is Discord-side parsing suppression, not munging)...
+        $this->assertStringContainsString('@everyone', $body['embeds'][0]['description']);
+        // ...but the wire shape allows no mention parsing at all.
+        $this->assertSame(['parse' => []], $body['allowed_mentions']);
+        $this->assertArrayNotHasKey('users', $body['allowed_mentions']);
+        $this->assertArrayNotHasKey('roles', $body['allowed_mentions']);
+    }
+
     // -- Null opt-out: push-null notifications return null (D130) ----------
 
     public function test_application_approved_opts_out_of_discord_returning_null(): void

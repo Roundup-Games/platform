@@ -33,7 +33,7 @@ class DebriefingAvailable extends BaseNotification
                 'game' => $this->game->name,
             ]))
             ->action(__('games.action_submit_debriefing'), route('games.show', ['locale' => $locale, 'id' => $this->game]))
-            ->line($this->unsubscribeLine($notifiable, 'debriefing_available'));
+            ->line($this->unsubscribeLine($notifiable, 'session_content'));
     }
 
     /**

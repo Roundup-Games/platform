@@ -24,14 +24,17 @@ use App\Models\Game;
  *   Pending               → "Pending invite" + Leave (cancel the pending RSVP)
  *   none + seats free     → "Claim your seat" + Join
  *   none + full           → "Full — join the waitlist" + Join (auto-waitlists)
- *   none + canceled/done  → "No longer available" (read-only)
+ *   none + cancelled/done  → "No longer available" (read-only)
+ *
+ * All copy resolves from the notifications.[content|action|error]_rsvp_* lang
+ * keys in the clicker's locale — the controller resolves the interaction
+ * payload's locale field and carries it on the context (null → app locale).
+ * Terminology follows the glossary canon (D174/D264): Game/Runde, cancelled
+ * (EN-British), du-form DE, nachrücken for waitlist/bench promotion.
  *
  * The action buttons carry custom_ids the controller routes to deferred jobs:
  *   roundup:join:{gameId}  → ProcessDiscordRsvp (the existing join pipeline)
  *   roundup:leave:{gameId} → ProcessDiscordLeave (mirrors web leaveGame())
- *
- * Hardcoded English copy to match DiscordRsvpOutcome / the unlinked-deep-link
- * precedent (localization is a follow-up; the menu does not carry locale).
  */
 class DiscordRsvpMenuRenderer
 {
@@ -43,48 +46,50 @@ class DiscordRsvpMenuRenderer
     public function render(Game $game, DiscordRsvpMenuContext $context): DiscordRsvpMenu
     {
         $gameId = $game->id;
-        $max = $context->maxPlayers;
+        $locale = $context->locale ?? app()->getLocale();
 
-        // Terminal/non-joinable game state wins over everything: a canceled or
+        // Terminal/non-joinable game state wins over everything: a cancelled or
         // completed game offers no join regardless of roster state.
         if ($game->status === GameStatus::Canceled || $game->status === GameStatus::Completed) {
-            $verb = $game->status === GameStatus::Canceled ? 'canceled' : 'completed';
+            $key = $game->status === GameStatus::Canceled
+                ? 'notifications.content_rsvp_game_cancelled'
+                : 'notifications.content_rsvp_game_completed';
 
             return new DiscordRsvpMenu(
-                content: "This session has been {$verb} — check roundup for the latest.",
+                content: __($key, [], $locale),
             );
         }
 
         // Owner: read-only acknowledgement. Hosts don't RSVP to their own games.
         if ($context->isOwner) {
             return new DiscordRsvpMenu(
-                content: "🎲 You're hosting this session. Manage the roster and details on roundup.",
+                content: __('notifications.content_rsvp_hosting', [], $locale),
             );
         }
 
         // Already on the roster in some status → show their state + Leave.
         if ($context->currentStatus !== null) {
-            return $this->menuForExistingParticipant($context, $gameId);
+            return $this->menuForExistingParticipant($context, $gameId, $locale);
         }
 
         // Not on the roster → Join (auto-waitlists when full).
-        return $this->menuForJoiner($context, $gameId);
+        return $this->menuForJoiner($context, $gameId, $locale);
     }
 
     /**
      * The clicker is already on the roster. Show their status + a Leave button.
      */
-    private function menuForExistingParticipant(DiscordRsvpMenuContext $context, string $gameId): DiscordRsvpMenu
+    private function menuForExistingParticipant(DiscordRsvpMenuContext $context, string $gameId, string $locale): DiscordRsvpMenu
     {
         $content = match ($context->currentStatus) {
-            ParticipantStatus::Approved => $this->approvedContent($context),
-            ParticipantStatus::Waitlisted => $this->waitlistedContent($context),
-            ParticipantStatus::Benched => "🏋️ You're on the bench — we'll promote you here the moment a seat frees up.",
-            ParticipantStatus::Pending => '⏳ Your RSVP is pending. Leave to cancel it, or hold tight.',
+            ParticipantStatus::Approved => $this->approvedContent($context, $locale),
+            ParticipantStatus::Waitlisted => $this->waitlistedContent($context, $locale),
+            ParticipantStatus::Benched => __('notifications.content_rsvp_benched', [], $locale),
+            ParticipantStatus::Pending => __('notifications.content_rsvp_pending', [], $locale),
             // Removed/Rejected are not active participant states; treat as
             // not-on-roster. (The controller's status query filters to active
             // statuses, so this is defensive.)
-            default => "You're not currently on the roster for this game.",
+            default => __('notifications.content_rsvp_not_on_roster', [], $locale),
         };
 
         // A participant whose status resolved to not-on-roster (Removed/Rejected)
@@ -97,33 +102,39 @@ class DiscordRsvpMenuRenderer
         ], true);
 
         if (! $isActive) {
-            return $this->menuForJoiner($context, $gameId);
+            return $this->menuForJoiner($context, $gameId, $locale);
         }
 
         return new DiscordRsvpMenu(
             content: $content,
-            components: [$this->leaveRow($gameId, $context->currentStatus)],
+            components: [$this->leaveRow($gameId, $context->currentStatus, $locale)],
         );
     }
 
     /**
      * The clicker is not on the roster (or was removed). Show Join (which
-     * auto-waitlists when the session is full).
+     * auto-waitlists when the roster is full).
      */
-    private function menuForJoiner(DiscordRsvpMenuContext $context, string $gameId): DiscordRsvpMenu
+    private function menuForJoiner(DiscordRsvpMenuContext $context, string $gameId, string $locale): DiscordRsvpMenu
     {
         $max = $context->maxPlayers;
         $seatsLeft = ($max !== null && $max > 0) ? max(0, $max - $context->approvedCount) : null;
 
         if ($seatsLeft === null) {
-            $content = "🎟️ {$context->approvedCount} joined · open roster — claim your seat.";
+            $content = __('notifications.content_rsvp_joiner_open_roster', ['approved' => $context->approvedCount], $locale);
         } elseif ($seatsLeft > 0) {
-            $content = "🎟️ {$context->approvedCount}/{$max} seats · {$seatsLeft} left — claim yours.";
+            $content = __('notifications.content_rsvp_joiner_seats_left', [
+                'approved' => $context->approvedCount,
+                'max' => $max,
+                'left' => $seatsLeft,
+            ], $locale);
         } else {
-            $content = "🎟️ {$max}/{$max} seats — full. Join to grab a waitlist spot; we'll bump you up the moment a seat opens.";
+            $content = __('notifications.content_rsvp_joiner_full', ['max' => $max], $locale);
         }
 
-        $joinLabel = ($seatsLeft !== null && $seatsLeft === 0) ? 'Join waitlist' : '✅ Join';
+        $joinLabel = ($seatsLeft !== null && $seatsLeft === 0)
+            ? __('notifications.action_rsvp_join_waitlist', [], $locale)
+            : __('notifications.action_rsvp_join', [], $locale);
 
         return new DiscordRsvpMenu(
             content: $content,
@@ -133,23 +144,29 @@ class DiscordRsvpMenuRenderer
 
     // ── Copy ────────────────────────────────────────────
 
-    private function approvedContent(DiscordRsvpMenuContext $context): string
+    private function approvedContent(DiscordRsvpMenuContext $context, string $locale): string
     {
         $max = $context->maxPlayers;
-        $seat = $max !== null && $max > 0
-            ? " (seat {$context->approvedCount} of {$max})"
-            : '';
 
-        return "✅ You're in{$seat} — your seat is saved. 🎲";
+        if ($max !== null && $max > 0) {
+            return __('notifications.content_rsvp_approved_seat', [
+                'current' => $context->approvedCount,
+                'max' => $max,
+            ], $locale);
+        }
+
+        return __('notifications.content_rsvp_approved', [], $locale);
     }
 
-    private function waitlistedContent(DiscordRsvpMenuContext $context): string
+    private function waitlistedContent(DiscordRsvpMenuContext $context, string $locale): string
     {
         $pos = $context->waitlistPosition;
 
-        return $pos !== null && $pos > 0
-            ? "📋 You're #{$pos} on the waitlist — we'll bump you up here the moment a seat opens."
-            : "📋 You're on the waitlist — we'll bump you up here the moment a seat opens.";
+        if ($pos !== null && $pos > 0) {
+            return __('notifications.content_rsvp_waitlisted_position', ['position' => $pos], $locale);
+        }
+
+        return __('notifications.content_rsvp_waitlisted', [], $locale);
     }
 
     // ── Button rows ─────────────────────────────────────
@@ -175,11 +192,11 @@ class DiscordRsvpMenuRenderer
     /**
      * @return array<string, mixed>
      */
-    private function leaveRow(string $gameId, ParticipantStatus $status): array
+    private function leaveRow(string $gameId, ParticipantStatus $status, string $locale): array
     {
         $label = match ($status) {
-            ParticipantStatus::Waitlisted, ParticipantStatus::Pending => 'Leave waitlist',
-            default => '🚪 Leave',
+            ParticipantStatus::Waitlisted, ParticipantStatus::Pending => __('notifications.action_rsvp_leave_waitlist', [], $locale),
+            default => __('notifications.action_rsvp_leave', [], $locale),
         };
 
         return [

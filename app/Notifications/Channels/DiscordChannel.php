@@ -4,8 +4,10 @@ namespace App\Notifications\Channels;
 
 use App\Exceptions\DiscordApiException;
 use App\Models\User;
+use App\Notifications\ResolvesNotificationCategory;
 use App\Services\Discord\DiscordWebhookClient;
 use App\Services\Discord\DiscordWebhookPayload;
+use App\Services\NotificationEngagementCounters;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
 
@@ -36,10 +38,29 @@ use Illuminate\Support\Facades\Log;
  * a typed reason; success emits notification.discord_dm_sent. DiscordApiException
  * (notably the shared-guild DM-creation 403, research §10) is logged at warning
  * level so it is diagnosable without surfacing as a dispatch failure.
+ *
+ * Every log context carries app_id_short (last 4 of
+ * services.discord.bot_application_id, D282): a dedicated roundup-dev Discord
+ * application is live in non-prod environments alongside the production bot,
+ * and the marker makes dev-app vs prod-app activity distinguishable in any
+ * shared log stream without echoing the full application snowflake.
+ *
+ * Engagement counters (D284, M080/S03): every outcome bumps the
+ * per-(date, category, channel, event) daily aggregate in
+ * notification_engagement_counters — dm_sent on delivery, dm_skipped:<reason>
+ * on every skip outcome, dm_failed on each Discord API failure. An API
+ * failure deliberately lands in TWO rows (dm_failed AND the subsequent
+ * dm_skipped:<reason>): they answer different questions ("did the Discord
+ * API fail?" vs "what was the send outcome?") and are independent daily
+ * aggregates, not a per-event ledger. Counter writes are best-effort: a
+ * failure is logged and swallowed, never allowed to break delivery.
  */
 class DiscordChannel
 {
+    use ResolvesNotificationCategory;
+
     public function __construct(
+        private readonly NotificationEngagementCounters $counters,
         private ?DiscordWebhookClient $client = null,
     ) {}
 
@@ -101,6 +122,7 @@ class DiscordChannel
                 'user_id' => $notifiable->id,
                 'notification_type' => $notificationType,
                 'category' => $category,
+                'app_id_short' => $this->appIdShort(),
             ]);
 
             $this->skipped($notifiable, $notificationType, $category, 'no_discord_payload');
@@ -125,9 +147,11 @@ class DiscordChannel
                 'user_id' => $notifiable->id,
                 'notification_type' => $notificationType,
                 'category' => $category,
+                'app_id_short' => $this->appIdShort(),
                 'step' => 'create_dm_channel',
                 'error' => $e->getMessage(),
             ]);
+            $this->count($category, 'dm_failed');
             $this->skipped($notifiable, $notificationType, $category, 'dm_channel_failed');
 
             return;
@@ -141,10 +165,12 @@ class DiscordChannel
                 'user_id' => $notifiable->id,
                 'notification_type' => $notificationType,
                 'category' => $category,
+                'app_id_short' => $this->appIdShort(),
                 'step' => 'post_message',
                 'dm_channel_id' => $dmChannelId,
                 'error' => $e->getMessage(),
             ]);
+            $this->count($category, 'dm_failed');
             $this->skipped($notifiable, $notificationType, $category, 'send_failed');
 
             return;
@@ -154,29 +180,31 @@ class DiscordChannel
             'user_id' => $notifiable->id,
             'notification_type' => $notificationType,
             'category' => $category,
+            'app_id_short' => $this->appIdShort(),
             'dm_channel_id' => $dmChannelId,
             // Discord message snowflake — retained so a delivery can be traced
             // to the specific message (lookup, uniqueness audit, support).
             'message_id' => $messageId,
         ]);
+
+        $this->count($category, 'dm_sent');
     }
 
     /**
-     * Best-effort notification category for log correlation. NotificationService
-     * receives the category as a separate argument (not on the instance), so
-     * derive from toDatabase()['type'] (which mirrors the category value, e.g.
-     * waitlist_promoted), falling back to the class basename.
+     * Identity marker for D282 dev-application verification: the last 4
+     * characters of the configured application id, so any notification.discord_dm_*
+     * log line can be attributed to the dev or the production application in a
+     * shared log stream. Null when no application id is configured (marker
+     * present with a null value keeps the context shape uniform).
      */
-    private function resolveCategory(Notification $notification, mixed $notifiable): string
+    private function appIdShort(): ?string
     {
-        if (method_exists($notification, 'toDatabase')) {
-            $data = $notification->toDatabase($notifiable);
-            if (is_array($data) && isset($data['type']) && is_string($data['type']) && $data['type'] !== '') {
-                return $data['type'];
-            }
+        $applicationId = config('services.discord.bot_application_id');
+        if (! is_string($applicationId) || $applicationId === '') {
+            return null;
         }
 
-        return (new \ReflectionClass($notification))->getShortName();
+        return substr($applicationId, -4);
     }
 
     /**
@@ -190,6 +218,28 @@ class DiscordChannel
             'notification_type' => $notificationType,
             'category' => $category,
             'reason' => $reason,
+            'app_id_short' => $this->appIdShort(),
         ]);
+
+        $this->count($category, 'dm_skipped:'.$reason);
+    }
+
+    /**
+     * Best-effort engagement counter increment (D284): the DM delivery (or
+     * graceful skip) above is the load-bearing behavior, so a counter write
+     * failure is logged and swallowed — it must never break delivery.
+     */
+    private function count(string $category, string $event): void
+    {
+        try {
+            $this->counters->incrementFor($category, 'discord', $event);
+        } catch (\Throwable $e) {
+            Log::warning('notifications.engagement_counter_failed', [
+                'category' => $category,
+                'channel' => 'discord',
+                'event' => $event,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

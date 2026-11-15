@@ -168,13 +168,11 @@ class DiscordCardRenderer
             return null;
         }
 
-        // Community display zone (R089): the stored instant renders on the
-        // Berlin wall clock — cards carry no per-recipient zone.
-        $carbon = $date->copy()->setTimezone(community_timezone());
-        if ($context->locale !== null && $context->locale !== '') {
-            $carbon->locale($context->locale);
-        }
-        $value = $carbon->translatedFormat('D j M Y · H:i');
+        // Native Discord timestamps (T02): <t:F> renders the absolute start
+        // and <t:R> a live relative label — the client renders both in the
+        // VIEWER's own timezone and locale, so no server-side wall clock.
+        $epoch = $date->getTimestamp();
+        $value = "<t:{$epoch}:F> (<t:{$epoch}:R>)";
 
         $duration = $this->duration($game);
         if ($duration !== '') {

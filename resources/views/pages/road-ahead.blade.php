@@ -145,7 +145,22 @@
                 </p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                {{-- Personal AI agents (M079) — most recent receipt first --}}
+                {{-- Notification language & time (M080) — most recent receipt first --}}
+                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">translate</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('roadmap.heading_delivered_notification_language') }}</h3>
+                            <p class="text-sm text-on-surface-variant leading-relaxed">
+                                {{ __('roadmap.content_delivered_notification_language_body') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Personal AI agents (M079) --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
                         <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">

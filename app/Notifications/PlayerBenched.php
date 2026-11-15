@@ -38,7 +38,7 @@ class PlayerBenched extends BaseNotification
                 'entity' => $this->entity->name,
             ]))
             ->action(__('notifications.action_view_entity_type', ['entity_type' => ucfirst($entityTypeLabel)]), $actionUrl)
-            ->line($this->unsubscribeLine($notifiable, 'player_benched'));
+            ->line($this->unsubscribeLine($notifiable, 'bench_updates'));
     }
 
     /**

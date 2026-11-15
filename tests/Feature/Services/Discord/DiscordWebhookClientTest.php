@@ -536,12 +536,15 @@ class DiscordWebhookClientTest extends TestCase
         );
 
         // embed() sets content=null, embeds=[...], components=null → only
-        // embeds should be present in the serialized body.
+        // embeds and the structural allowed_mentions parse:[] default should
+        // be present in the serialized body (every other null field omitted).
         $this->assertArrayHasKey('embeds', $captured['body']);
         $this->assertArrayNotHasKey('content', $captured['body']);
         $this->assertArrayNotHasKey('components', $captured['body']);
         $this->assertArrayNotHasKey('flags', $captured['body']);
-        $this->assertArrayNotHasKey('allowed_mentions', $captured['body']);
+        // The mention guard is structural: no explicit allowlist means
+        // parse:[] so user-controlled text can never trigger pings (D288 rider).
+        $this->assertSame(['parse' => []], $captured['body']['allowed_mentions']);
         $this->assertArrayNotHasKey('tts', $captured['body']);
     }
 

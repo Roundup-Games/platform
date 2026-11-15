@@ -50,7 +50,12 @@ class GameSystemRequestRejected extends BaseNotification
         $rejectionReason = $this->getRejectionReason();
 
         $mail = (new MailMessage)
-            ->subject(__('notifications.subject_game_system_request_rejected'))
+            ->subject(__($rejectionReason !== null && $rejectionReason !== ''
+                ? 'notifications.subject_game_system_request_rejected_reason'
+                : 'notifications.subject_game_system_request_rejected', [
+                    'name' => $name,
+                    'reason' => $rejectionReason ?? '',
+                ]))
             ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_game_system_request_rejected', [
                 'name' => $name,

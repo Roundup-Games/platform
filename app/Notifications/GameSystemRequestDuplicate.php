@@ -44,7 +44,9 @@ class GameSystemRequestDuplicate extends BaseNotification
         $name = $this->getGameSystemName();
 
         return (new MailMessage)
-            ->subject(__('notifications.subject_game_system_request_duplicate'))
+            ->subject(__('notifications.subject_game_system_request_duplicate', [
+                'name' => $name,
+            ]))
             ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_game_system_request_duplicate', [
                 'name' => $name,

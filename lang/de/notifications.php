@@ -14,7 +14,7 @@ return [
     'category_application_rejected' => 'Bewerbung abgelehnt',
     'category_participant_joined' => 'Teilnehmer beigetreten',
     'category_participant_removed' => 'Teilnehmer entfernt',
-    'category_seat_demoted' => 'Platz abgegeben',
+    'category_seat_demoted' => 'Platz zurückgefordert',
     'category_team_member_removed' => 'Teammitglied entfernt',
     'category_waitlist_promoted' => 'Nachrücken von der Warteliste',
     'category_waitlist_placement' => 'Warteliste-Platzierung',
@@ -48,6 +48,11 @@ return [
     // Benachrichtigungseinstellungen
     'content_notification_preferences' => 'Benachrichtigungseinstellungen',
     'flash_notification_preferences_saved' => 'Benachrichtigungseinstellungen gespeichert.',
+    // Discord-Verknüpfung: Default-Shift-Hinweis (M080/S05, Begleitung zu D282)
+    // — Einmal-Banner, das beim Verknüpfen von Discord erscheint, weil die
+    // Benachrichtigungs-Defaults umgestellt werden.
+    'flash_discord_link_default_shift' => 'Discord verknüpft — Einladungen, Bewerbungsergebnisse, Wartelisten-Rückrufe und weitere wichtige Benachrichtigungen kommen jetzt als Discord-Nachrichten, E-Mails für dringende Kategorien sind deaktiviert. Du kannst alles in deinen Benachrichtigungseinstellungen anpassen.',
+    'action_discord_notification_settings' => 'Benachrichtigungseinstellungen',
     'channel_in_app' => 'In-App',
     // Trinary state labels
     'hint_preference_channels' => 'Schalte jeden Kanal pro Benachrichtigungskategorie ein oder aus. Push-Benachrichtigungen müssen unten im Gerätebereich aktiviert werden.',
@@ -88,7 +93,7 @@ return [
     'label_digest_promoted_from_bench' => 'Von der Ersatzbank nachgerückt',
     'label_digest_recap_posted' => 'Recap veröffentlicht',
     'label_digest_review_reported' => 'Rezension gemeldet',
-    'label_digest_seat_demoted' => 'Platz abgegeben',
+    'label_digest_seat_demoted' => 'Platz zurückgefordert',
     'label_digest_session_added_to_campaign' => 'Runde zur Kampagne hinzugefügt',
     'label_digest_session_reminder' => 'Rundenerinnerung',
     'label_digest_game_invitation' => 'Spiel-Einladung',
@@ -201,8 +206,8 @@ return [
     'body_participant_joined' => '**:participant** ist **:entity** beigetreten (:entity_type). Je mehr, desto besser!',
     'subject_participant_removed' => 'Du wurdest aus :entity entfernt',
     'body_participant_removed' => 'Du wurdest aus **:entity** entfernt. Wenn du Fragen hast, wende dich an den Host.',
-    'subject_seat_demoted' => 'Dein Platz in :entity wurde abgegeben',
-    'body_seat_demoted' => 'Dein bestätigter Platz in **:entity** wurde abgegeben, da der Host die Spielerzahl reduziert hat. Grund: :reason. Du bist nun wieder auf der Warteliste und rückst bei frei werdendem Platz automatisch nach.',
+    'subject_seat_demoted' => 'Dein Platz in :entity wurde zurückgefordert',
+    'body_seat_demoted' => 'Dein bestätigter Platz in **:entity** wurde zurückgefordert, da der Host die Spielerzahl reduziert hat. Grund: :reason. Du bist nun wieder auf der Warteliste und rückst bei frei werdendem Platz automatisch nach.',
     'subject_team_member_removed' => 'Du wurdest aus :team entfernt',
     'body_team_member_removed' => 'Du wurdest aus dem Team **:team** entfernt. Wenn du Fragen hast, kontaktiere den Team-Organisator.',
     // E-Mail-Betreffs — Status
@@ -220,7 +225,7 @@ return [
     'body_review_rating' => 'Bewertung: :rating/5',
     // Spiel aktualisiert
     'category_game_updated' => 'Spieldetails aktualisiert',
-    'subject_game_updated' => ':game wurde aktualisiert',
+    'subject_game_updated' => ':game aktualisiert: :summary',
     'body_game_updated' => 'Das Spiel **:game** wurde aktualisiert. Änderungen: :fields.',
     'action_view_game' => 'Spiel ansehen',
     // Spielsystem-Anfrage
@@ -228,20 +233,21 @@ return [
     'subject_game_system_request_approved' => 'Spielsystem hinzugefügt: :name',
     'body_game_system_request_approved' => 'Deine Anfrage für das Spielsystem **:name** wurde angenommen! Es ist jetzt auf der Plattform verfügbar.',
     'action_create_game' => 'Spiel erstellen',
-    'subject_game_system_request_rejected' => 'Aktualisierung zur Spielsystem-Anfrage',
+    'subject_game_system_request_rejected' => 'Spielsystem-Anfrage abgelehnt: :name',
+    'subject_game_system_request_rejected_reason' => 'Spielsystem-Anfrage abgelehnt: :name — :reason',
     'body_game_system_request_rejected' => 'Deine Anfrage für das Spielsystem **:name** konnte derzeit nicht hinzugefügt werden.',
-    'subject_game_system_request_duplicate' => 'Spielsystem existiert bereits',
+    'subject_game_system_request_duplicate' => 'Spielsystem existiert bereits: :name',
     'body_game_system_request_duplicate' => 'Das angefragte Spielsystem **:name** existiert bereits als **:existing**.',
     'action_view_game_system' => 'Spielsystem ansehen',
     // Kampagne aktualisiert
     'category_campaign_updated' => 'Kampagnendetails aktualisiert',
-    'subject_campaign_updated' => ':campaign wurde aktualisiert',
+    'subject_campaign_updated' => ':campaign aktualisiert: :summary',
     'body_campaign_updated' => 'Die Kampagne **:campaign** wurde aktualisiert. Änderungen: :fields.',
     'action_view_campaign' => 'Kampagne ansehen',
     // Push-Benachrichtigungen Titel & Text
     'push_body_game_invitation' => ':inviter hat dich zu :game eingeladen',
     'push_body_campaign_invitation' => ':inviter hat dich zu :campaign eingeladen',
-    'push_title_session_reminder' => 'Spielerinnerung',
+    'push_title_session_reminder' => 'Deine Runde startet bald',
     'push_body_session_reminder' => ':game beginnt heute um :time',
     // Spieler auf die Bank gesetzt
     'subject_player_benched' => 'Du wurdest für :entity auf die Ersatzbank gesetzt',
@@ -368,4 +374,25 @@ return [
     'subject_badge_upgraded' => 'Dein Abzeichen ist gestiegen: :badge',
     'body_badge_upgraded' => 'Dein Abzeichen wurde zu **:badge** hochgestuft. Danke, dass Du dranbleibst.',
     'action_badge_awarded' => 'Profil anzeigen',
+    // Discord-RSVP-Menü („Mein Platz“) — gerendert in der Sprache des Klickenden,
+    // gesteuert über das locale-Feld der Interaktion (siehe DiscordRsvpMenuRenderer).
+    'content_rsvp_hosting' => '🎲 Du leitest diese Runde — verwalte Kader und Details auf roundup.',
+    'content_rsvp_approved' => '✅ Du bist dabei — Dein Platz ist sicher. 🎲',
+    'content_rsvp_approved_seat' => '✅ Du bist dabei (Platz :current von :max) — Dein Platz ist sicher. 🎲',
+    'content_rsvp_waitlisted' => '📋 Du bist auf der Warteliste — Du rückst nach, sobald ein Platz frei wird.',
+    'content_rsvp_waitlisted_position' => '📋 Du bist auf Platz :position der Warteliste — Du rückst nach, sobald ein Platz frei wird.',
+    'content_rsvp_benched' => '🏋️ Du bist auf der Ersatzbank — Du rückst nach, sobald ein Platz frei wird.',
+    'content_rsvp_pending' => '⏳ Deine Zusage wartet auf Bestätigung. Verlassen bricht sie ab — oder warte einfach kurz.',
+    'content_rsvp_not_on_roster' => 'Du bist derzeit nicht im Kader dieser Runde.',
+    'content_rsvp_joiner_open_roster' => '🎟️ :approved dabei · offene Liste — hol Dir Deinen Platz.',
+    'content_rsvp_joiner_seats_left' => '🎟️ :approved/:max Plätze · :left frei — hol Dir Deinen.',
+    'content_rsvp_joiner_full' => '🎟️ :max/:max Plätze — voll. Sag zu, um Dir einen Wartelistenplatz zu holen — Du rückst nach, sobald ein Platz frei wird.',
+    'content_rsvp_game_cancelled' => 'Diese Runde wurde abgesagt — schau auf roundup für die neuesten Infos.',
+    'content_rsvp_game_completed' => 'Diese Runde ist abgeschlossen — schau auf roundup für die neuesten Infos.',
+    'action_rsvp_join' => '✅ Zusagen',
+    'action_rsvp_join_waitlist' => 'Auf die Warteliste setzen',
+    'action_rsvp_leave' => '🚪 Verlassen',
+    'action_rsvp_leave_waitlist' => 'Warteliste verlassen',
+    'error_rsvp_game_not_found' => 'Diese Runde konnte nicht gefunden werden — sie wurde möglicherweise entfernt.',
+    'error_rsvp_unprocessable' => 'Dieser Button konnte nicht verarbeitet werden. Sag auf roundup zu oder tippe auf den Link der Runde für die neuesten Details.',
 ];

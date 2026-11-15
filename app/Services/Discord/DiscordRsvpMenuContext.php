@@ -51,5 +51,12 @@ final class DiscordRsvpMenuContext
          * config('app.url') in the menu when null.
          */
         public readonly ?string $appUrl = null,
+        /**
+         * Locale the clicker's ephemeral copy renders in — the interaction
+         * payload's locale field, resolved by the controller against
+         * config('app.available_locales'). Null falls back to the app locale
+         * in the renderer (non-Discord callers / degraded payloads).
+         */
+        public readonly ?string $locale = null,
     ) {}
 }

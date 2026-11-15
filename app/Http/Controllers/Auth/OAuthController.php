@@ -410,8 +410,10 @@ class OAuthController
         // tier (Discord now covers urgency; mail stays re-enableable in
         // settings and then fires in parallel). One-time default-shift at the
         // link moment, not a runtime suppression.
+        // M080/S05: the shift is silent without the notice — flash it.
         if ($provider === OAuthProvider::Discord->value) {
             app(NotificationPreferenceSync::class)->enableDiscordDefaultsFor($user);
+            $this->notifyDiscordDefaultsShifted($user);
         }
 
         // M059/S02: honor a Discord join intent. The authed-link path is a
@@ -514,11 +516,42 @@ class OAuthController
         // default-shift on the new-user and email-match login paths too, so a
         // member who signs up via Discord lands on the priority defaults
         // without an extra settings visit.
+        // M080/S05: an existing member whose first Discord login creates this
+        // linked account gets the same silent shift — they need the notice
+        // most, so it is emitted on every path through here.
         if ($provider === OAuthProvider::Discord->value) {
             app(NotificationPreferenceSync::class)->enableDiscordDefaultsFor($user);
+            $this->notifyDiscordDefaultsShifted($user);
         }
 
         return $linkedAccount;
+    }
+
+    /**
+     * M080/S05 (D282 companion): flash the one-shot default-shift notice for
+     * a user whose Discord link just re-pointed their notification defaults
+     * (Discord DM on for actionable categories, urgency-tier email off).
+     *
+     * Called immediately after every NotificationPreferenceSync::enableDiscordDefaultsFor()
+     * site so the impression is logged alongside notification.discord_auto_enabled.
+     * The banner renders from the app layout on whatever page the post-link
+     * redirect lands on (profile, onboarding, dashboard, or a game join
+     * target), so the flash carries a marker rather than translated copy —
+     * the layout resolves the localized strings at render time with the
+     * landing page's locale (OAuth routes run outside the {locale} group, so
+     * translating at emission time would risk the wrong locale).
+     *
+     * Deliberately idempotent-with-repetition: the shift re-applies on every
+     * successful link completion (including re-link after unlink), so the
+     * notice re-shows on each of those moments.
+     */
+    private function notifyDiscordDefaultsShifted(User $user): void
+    {
+        session()->flash('discord_default_shift_notice', true);
+
+        Log::info('discord_link.notice_shown', [
+            'user_id' => $user->id,
+        ]);
     }
 
     /**

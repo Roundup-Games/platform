@@ -78,11 +78,14 @@ class SessionReminder extends BaseNotification
     }
 
     /**
-     * Mirrors toPush() as a Discord embed (D130: Discord mirrors push).
+     * Mirrors toPush() as a Discord embed (D130: Discord mirrors push) —
+     * except the time: the Discord description carries native <t:F>/<t:R>
+     * timestamps so every viewer sees their own timezone (T02), while the
+     * push body keeps the recipient-tz wall-clock string (R089).
      */
     public function toDiscord(User $notifiable): DiscordWebhookPayload
     {
-        $copy = $this->reminderCopy($notifiable);
+        $copy = $this->reminderCopy($notifiable, nativeTimestamps: true);
 
         return $this->discordEmbed(
             $copy['title'],
@@ -95,24 +98,33 @@ class SessionReminder extends BaseNotification
      * Window-scoped copy shared by toPush() and toDiscord(), composed once
      * (both channels used to duplicate this block verbatim).
      *
-     * The stored instant is converted to the recipient's timezone (default
-     * Europe/Berlin, DACH target audience) and rendered on the locale's
-     * clock — 24-hour for de ("19:00 CET"), 12-hour + AM/PM for en
-     * ("7:00 PM CET") — matching format_date()'s convention (R089).
+     * The :time placeholder renders one of two shapes:
+     *  - push (default): the stored instant converted to the recipient's
+     *    timezone (default Europe/Berlin, DACH target audience) on the
+     *    locale's clock — 24-hour for de ("19:00 CET"), 12-hour + AM/PM for
+     *    en ("7:00 PM CET") — matching format_date()'s convention (R089);
+     *  - Discord: native <t:F> + <t:R> markup, which the client renders in
+     *    the VIEWER's own timezone with a live relative label (T02).
      *
+     * @param  bool  $nativeTimestamps  Render :time as native Discord timestamps.
      * @return array{title: string, body: string}
      */
-    private function reminderCopy(User $notifiable): array
+    private function reminderCopy(User $notifiable, bool $nativeTimestamps = false): array
     {
-        // Per-user timezone captured from the user's devices (R089); null
-        // (not captured yet) falls back to the community default.
-        $timezone = $notifiable->timezone ?? community_timezone();
+        if ($nativeTimestamps && $this->game->date_time !== null) {
+            $epoch = $this->game->date_time->getTimestamp();
+            $time = "<t:{$epoch}:F> (<t:{$epoch}:R>)";
+        } else {
+            // Per-user timezone captured from the user's devices (R089); null
+            // (not captured yet) falls back to the community default.
+            $timezone = $notifiable->timezone ?? community_timezone();
 
-        $time = $this->game->date_time !== null
-            // Copy first: the shared model attribute must not shift zones.
-            ? $this->game->date_time->copy()->setTimezone($timezone)
-                ->isoFormat(is_24_hour_locale($this->resolveLocale($notifiable)) ? 'HH:mm z' : 'h:mm A z')
-            : '';
+            $time = $this->game->date_time !== null
+                // Copy first: the shared model attribute must not shift zones.
+                ? $this->game->date_time->copy()->setTimezone($timezone)
+                    ->isoFormat(is_24_hour_locale($this->resolveLocale($notifiable)) ? 'HH:mm z' : 'h:mm A z')
+                : '';
+        }
 
         $titleKey = $this->window === '24h'
             ? 'notifications.push_title_session_reminder_24h'

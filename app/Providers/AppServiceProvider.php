@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Console\Dev\CwvDemoSeedCommand;
 use App\Console\Dev\DemoSeedCommand;
 use App\Console\Dev\DemoTeardownCommand;
+use App\Console\Dev\NotificationsPushTestCommand;
 use App\Console\Dev\PostHogTestEvent;
 use App\Dto\CitySummary;
 use App\Events\MembershipActivated;
@@ -35,6 +36,7 @@ use App\Models\User;
 use App\Models\UserRelationship;
 use App\Notifications\Channels\DiscordChannel;
 use App\Notifications\Channels\PushChannel;
+use App\Notifications\Channels\TaggedMailChannel;
 use App\Observers\ActivityLogObserver;
 use App\Observers\CampaignObserver;
 use App\Observers\CampaignParticipantObserver;
@@ -109,6 +111,7 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Mail\Events\MessageSent;
+use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Events\NotificationFailed;
 use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Notifications\Events\NotificationSent;
@@ -190,6 +193,13 @@ class AppServiceProvider extends ServiceProvider
         // null — silently killing every Discord DM delivery with a misleading
         // 'bot_token_missing' skip.
         $this->app->singleton(DiscordWebhookClient::class);
+
+        // D284 mail attribution (M080/S03): resolve the framework mail channel
+        // as TaggedMailChannel, which stamps every notification mail with a
+        // roundup_category metadata tag that resend/resend-laravel forwards to
+        // the Resend API send's tags array — the per-category attribution the
+        // Resend engagement webhooks count.
+        $this->app->bind(MailChannel::class, TaggedMailChannel::class);
 
         $this->app->singleton(ReliabilityScoreService::class);
 
@@ -286,6 +296,7 @@ class AppServiceProvider extends ServiceProvider
                 CwvDemoSeedCommand::class,
                 DemoSeedCommand::class,
                 DemoTeardownCommand::class,
+                NotificationsPushTestCommand::class,
                 PostHogTestEvent::class,
             ]);
         }
@@ -390,6 +401,11 @@ class AppServiceProvider extends ServiceProvider
         //   to synthetic/demo (RFC 2606) email domains; fires on every send
         //   path (queue, scheduler, web) so DemoSeedCommand data cannot leak
         //   into a live mailer.
+        // - TagProjectMail (MessageSending): stamps the shared-Mailpit X-Tags
+        //   project header (mail.project_tag, M080/S06) on every outgoing
+        //   message when configured; unset in prod so it never rides Resend.
+        //   Like DropDemoDomainMail it must never halt the listener chain —
+        //   it always returns null (until()'s first non-null return wins).
         // - SuppressAutomatedTicketStatusNotifications (NotificationSending):
         //   suppresses customer-facing "Status Updated" notifications when a
         //   ticket status change was system-initiated (no human causer);

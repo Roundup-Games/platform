@@ -12,7 +12,8 @@ namespace App\Services\Discord;
  *  - embeds:     rich embeds (the enriched card from T04's renderer)
  *  - components: message components (button rows — RSVP / opt-in buttons)
  *  - flags:      message flags (e.g. SUPPRESS_EMBEDS, IS_COMPONENTS_V2)
- *  - allowed_mentions: ping-control allowlist
+ *  - allowed_mentions: ping-control allowlist (defaults to parse:[] — see
+ *    toArray())
  *  - tts:        text-to-speech (never used by roundup; kept for completeness)
  *
  * Webhook-only fields (username, avatar_url) are intentionally omitted —
@@ -82,9 +83,17 @@ class DiscordWebhookPayload
             $payload['flags'] = $this->flags;
         }
 
-        if ($this->allowedMentions !== null) {
-            $payload['allowed_mentions'] = $this->allowedMentions;
-        }
+        $allowedMentions = $this->allowedMentions ?? ['parse' => []];
+
+        // allowed_mentions is deliberately NOT omitted when unset: Discord's
+        // default without the field parses every mention in content, so
+        // user-controlled text routed through this chokepoint (game names,
+        // venue names, bulletin excerpts — e.g. the thread-starter
+        // interpolates the game name into plain content) could trigger
+        // @everyone/@role/@user pings from a bot post. parse:[] is the
+        // structural mention guard every sender inherits unless a caller
+        // passes an explicit allowlist (D288 rider, M080/S04/T04).
+        $payload['allowed_mentions'] = $allowedMentions;
 
         if ($this->tts !== null) {
             $payload['tts'] = $this->tts;

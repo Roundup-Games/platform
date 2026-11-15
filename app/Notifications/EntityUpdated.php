@@ -33,6 +33,7 @@ class EntityUpdated extends BaseNotification
         return (new MailMessage)
             ->subject(__("notifications.subject_{$type}_updated", [
                 $type => $this->entity->name,
+                'summary' => $fields,
             ]))
             ->greeting($this->greetingLine($notifiable))
             ->line(__("notifications.body_{$type}_updated", [

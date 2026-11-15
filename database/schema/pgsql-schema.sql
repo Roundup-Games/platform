@@ -3,7 +3,7 @@
 --
 
 
--- Dumped from database version 16.15 (Debian 16.15-1.pgdg13+2)
+-- Dumped from database version 16.15
 -- Dumped by pg_dump version 18.6
 
 SET statement_timeout = 0;
@@ -110,6 +110,25 @@ CREATE TABLE public.activity_logs (
     created_at timestamp(0) without time zone NOT NULL,
     user_id uuid NOT NULL,
     id uuid NOT NULL
+);
+
+
+--
+-- Name: alertable_errors; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.alertable_errors (
+    id uuid NOT NULL,
+    message_hash character varying(255) NOT NULL,
+    message text NOT NULL,
+    level character varying(16) NOT NULL,
+    channel character varying(64) NOT NULL,
+    context jsonb,
+    occurrences bigint DEFAULT '1'::bigint NOT NULL,
+    first_seen_at timestamp(0) with time zone NOT NULL,
+    last_seen_at timestamp(0) with time zone NOT NULL,
+    last_notified_at timestamp(0) with time zone,
+    resolved_at timestamp(0) with time zone
 );
 
 
@@ -327,7 +346,7 @@ CREATE TABLE public.campaign_participants (
     confirmation_expires_at timestamp(0) without time zone,
     confirmation_attempts integer,
     created_at timestamp(0) without time zone,
-    CONSTRAINT campaign_participants_join_source_check CHECK (((join_source)::text = ANY (ARRAY[('friend_invite'::character varying)::text, ('share_link'::character varying)::text, ('application'::character varying)::text, ('email_invite'::character varying)::text, ('short_link'::character varying)::text, ('discord'::character varying)::text]))),
+    CONSTRAINT campaign_participants_join_source_check CHECK (((join_source)::text = ANY ((ARRAY['friend_invite'::character varying, 'share_link'::character varying, 'application'::character varying, 'email_invite'::character varying, 'short_link'::character varying, 'discord'::character varying, 'mcp_agent'::character varying])::text[]))),
     CONSTRAINT campaign_participants_role_check CHECK (((role)::text = ANY (ARRAY[('owner'::character varying)::text, ('player'::character varying)::text, ('invited'::character varying)::text, ('applicant'::character varying)::text]))),
     CONSTRAINT campaign_participants_status_check CHECK (((status)::text = ANY (ARRAY[('approved'::character varying)::text, ('rejected'::character varying)::text, ('pending'::character varying)::text, ('waitlisted'::character varying)::text, ('benched'::character varying)::text, ('removed'::character varying)::text])))
 );
@@ -620,7 +639,8 @@ CREATE TABLE public.escalated_agent_capacity (
     current_count integer DEFAULT 0 NOT NULL,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    user_id uuid
+    user_id uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -654,7 +674,8 @@ CREATE TABLE public.escalated_agent_profiles (
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
     chat_status character varying(255) DEFAULT 'offline'::character varying NOT NULL,
-    user_id uuid
+    user_id uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -685,7 +706,8 @@ CREATE TABLE public.escalated_agent_skill (
     id bigint NOT NULL,
     skill_id bigint NOT NULL,
     proficiency integer DEFAULT 1 NOT NULL,
-    user_id uuid
+    user_id uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -723,7 +745,8 @@ CREATE TABLE public.escalated_api_tokens (
     expires_at timestamp(0) without time zone,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    tokenable_id uuid
+    tokenable_id uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -758,7 +781,8 @@ CREATE TABLE public.escalated_article_categories (
     "position" integer DEFAULT 0 NOT NULL,
     description text,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -798,7 +822,8 @@ CREATE TABLE public.escalated_articles (
     published_at timestamp(0) without time zone,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    author_id uuid
+    author_id uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -822,6 +847,55 @@ ALTER SEQUENCE public.escalated_articles_id_seq OWNED BY public.escalated_articl
 
 
 --
+-- Name: escalated_attachment_migration_locks; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.escalated_attachment_migration_locks (
+    id integer NOT NULL,
+    owner uuid NOT NULL,
+    started_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
+-- Name: escalated_attachment_migrations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.escalated_attachment_migrations (
+    id bigint NOT NULL,
+    attachment_id bigint NOT NULL,
+    source_disk character varying(255) NOT NULL,
+    source_path text NOT NULL,
+    destination_disk character varying(255) NOT NULL,
+    destination_path text NOT NULL,
+    status character varying(255) DEFAULT 'pending'::character varying NOT NULL,
+    checksum character varying(64),
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
+);
+
+
+--
+-- Name: escalated_attachment_migrations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.escalated_attachment_migrations_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: escalated_attachment_migrations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.escalated_attachment_migrations_id_seq OWNED BY public.escalated_attachment_migrations.id;
+
+
+--
 -- Name: escalated_attachments; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -836,7 +910,8 @@ CREATE TABLE public.escalated_attachments (
     path character varying(255) NOT NULL,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    attachable_id uuid
+    attachable_id uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -873,7 +948,8 @@ CREATE TABLE public.escalated_audit_logs (
     ip_address character varying(255),
     user_agent character varying(255),
     created_at timestamp(0) without time zone,
-    user_id uuid
+    user_id uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -909,7 +985,9 @@ CREATE TABLE public.escalated_automations (
     "position" integer DEFAULT 0 NOT NULL,
     last_run_at timestamp(0) without time zone,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C",
+    repeat_after_hours integer
 );
 
 
@@ -943,7 +1021,8 @@ CREATE TABLE public.escalated_business_schedules (
     is_default boolean DEFAULT false NOT NULL,
     schedule json NOT NULL,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -978,7 +1057,8 @@ CREATE TABLE public.escalated_canned_responses (
     is_shared boolean DEFAULT true NOT NULL,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    created_by uuid
+    created_by uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1018,7 +1098,8 @@ CREATE TABLE public.escalated_chat_routing_rules (
     is_active boolean DEFAULT true NOT NULL,
     "position" integer DEFAULT 0 NOT NULL,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1059,7 +1140,8 @@ CREATE TABLE public.escalated_chat_sessions (
     rating_comment text,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    agent_id uuid
+    agent_id uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1093,7 +1175,9 @@ CREATE TABLE public.escalated_contacts (
     metadata json,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    user_id uuid
+    user_id uuid,
+    marketing_opt_out_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1127,7 +1211,8 @@ CREATE TABLE public.escalated_custom_field_values (
     value text,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    entity_id uuid
+    entity_id uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1169,7 +1254,8 @@ CREATE TABLE public.escalated_custom_fields (
     active boolean DEFAULT true NOT NULL,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    conditions json
+    conditions json,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1201,7 +1287,8 @@ CREATE TABLE public.escalated_custom_object_records (
     object_id bigint NOT NULL,
     data json NOT NULL,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1234,7 +1321,8 @@ CREATE TABLE public.escalated_custom_objects (
     slug character varying(255) NOT NULL,
     fields_schema json NOT NULL,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1258,6 +1346,40 @@ ALTER SEQUENCE public.escalated_custom_objects_id_seq OWNED BY public.escalated_
 
 
 --
+-- Name: escalated_customer_presence; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.escalated_customer_presence (
+    id bigint NOT NULL,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C",
+    subject_type character varying(191) NOT NULL,
+    subject_id character varying(64) NOT NULL,
+    last_seen_at timestamp(0) without time zone NOT NULL,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: escalated_customer_presence_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.escalated_customer_presence_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: escalated_customer_presence_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.escalated_customer_presence_id_seq OWNED BY public.escalated_customer_presence.id;
+
+
+--
 -- Name: escalated_delayed_actions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1271,7 +1393,8 @@ CREATE TABLE public.escalated_delayed_actions (
     executed boolean DEFAULT false NOT NULL,
     cancelled boolean DEFAULT false NOT NULL,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1300,7 +1423,8 @@ ALTER SEQUENCE public.escalated_delayed_actions_id_seq OWNED BY public.escalated
 
 CREATE TABLE public.escalated_department_agent (
     department_id bigint NOT NULL,
-    agent_id uuid
+    agent_id uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1315,7 +1439,9 @@ CREATE TABLE public.escalated_departments (
     description text,
     is_active boolean DEFAULT true NOT NULL,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C",
+    business_schedule_id bigint
 );
 
 
@@ -1353,7 +1479,9 @@ CREATE TABLE public.escalated_escalation_rules (
     is_active boolean DEFAULT true NOT NULL,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    category character varying(255) DEFAULT 'Uncategorized'::character varying NOT NULL
+    category character varying(255) DEFAULT 'Uncategorized'::character varying NOT NULL,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C",
+    repeat_after_hours integer
 );
 
 
@@ -1377,6 +1505,24 @@ ALTER SEQUENCE public.escalated_escalation_rules_id_seq OWNED BY public.escalate
 
 
 --
+-- Name: escalated_guest_verifications; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.escalated_guest_verifications (
+    id uuid NOT NULL,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C",
+    email text NOT NULL,
+    purpose character varying(20) NOT NULL,
+    code_hash character varying(64) NOT NULL,
+    attempts smallint DEFAULT '0'::smallint NOT NULL,
+    expires_at timestamp(0) without time zone NOT NULL,
+    used_at timestamp(0) without time zone,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
 -- Name: escalated_holidays; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1387,7 +1533,8 @@ CREATE TABLE public.escalated_holidays (
     date date NOT NULL,
     recurring boolean DEFAULT false NOT NULL,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1426,7 +1573,8 @@ CREATE TABLE public.escalated_import_jobs (
     completed_at timestamp(0) without time zone,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    user_id uuid
+    user_id uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1440,7 +1588,8 @@ CREATE TABLE public.escalated_import_source_maps (
     entity_type character varying(50) NOT NULL,
     source_id character varying(255) NOT NULL,
     escalated_id character varying(255) NOT NULL,
-    created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1484,7 +1633,8 @@ CREATE TABLE public.escalated_inbound_emails (
     error_message text,
     processed_at timestamp(0) without time zone,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1520,7 +1670,8 @@ CREATE TABLE public.escalated_macros (
     "order" integer DEFAULT 0 NOT NULL,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    created_by uuid
+    created_by uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1553,7 +1704,8 @@ CREATE TABLE public.escalated_mentions (
     read_at timestamp(0) without time zone,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    user_id uuid
+    user_id uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1574,6 +1726,217 @@ CREATE SEQUENCE public.escalated_mentions_id_seq
 --
 
 ALTER SEQUENCE public.escalated_mentions_id_seq OWNED BY public.escalated_mentions.id;
+
+
+--
+-- Name: escalated_newsletter_deliveries; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.escalated_newsletter_deliveries (
+    id bigint NOT NULL,
+    newsletter_id bigint NOT NULL,
+    contact_id bigint NOT NULL,
+    email_at_send character varying(320) NOT NULL,
+    status character varying(255) DEFAULT 'pending'::character varying NOT NULL,
+    tracking_token character varying(40) NOT NULL,
+    sent_at timestamp(0) without time zone,
+    opened_at timestamp(0) without time zone,
+    last_clicked_at timestamp(0) without time zone,
+    clicks_count integer DEFAULT 0 NOT NULL,
+    bounce_reason text,
+    failure_reason text,
+    attempt_count smallint DEFAULT '0'::smallint NOT NULL,
+    claimed_at timestamp(0) without time zone,
+    next_attempt_at timestamp(0) without time zone,
+    is_test boolean DEFAULT false NOT NULL,
+    created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C",
+    CONSTRAINT escalated_newsletter_deliveries_status_check CHECK (((status)::text = ANY ((ARRAY['pending'::character varying, 'queued'::character varying, 'sent'::character varying, 'bounced'::character varying, 'complained'::character varying, 'suppressed'::character varying, 'failed'::character varying])::text[])))
+);
+
+
+--
+-- Name: COLUMN escalated_newsletter_deliveries.next_attempt_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.escalated_newsletter_deliveries.next_attempt_at IS 'Earliest time a retry may be dispatched (exponential backoff)';
+
+
+--
+-- Name: escalated_newsletter_deliveries_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.escalated_newsletter_deliveries_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: escalated_newsletter_deliveries_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.escalated_newsletter_deliveries_id_seq OWNED BY public.escalated_newsletter_deliveries.id;
+
+
+--
+-- Name: escalated_newsletter_list_members; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.escalated_newsletter_list_members (
+    id bigint NOT NULL,
+    list_id bigint NOT NULL,
+    contact_id bigint NOT NULL,
+    added_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    added_by uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
+);
+
+
+--
+-- Name: escalated_newsletter_list_members_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.escalated_newsletter_list_members_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: escalated_newsletter_list_members_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.escalated_newsletter_list_members_id_seq OWNED BY public.escalated_newsletter_list_members.id;
+
+
+--
+-- Name: escalated_newsletter_lists; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.escalated_newsletter_lists (
+    id bigint NOT NULL,
+    name character varying(255) NOT NULL,
+    description text,
+    kind character varying(255) NOT NULL,
+    filter_json json,
+    created_by uuid,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C",
+    CONSTRAINT escalated_newsletter_lists_kind_check CHECK (((kind)::text = ANY ((ARRAY['static'::character varying, 'dynamic'::character varying])::text[])))
+);
+
+
+--
+-- Name: escalated_newsletter_lists_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.escalated_newsletter_lists_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: escalated_newsletter_lists_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.escalated_newsletter_lists_id_seq OWNED BY public.escalated_newsletter_lists.id;
+
+
+--
+-- Name: escalated_newsletter_templates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.escalated_newsletter_templates (
+    id bigint NOT NULL,
+    name character varying(255) NOT NULL,
+    theme character varying(64) DEFAULT 'default'::character varying NOT NULL,
+    subject_template character varying(998),
+    body_markdown text NOT NULL,
+    merge_fields_schema json,
+    created_by uuid,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
+);
+
+
+--
+-- Name: escalated_newsletter_templates_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.escalated_newsletter_templates_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: escalated_newsletter_templates_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.escalated_newsletter_templates_id_seq OWNED BY public.escalated_newsletter_templates.id;
+
+
+--
+-- Name: escalated_newsletters; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.escalated_newsletters (
+    id bigint NOT NULL,
+    subject character varying(998) NOT NULL,
+    from_email character varying(320) NOT NULL,
+    from_name character varying(255),
+    reply_to character varying(320),
+    target_list_id bigint NOT NULL,
+    template_id bigint,
+    theme character varying(64),
+    body_markdown text,
+    status character varying(255) DEFAULT 'draft'::character varying NOT NULL,
+    scheduled_at timestamp(0) without time zone,
+    sent_at timestamp(0) without time zone,
+    created_by uuid,
+    sent_by uuid,
+    summary_total integer DEFAULT 0 NOT NULL,
+    summary_sent integer DEFAULT 0 NOT NULL,
+    summary_opened integer DEFAULT 0 NOT NULL,
+    summary_clicked integer DEFAULT 0 NOT NULL,
+    summary_bounced integer DEFAULT 0 NOT NULL,
+    summary_complained integer DEFAULT 0 NOT NULL,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C",
+    CONSTRAINT escalated_newsletters_status_check CHECK (((status)::text = ANY ((ARRAY['draft'::character varying, 'scheduled'::character varying, 'sending'::character varying, 'sent'::character varying, 'paused'::character varying, 'failed'::character varying])::text[])))
+);
+
+
+--
+-- Name: escalated_newsletters_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.escalated_newsletters_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: escalated_newsletters_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.escalated_newsletters_id_seq OWNED BY public.escalated_newsletters.id;
 
 
 --
@@ -1619,7 +1982,8 @@ CREATE TABLE public.escalated_plugin_store (
     key character varying(255),
     data json,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1692,7 +2056,8 @@ CREATE TABLE public.escalated_replies (
     updated_at timestamp(0) without time zone,
     deleted_at timestamp(0) without time zone,
     is_pinned boolean DEFAULT false NOT NULL,
-    author_id uuid
+    author_id uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1721,7 +2086,8 @@ ALTER SEQUENCE public.escalated_replies_id_seq OWNED BY public.escalated_replies
 
 CREATE TABLE public.escalated_role_permission (
     role_id bigint NOT NULL,
-    permission_id bigint NOT NULL
+    permission_id bigint NOT NULL,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1731,7 +2097,8 @@ CREATE TABLE public.escalated_role_permission (
 
 CREATE TABLE public.escalated_role_user (
     role_id bigint NOT NULL,
-    user_id uuid
+    user_id uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1746,7 +2113,8 @@ CREATE TABLE public.escalated_roles (
     description text,
     is_system boolean DEFAULT false NOT NULL,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1770,6 +2138,41 @@ ALTER SEQUENCE public.escalated_roles_id_seq OWNED BY public.escalated_roles.id;
 
 
 --
+-- Name: escalated_rule_executions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.escalated_rule_executions (
+    id bigint NOT NULL,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C",
+    rule_type character varying(32) NOT NULL,
+    rule_id bigint NOT NULL,
+    ticket_id bigint NOT NULL,
+    fired_at timestamp(0) without time zone NOT NULL,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: escalated_rule_executions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.escalated_rule_executions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: escalated_rule_executions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.escalated_rule_executions_id_seq OWNED BY public.escalated_rule_executions.id;
+
+
+--
 -- Name: escalated_satisfaction_ratings; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1780,7 +2183,8 @@ CREATE TABLE public.escalated_satisfaction_ratings (
     comment text,
     rated_by_type character varying(255),
     created_at timestamp(0) without time zone,
-    rated_by_id uuid
+    rated_by_id uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1818,7 +2222,8 @@ CREATE TABLE public.escalated_saved_views (
     color character varying(255),
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    user_id uuid
+    user_id uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1850,7 +2255,8 @@ CREATE TABLE public.escalated_settings (
     key character varying(255) NOT NULL,
     value text,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1883,7 +2289,8 @@ CREATE TABLE public.escalated_side_conversation_replies (
     body text NOT NULL,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    author_id uuid
+    author_id uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1918,7 +2325,8 @@ CREATE TABLE public.escalated_side_conversations (
     status character varying(255) DEFAULT 'open'::character varying NOT NULL,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    created_by uuid
+    created_by uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1950,7 +2358,10 @@ CREATE TABLE public.escalated_skills (
     name character varying(255) NOT NULL,
     slug character varying(255) NOT NULL,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    routing_tag_ids json,
+    routing_department_ids json,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -1987,7 +2398,11 @@ CREATE TABLE public.escalated_sla_policies (
     business_hours_only boolean DEFAULT false NOT NULL,
     is_active boolean DEFAULT true NOT NULL,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C",
+    department_id bigint,
+    ticket_type character varying(255),
+    business_schedule_id bigint
 );
 
 
@@ -2011,6 +2426,91 @@ ALTER SEQUENCE public.escalated_sla_policies_id_seq OWNED BY public.escalated_sl
 
 
 --
+-- Name: escalated_slack_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.escalated_slack_events (
+    id bigint NOT NULL,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C",
+    app_key character varying(64) NOT NULL,
+    workspace_id character varying(64) NOT NULL,
+    channel_id character varying(64) NOT NULL,
+    thread_ts character varying(32) NOT NULL,
+    thread_key character(64) NOT NULL,
+    ticket_id bigint,
+    event_key character(64) NOT NULL,
+    message_key character(64) NOT NULL,
+    event_id character varying(128) NOT NULL,
+    payload_hash character(64) NOT NULL,
+    payload text NOT NULL,
+    status character varying(20) DEFAULT 'pending'::character varying NOT NULL,
+    attempts integer DEFAULT 0 NOT NULL,
+    available_at timestamp(0) without time zone,
+    processed_at timestamp(0) without time zone,
+    last_error character varying(255),
+    reply_id bigint,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: escalated_slack_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.escalated_slack_events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: escalated_slack_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.escalated_slack_events_id_seq OWNED BY public.escalated_slack_events.id;
+
+
+--
+-- Name: escalated_slack_threads; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.escalated_slack_threads (
+    id bigint NOT NULL,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C",
+    app_key character varying(64) NOT NULL,
+    workspace_id character varying(64) NOT NULL,
+    channel_id character varying(64) NOT NULL,
+    thread_ts character varying(32) NOT NULL,
+    thread_key character(64) NOT NULL,
+    ticket_id bigint,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: escalated_slack_threads_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.escalated_slack_threads_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: escalated_slack_threads_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.escalated_slack_threads_id_seq OWNED BY public.escalated_slack_threads.id;
+
+
+--
 -- Name: escalated_tags; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2020,7 +2520,8 @@ CREATE TABLE public.escalated_tags (
     slug character varying(255) NOT NULL,
     color character varying(255) DEFAULT '#6B7280'::character varying NOT NULL,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -2055,7 +2556,8 @@ CREATE TABLE public.escalated_ticket_activities (
     properties json,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    causer_id uuid
+    causer_id uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -2086,7 +2588,8 @@ CREATE TABLE public.escalated_ticket_followers (
     ticket_id bigint NOT NULL,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    user_id uuid
+    user_id uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -2100,7 +2603,8 @@ CREATE TABLE public.escalated_ticket_links (
     child_ticket_id bigint NOT NULL,
     link_type character varying(255) NOT NULL,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -2124,6 +2628,40 @@ ALTER SEQUENCE public.escalated_ticket_links_id_seq OWNED BY public.escalated_ti
 
 
 --
+-- Name: escalated_ticket_reads; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.escalated_ticket_reads (
+    id bigint NOT NULL,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C",
+    user_id uuid NOT NULL,
+    ticket_id bigint NOT NULL,
+    last_read_at timestamp(0) without time zone,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: escalated_ticket_reads_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.escalated_ticket_reads_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: escalated_ticket_reads_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.escalated_ticket_reads_id_seq OWNED BY public.escalated_ticket_reads.id;
+
+
+--
 -- Name: escalated_ticket_statuses; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2137,7 +2675,8 @@ CREATE TABLE public.escalated_ticket_statuses (
     "position" integer DEFAULT 0 NOT NULL,
     is_default boolean DEFAULT false NOT NULL,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -2172,7 +2711,8 @@ CREATE TABLE public.escalated_ticket_subjects (
     role character varying(255),
     "position" integer DEFAULT 0 NOT NULL,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -2208,7 +2748,8 @@ ALTER SEQUENCE public.escalated_ticket_subjects_id_seq OWNED BY public.escalated
 
 CREATE TABLE public.escalated_ticket_tag (
     ticket_id bigint NOT NULL,
-    tag_id bigint NOT NULL
+    tag_id bigint NOT NULL,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -2251,7 +2792,16 @@ CREATE TABLE public.escalated_tickets (
     contact_id bigint,
     requester_id uuid,
     assigned_to uuid,
-    snoozed_by uuid
+    snoozed_by uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C",
+    guest_access_hash character varying(64),
+    guest_access_expires_at timestamp(0) without time zone,
+    guest_email_verified_at timestamp(0) without time zone,
+    guest_verified_email character varying(255),
+    external_reference character varying(255),
+    account_type character varying(255) COLLATE pg_catalog."C",
+    account_id character varying(255) COLLATE pg_catalog."C",
+    last_customer_activity_at timestamp(0) without time zone
 );
 
 
@@ -2322,7 +2872,8 @@ CREATE TABLE public.escalated_webhook_deliveries (
     attempts smallint DEFAULT '0'::smallint NOT NULL,
     delivered_at timestamp(0) without time zone,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -2356,7 +2907,8 @@ CREATE TABLE public.escalated_webhooks (
     secret character varying(255),
     active boolean DEFAULT true NOT NULL,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -2394,7 +2946,8 @@ CREATE TABLE public.escalated_workflow_logs (
     started_at timestamp(0) without time zone,
     completed_at timestamp(0) without time zone,
     created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    updated_at timestamp(0) without time zone,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -2434,7 +2987,8 @@ CREATE TABLE public.escalated_workflows (
     trigger_count integer DEFAULT 0 NOT NULL,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
-    created_by uuid
+    created_by uuid,
+    tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C"
 );
 
 
@@ -2645,7 +3199,7 @@ CREATE TABLE public.game_participants (
     approved_at timestamp(0) without time zone,
     promoted_manually boolean DEFAULT false NOT NULL,
     CONSTRAINT game_participants_attendance_status_check CHECK (((attendance_status)::text = ANY (ARRAY[('attended'::character varying)::text, ('no_show'::character varying)::text, ('late_cancel'::character varying)::text, ('excused'::character varying)::text, ('cancelled_early'::character varying)::text]))),
-    CONSTRAINT game_participants_join_source_check CHECK (((join_source)::text = ANY (ARRAY[('friend_invite'::character varying)::text, ('share_link'::character varying)::text, ('application'::character varying)::text, ('email_invite'::character varying)::text, ('short_link'::character varying)::text, ('discord'::character varying)::text]))),
+    CONSTRAINT game_participants_join_source_check CHECK (((join_source)::text = ANY ((ARRAY['friend_invite'::character varying, 'share_link'::character varying, 'application'::character varying, 'email_invite'::character varying, 'short_link'::character varying, 'discord'::character varying, 'mcp_agent'::character varying])::text[]))),
     CONSTRAINT game_participants_role_check CHECK (((role)::text = ANY (ARRAY[('owner'::character varying)::text, ('player'::character varying)::text, ('invited'::character varying)::text, ('applicant'::character varying)::text]))),
     CONSTRAINT game_participants_status_check CHECK (((status)::text = ANY (ARRAY[('approved'::character varying)::text, ('rejected'::character varying)::text, ('pending'::character varying)::text, ('waitlisted'::character varying)::text, ('benched'::character varying)::text, ('removed'::character varying)::text])))
 );
@@ -3071,6 +3625,40 @@ CREATE TABLE public.locations (
 
 
 --
+-- Name: mcp_calls; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mcp_calls (
+    id uuid NOT NULL,
+    mcp_client_id uuid NOT NULL,
+    user_id uuid,
+    tool character varying(255) NOT NULL,
+    arguments_hash character varying(64) NOT NULL,
+    latency_ms integer NOT NULL,
+    created_at timestamp(0) with time zone NOT NULL,
+    actor character varying(16) DEFAULT 'agent'::character varying NOT NULL,
+    target_type character varying(32),
+    target_id character varying(64)
+);
+
+
+--
+-- Name: mcp_clients; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mcp_clients (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    name character varying(255) NOT NULL,
+    rate_limit_tier character varying(32) DEFAULT 'standard'::character varying NOT NULL,
+    personal_access_token_id bigint,
+    revoked_at timestamp(0) without time zone,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
 -- Name: media; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3183,6 +3771,41 @@ CREATE TABLE public.nearby_discovery_views (
     user_id uuid NOT NULL,
     id uuid NOT NULL
 );
+
+
+--
+-- Name: notification_engagement_counters; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.notification_engagement_counters (
+    id bigint NOT NULL,
+    date date NOT NULL,
+    category character varying(64) NOT NULL,
+    channel character varying(32) NOT NULL,
+    event character varying(64) NOT NULL,
+    count bigint DEFAULT '1'::bigint NOT NULL,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: notification_engagement_counters_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.notification_engagement_counters_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: notification_engagement_counters_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.notification_engagement_counters_id_seq OWNED BY public.notification_engagement_counters.id;
 
 
 --
@@ -3872,7 +4495,9 @@ CREATE TABLE public.users (
     signup_content_type character varying(50),
     signup_content_slug character varying(255),
     seo_title jsonb,
-    seo_description jsonb
+    seo_description jsonb,
+    timezone character varying(64),
+    timezone_manually_set boolean DEFAULT false NOT NULL
 );
 
 
@@ -3923,6 +4548,13 @@ ALTER TABLE ONLY public.escalated_article_categories ALTER COLUMN id SET DEFAULT
 --
 
 ALTER TABLE ONLY public.escalated_articles ALTER COLUMN id SET DEFAULT nextval('public.escalated_articles_id_seq'::regclass);
+
+
+--
+-- Name: escalated_attachment_migrations id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_attachment_migrations ALTER COLUMN id SET DEFAULT nextval('public.escalated_attachment_migrations_id_seq'::regclass);
 
 
 --
@@ -4010,6 +4642,13 @@ ALTER TABLE ONLY public.escalated_custom_objects ALTER COLUMN id SET DEFAULT nex
 
 
 --
+-- Name: escalated_customer_presence id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_customer_presence ALTER COLUMN id SET DEFAULT nextval('public.escalated_customer_presence_id_seq'::regclass);
+
+
+--
 -- Name: escalated_delayed_actions id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4066,6 +4705,41 @@ ALTER TABLE ONLY public.escalated_mentions ALTER COLUMN id SET DEFAULT nextval('
 
 
 --
+-- Name: escalated_newsletter_deliveries id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_newsletter_deliveries ALTER COLUMN id SET DEFAULT nextval('public.escalated_newsletter_deliveries_id_seq'::regclass);
+
+
+--
+-- Name: escalated_newsletter_list_members id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_newsletter_list_members ALTER COLUMN id SET DEFAULT nextval('public.escalated_newsletter_list_members_id_seq'::regclass);
+
+
+--
+-- Name: escalated_newsletter_lists id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_newsletter_lists ALTER COLUMN id SET DEFAULT nextval('public.escalated_newsletter_lists_id_seq'::regclass);
+
+
+--
+-- Name: escalated_newsletter_templates id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_newsletter_templates ALTER COLUMN id SET DEFAULT nextval('public.escalated_newsletter_templates_id_seq'::regclass);
+
+
+--
+-- Name: escalated_newsletters id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_newsletters ALTER COLUMN id SET DEFAULT nextval('public.escalated_newsletters_id_seq'::regclass);
+
+
+--
 -- Name: escalated_permissions id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4098,6 +4772,13 @@ ALTER TABLE ONLY public.escalated_replies ALTER COLUMN id SET DEFAULT nextval('p
 --
 
 ALTER TABLE ONLY public.escalated_roles ALTER COLUMN id SET DEFAULT nextval('public.escalated_roles_id_seq'::regclass);
+
+
+--
+-- Name: escalated_rule_executions id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_rule_executions ALTER COLUMN id SET DEFAULT nextval('public.escalated_rule_executions_id_seq'::regclass);
 
 
 --
@@ -4150,6 +4831,20 @@ ALTER TABLE ONLY public.escalated_sla_policies ALTER COLUMN id SET DEFAULT nextv
 
 
 --
+-- Name: escalated_slack_events id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_slack_events ALTER COLUMN id SET DEFAULT nextval('public.escalated_slack_events_id_seq'::regclass);
+
+
+--
+-- Name: escalated_slack_threads id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_slack_threads ALTER COLUMN id SET DEFAULT nextval('public.escalated_slack_threads_id_seq'::regclass);
+
+
+--
 -- Name: escalated_tags id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4168,6 +4863,13 @@ ALTER TABLE ONLY public.escalated_ticket_activities ALTER COLUMN id SET DEFAULT 
 --
 
 ALTER TABLE ONLY public.escalated_ticket_links ALTER COLUMN id SET DEFAULT nextval('public.escalated_ticket_links_id_seq'::regclass);
+
+
+--
+-- Name: escalated_ticket_reads id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_ticket_reads ALTER COLUMN id SET DEFAULT nextval('public.escalated_ticket_reads_id_seq'::regclass);
 
 
 --
@@ -4248,6 +4950,13 @@ ALTER TABLE ONLY public.migrations ALTER COLUMN id SET DEFAULT nextval('public.m
 
 
 --
+-- Name: notification_engagement_counters id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notification_engagement_counters ALTER COLUMN id SET DEFAULT nextval('public.notification_engagement_counters_id_seq'::regclass);
+
+
+--
 -- Name: permissions id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4316,6 +5025,22 @@ ALTER TABLE ONLY public.transactions ALTER COLUMN id SET DEFAULT nextval('public
 
 ALTER TABLE ONLY public.activity_logs
     ADD CONSTRAINT activity_logs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: alertable_errors alertable_errors_message_hash_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.alertable_errors
+    ADD CONSTRAINT alertable_errors_message_hash_unique UNIQUE (message_hash);
+
+
+--
+-- Name: alertable_errors alertable_errors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.alertable_errors
+    ADD CONSTRAINT alertable_errors_pkey PRIMARY KEY (id);
 
 
 --
@@ -4599,6 +5324,142 @@ ALTER TABLE ONLY public.email_suppressions
 
 
 --
+-- Name: escalated_customer_presence esc_presence_84bbb2ce7b1e_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_customer_presence
+    ADD CONSTRAINT esc_presence_84bbb2ce7b1e_unique UNIQUE (tenant_id, subject_type, subject_id);
+
+
+--
+-- Name: escalated_rule_executions esc_rule_exec_1f3c08ca5a56_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_rule_executions
+    ADD CONSTRAINT esc_rule_exec_1f3c08ca5a56_unique UNIQUE (rule_type, rule_id, ticket_id);
+
+
+--
+-- Name: escalated_agent_capacity esc_tenant_270701b626f0_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_agent_capacity
+    ADD CONSTRAINT esc_tenant_270701b626f0_unique UNIQUE (tenant_id, user_id, channel);
+
+
+--
+-- Name: escalated_skills esc_tenant_2e4d5fe8317d_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_skills
+    ADD CONSTRAINT esc_tenant_2e4d5fe8317d_unique UNIQUE (tenant_id, slug);
+
+
+--
+-- Name: escalated_custom_fields esc_tenant_385ab0453f11_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_custom_fields
+    ADD CONSTRAINT esc_tenant_385ab0453f11_unique UNIQUE (tenant_id, slug);
+
+
+--
+-- Name: escalated_contacts esc_tenant_4939323936fd_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_contacts
+    ADD CONSTRAINT esc_tenant_4939323936fd_unique UNIQUE (tenant_id, email);
+
+
+--
+-- Name: escalated_articles esc_tenant_7872d1db824a_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_articles
+    ADD CONSTRAINT esc_tenant_7872d1db824a_unique UNIQUE (tenant_id, slug);
+
+
+--
+-- Name: escalated_agent_profiles esc_tenant_78b1f7550f0d_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_agent_profiles
+    ADD CONSTRAINT esc_tenant_78b1f7550f0d_unique UNIQUE (tenant_id, user_id);
+
+
+--
+-- Name: escalated_departments esc_tenant_7aee24bca711_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_departments
+    ADD CONSTRAINT esc_tenant_7aee24bca711_unique UNIQUE (tenant_id, slug);
+
+
+--
+-- Name: escalated_settings esc_tenant_8149f1ef3c0d_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_settings
+    ADD CONSTRAINT esc_tenant_8149f1ef3c0d_unique UNIQUE (tenant_id, key);
+
+
+--
+-- Name: escalated_tags esc_tenant_81b39ade8825_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_tags
+    ADD CONSTRAINT esc_tenant_81b39ade8825_unique UNIQUE (tenant_id, slug);
+
+
+--
+-- Name: escalated_ticket_statuses esc_tenant_93a9b740a3c4_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_ticket_statuses
+    ADD CONSTRAINT esc_tenant_93a9b740a3c4_unique UNIQUE (tenant_id, slug);
+
+
+--
+-- Name: escalated_roles esc_tenant_a6c5f000053d_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_roles
+    ADD CONSTRAINT esc_tenant_a6c5f000053d_unique UNIQUE (tenant_id, slug);
+
+
+--
+-- Name: escalated_custom_objects esc_tenant_b90327db6d31_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_custom_objects
+    ADD CONSTRAINT esc_tenant_b90327db6d31_unique UNIQUE (tenant_id, slug);
+
+
+--
+-- Name: escalated_article_categories esc_tenant_c2e36a2f202c_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_article_categories
+    ADD CONSTRAINT esc_tenant_c2e36a2f202c_unique UNIQUE (tenant_id, slug);
+
+
+--
+-- Name: escalated_inbound_emails esc_tenant_dacd301ec897_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_inbound_emails
+    ADD CONSTRAINT esc_tenant_dacd301ec897_unique UNIQUE (tenant_id, message_id);
+
+
+--
+-- Name: escalated_ticket_reads esc_ticket_reads_9fdeb2e0ea26_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_ticket_reads
+    ADD CONSTRAINT esc_ticket_reads_9fdeb2e0ea26_unique UNIQUE (user_id, ticket_id);
+
+
+--
 -- Name: escalated_agent_capacity escalated_agent_capacity_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4612,14 +5473,6 @@ ALTER TABLE ONLY public.escalated_agent_capacity
 
 ALTER TABLE ONLY public.escalated_agent_profiles
     ADD CONSTRAINT escalated_agent_profiles_pkey PRIMARY KEY (id);
-
-
---
--- Name: escalated_agent_profiles escalated_agent_profiles_user_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.escalated_agent_profiles
-    ADD CONSTRAINT escalated_agent_profiles_user_id_unique UNIQUE (user_id);
 
 
 --
@@ -4655,14 +5508,6 @@ ALTER TABLE ONLY public.escalated_article_categories
 
 
 --
--- Name: escalated_article_categories escalated_article_categories_slug_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.escalated_article_categories
-    ADD CONSTRAINT escalated_article_categories_slug_unique UNIQUE (slug);
-
-
---
 -- Name: escalated_articles escalated_articles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4671,11 +5516,27 @@ ALTER TABLE ONLY public.escalated_articles
 
 
 --
--- Name: escalated_articles escalated_articles_slug_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: escalated_attachment_migration_locks escalated_attachment_migration_locks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.escalated_articles
-    ADD CONSTRAINT escalated_articles_slug_unique UNIQUE (slug);
+ALTER TABLE ONLY public.escalated_attachment_migration_locks
+    ADD CONSTRAINT escalated_attachment_migration_locks_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: escalated_attachment_migrations escalated_attachment_migrations_attachment_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_attachment_migrations
+    ADD CONSTRAINT escalated_attachment_migrations_attachment_id_unique UNIQUE (attachment_id);
+
+
+--
+-- Name: escalated_attachment_migrations escalated_attachment_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_attachment_migrations
+    ADD CONSTRAINT escalated_attachment_migrations_pkey PRIMARY KEY (id);
 
 
 --
@@ -4743,14 +5604,6 @@ ALTER TABLE ONLY public.escalated_chat_sessions
 
 
 --
--- Name: escalated_contacts escalated_contacts_email_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.escalated_contacts
-    ADD CONSTRAINT escalated_contacts_email_unique UNIQUE (email);
-
-
---
 -- Name: escalated_contacts escalated_contacts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4775,14 +5628,6 @@ ALTER TABLE ONLY public.escalated_custom_fields
 
 
 --
--- Name: escalated_custom_fields escalated_custom_fields_slug_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.escalated_custom_fields
-    ADD CONSTRAINT escalated_custom_fields_slug_unique UNIQUE (slug);
-
-
---
 -- Name: escalated_custom_object_records escalated_custom_object_records_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4799,11 +5644,11 @@ ALTER TABLE ONLY public.escalated_custom_objects
 
 
 --
--- Name: escalated_custom_objects escalated_custom_objects_slug_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: escalated_customer_presence escalated_customer_presence_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.escalated_custom_objects
-    ADD CONSTRAINT escalated_custom_objects_slug_unique UNIQUE (slug);
+ALTER TABLE ONLY public.escalated_customer_presence
+    ADD CONSTRAINT escalated_customer_presence_pkey PRIMARY KEY (id);
 
 
 --
@@ -4823,19 +5668,19 @@ ALTER TABLE ONLY public.escalated_departments
 
 
 --
--- Name: escalated_departments escalated_departments_slug_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.escalated_departments
-    ADD CONSTRAINT escalated_departments_slug_unique UNIQUE (slug);
-
-
---
 -- Name: escalated_escalation_rules escalated_escalation_rules_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.escalated_escalation_rules
     ADD CONSTRAINT escalated_escalation_rules_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: escalated_guest_verifications escalated_guest_verifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_guest_verifications
+    ADD CONSTRAINT escalated_guest_verifications_pkey PRIMARY KEY (id);
 
 
 --
@@ -4863,14 +5708,6 @@ ALTER TABLE ONLY public.escalated_import_source_maps
 
 
 --
--- Name: escalated_inbound_emails escalated_inbound_emails_message_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.escalated_inbound_emails
-    ADD CONSTRAINT escalated_inbound_emails_message_id_unique UNIQUE (message_id);
-
-
---
 -- Name: escalated_inbound_emails escalated_inbound_emails_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4892,6 +5729,62 @@ ALTER TABLE ONLY public.escalated_macros
 
 ALTER TABLE ONLY public.escalated_mentions
     ADD CONSTRAINT escalated_mentions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: escalated_newsletter_deliveries escalated_newsletter_deliveries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_newsletter_deliveries
+    ADD CONSTRAINT escalated_newsletter_deliveries_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: escalated_newsletter_deliveries escalated_newsletter_deliveries_tracking_token_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_newsletter_deliveries
+    ADD CONSTRAINT escalated_newsletter_deliveries_tracking_token_unique UNIQUE (tracking_token);
+
+
+--
+-- Name: escalated_newsletter_list_members escalated_newsletter_list_members_list_id_contact_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_newsletter_list_members
+    ADD CONSTRAINT escalated_newsletter_list_members_list_id_contact_id_unique UNIQUE (list_id, contact_id);
+
+
+--
+-- Name: escalated_newsletter_list_members escalated_newsletter_list_members_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_newsletter_list_members
+    ADD CONSTRAINT escalated_newsletter_list_members_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: escalated_newsletter_lists escalated_newsletter_lists_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_newsletter_lists
+    ADD CONSTRAINT escalated_newsletter_lists_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: escalated_newsletter_templates escalated_newsletter_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_newsletter_templates
+    ADD CONSTRAINT escalated_newsletter_templates_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: escalated_newsletters escalated_newsletters_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_newsletters
+    ADD CONSTRAINT escalated_newsletters_pkey PRIMARY KEY (id);
 
 
 --
@@ -4959,11 +5852,11 @@ ALTER TABLE ONLY public.escalated_roles
 
 
 --
--- Name: escalated_roles escalated_roles_slug_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: escalated_rule_executions escalated_rule_executions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.escalated_roles
-    ADD CONSTRAINT escalated_roles_slug_unique UNIQUE (slug);
+ALTER TABLE ONLY public.escalated_rule_executions
+    ADD CONSTRAINT escalated_rule_executions_pkey PRIMARY KEY (id);
 
 
 --
@@ -4988,14 +5881,6 @@ ALTER TABLE ONLY public.escalated_satisfaction_ratings
 
 ALTER TABLE ONLY public.escalated_saved_views
     ADD CONSTRAINT escalated_saved_views_pkey PRIMARY KEY (id);
-
-
---
--- Name: escalated_settings escalated_settings_key_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.escalated_settings
-    ADD CONSTRAINT escalated_settings_key_unique UNIQUE (key);
 
 
 --
@@ -5031,14 +5916,6 @@ ALTER TABLE ONLY public.escalated_skills
 
 
 --
--- Name: escalated_skills escalated_skills_slug_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.escalated_skills
-    ADD CONSTRAINT escalated_skills_slug_unique UNIQUE (slug);
-
-
---
 -- Name: escalated_sla_policies escalated_sla_policies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5047,19 +5924,51 @@ ALTER TABLE ONLY public.escalated_sla_policies
 
 
 --
+-- Name: escalated_slack_events escalated_slack_events_event_key_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_slack_events
+    ADD CONSTRAINT escalated_slack_events_event_key_unique UNIQUE (event_key);
+
+
+--
+-- Name: escalated_slack_events escalated_slack_events_message_key_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_slack_events
+    ADD CONSTRAINT escalated_slack_events_message_key_unique UNIQUE (message_key);
+
+
+--
+-- Name: escalated_slack_events escalated_slack_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_slack_events
+    ADD CONSTRAINT escalated_slack_events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: escalated_slack_threads escalated_slack_threads_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_slack_threads
+    ADD CONSTRAINT escalated_slack_threads_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: escalated_slack_threads escalated_slack_threads_thread_key_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_slack_threads
+    ADD CONSTRAINT escalated_slack_threads_thread_key_unique UNIQUE (thread_key);
+
+
+--
 -- Name: escalated_tags escalated_tags_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.escalated_tags
     ADD CONSTRAINT escalated_tags_pkey PRIMARY KEY (id);
-
-
---
--- Name: escalated_tags escalated_tags_slug_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.escalated_tags
-    ADD CONSTRAINT escalated_tags_slug_unique UNIQUE (slug);
 
 
 --
@@ -5079,19 +5988,19 @@ ALTER TABLE ONLY public.escalated_ticket_links
 
 
 --
+-- Name: escalated_ticket_reads escalated_ticket_reads_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_ticket_reads
+    ADD CONSTRAINT escalated_ticket_reads_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: escalated_ticket_statuses escalated_ticket_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.escalated_ticket_statuses
     ADD CONSTRAINT escalated_ticket_statuses_pkey PRIMARY KEY (id);
-
-
---
--- Name: escalated_ticket_statuses escalated_ticket_statuses_slug_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.escalated_ticket_statuses
-    ADD CONSTRAINT escalated_ticket_statuses_slug_unique UNIQUE (slug);
 
 
 --
@@ -5527,6 +6436,30 @@ ALTER TABLE ONLY public.locations
 
 
 --
+-- Name: mcp_calls mcp_calls_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mcp_calls
+    ADD CONSTRAINT mcp_calls_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mcp_clients mcp_clients_personal_access_token_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mcp_clients
+    ADD CONSTRAINT mcp_clients_personal_access_token_id_unique UNIQUE (personal_access_token_id);
+
+
+--
+-- Name: mcp_clients mcp_clients_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mcp_clients
+    ADD CONSTRAINT mcp_clients_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: media media_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5580,6 +6513,22 @@ ALTER TABLE ONLY public.model_has_roles
 
 ALTER TABLE ONLY public.nearby_discovery_views
     ADD CONSTRAINT nearby_discovery_views_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: notification_engagement_counters notification_engagement_counters_date_category_channel_event_un; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notification_engagement_counters
+    ADD CONSTRAINT notification_engagement_counters_date_category_channel_event_un UNIQUE (date, category, channel, event);
+
+
+--
+-- Name: notification_engagement_counters notification_engagement_counters_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notification_engagement_counters
+    ADD CONSTRAINT notification_engagement_counters_pkey PRIMARY KEY (id);
 
 
 --
@@ -5957,6 +6906,13 @@ CREATE INDEX activity_logs_user_id_created_at_index ON public.activity_logs USIN
 
 
 --
+-- Name: alertable_errors_last_seen_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX alertable_errors_last_seen_at_index ON public.alertable_errors USING btree (last_seen_at);
+
+
+--
 -- Name: attendance_reports_game_reported_status_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6139,6 +7095,468 @@ CREATE INDEX delayed_actions_exec_idx ON public.escalated_delayed_actions USING 
 
 
 --
+-- Name: esc_rule_exec_1f3c08ca5a56_tenant; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_rule_exec_1f3c08ca5a56_tenant ON public.escalated_rule_executions USING btree (tenant_id);
+
+
+--
+-- Name: esc_rule_exec_1f3c08ca5a56_ticket; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_rule_exec_1f3c08ca5a56_ticket ON public.escalated_rule_executions USING btree (ticket_id);
+
+
+--
+-- Name: esc_slack_due; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_slack_due ON public.escalated_slack_events USING btree (tenant_id, status, available_at);
+
+
+--
+-- Name: esc_tenant_0329c8830909; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_0329c8830909 ON public.escalated_automations USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_0748c38eda3a; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_0748c38eda3a ON public.escalated_mentions USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_0837eef781df; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_0837eef781df ON public.escalated_webhooks USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_0bbd28f34c9f; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_0bbd28f34c9f ON public.escalated_webhook_deliveries USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_113781038e69; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_113781038e69 ON public.escalated_sla_policies USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_1937a591092c; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_1937a591092c ON public.escalated_business_schedules USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_2364b4eeaf72; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_2364b4eeaf72 ON public.escalated_workflow_logs USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_270701b626f0; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_270701b626f0 ON public.escalated_agent_capacity USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_297a3c83c091; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_297a3c83c091 ON public.escalated_role_permission USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_29be1181721e; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_29be1181721e ON public.escalated_department_agent USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_2e4d5fe8317d; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_2e4d5fe8317d ON public.escalated_skills USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_332796090ff8; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_332796090ff8 ON public.escalated_custom_field_values USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_345a1b842090; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_345a1b842090 ON public.escalated_newsletter_deliveries USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_34a429ad59dd; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_34a429ad59dd ON public.escalated_newsletter_lists USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_34df175f3045; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_34df175f3045 ON public.escalated_newsletter_list_members USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_385ab0453f11; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_385ab0453f11 ON public.escalated_custom_fields USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_3eab7558bc88; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_3eab7558bc88 ON public.escalated_chat_routing_rules USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_47c6cf91999e; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_47c6cf91999e ON public.escalated_delayed_actions USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_4939323936fd; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_4939323936fd ON public.escalated_contacts USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_4a402c7e734c; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_4a402c7e734c ON public.escalated_ticket_activities USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_4a9156c6029d; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_4a9156c6029d ON public.escalated_escalation_rules USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_5326ff2ae2bb; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_5326ff2ae2bb ON public.escalated_ticket_subjects USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_557364b24eb7; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_557364b24eb7 ON public.escalated_chat_sessions USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_5ac03246854d; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_5ac03246854d ON public.escalated_holidays USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_5d8eb9de55e4; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_5d8eb9de55e4 ON public.escalated_newsletters USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_620230c10079; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_620230c10079 ON public.escalated_import_source_maps USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_62188d1bfa2f; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_62188d1bfa2f ON public.escalated_ticket_followers USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_6892349a09bb; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_6892349a09bb ON public.escalated_satisfaction_ratings USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_6d1d93ed8521; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_6d1d93ed8521 ON public.escalated_audit_logs USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_6d2089e0e982; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_6d2089e0e982 ON public.escalated_side_conversations USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_6e88bf12a729; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_6e88bf12a729 ON public.escalated_tickets USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_7872d1db824a; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_7872d1db824a ON public.escalated_articles USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_78b1f7550f0d; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_78b1f7550f0d ON public.escalated_agent_profiles USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_7aee24bca711; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_7aee24bca711 ON public.escalated_departments USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_7cc72b0f2256; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_7cc72b0f2256 ON public.escalated_ticket_links USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_8149f1ef3c0d; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_8149f1ef3c0d ON public.escalated_settings USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_81b39ade8825; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_81b39ade8825 ON public.escalated_tags USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_91e31deb0c7a; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_91e31deb0c7a ON public.escalated_plugin_store USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_93a9b740a3c4; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_93a9b740a3c4 ON public.escalated_ticket_statuses USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_a6c5f000053d; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_a6c5f000053d ON public.escalated_roles USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_a81b12d12636; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_a81b12d12636 ON public.escalated_import_jobs USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_ab9b0c45abbc; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_ab9b0c45abbc ON public.escalated_canned_responses USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_aeaab21a43f2; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_aeaab21a43f2 ON public.escalated_attachments USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_b90327db6d31; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_b90327db6d31 ON public.escalated_custom_objects USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_c2e36a2f202c; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_c2e36a2f202c ON public.escalated_article_categories USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_d076c7a8e5d9; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_d076c7a8e5d9 ON public.escalated_saved_views USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_d27cc826edce; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_d27cc826edce ON public.escalated_attachment_migrations USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_dacd301ec897; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_dacd301ec897 ON public.escalated_inbound_emails USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_e2d203037398; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_e2d203037398 ON public.escalated_api_tokens USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_e786b349f92a; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_e786b349f92a ON public.escalated_replies USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_ebe75f3e0d11; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_ebe75f3e0d11 ON public.escalated_custom_object_records USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_ee57d916a649; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_ee57d916a649 ON public.escalated_ticket_tag USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_f2543f3b6008; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_f2543f3b6008 ON public.escalated_side_conversation_replies USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_f43d09f4e6f0; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_f43d09f4e6f0 ON public.escalated_newsletter_templates USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_f6e27d2154a2; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_f6e27d2154a2 ON public.escalated_agent_skill USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_fb34c544192f; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_fb34c544192f ON public.escalated_macros USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_fbc38e5156b5; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_fbc38e5156b5 ON public.escalated_workflows USING btree (tenant_id);
+
+
+--
+-- Name: esc_tenant_fc78b52704ed; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tenant_fc78b52704ed ON public.escalated_role_user USING btree (tenant_id);
+
+
+--
+-- Name: esc_ticket_external_reference; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_ticket_external_reference ON public.escalated_tickets USING btree (tenant_id, external_reference);
+
+
+--
+-- Name: esc_ticket_reads_9fdeb2e0ea26_activity; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_ticket_reads_9fdeb2e0ea26_activity ON public.escalated_tickets USING btree (last_customer_activity_at);
+
+
+--
+-- Name: esc_ticket_reads_9fdeb2e0ea26_tenant; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_ticket_reads_9fdeb2e0ea26_tenant ON public.escalated_ticket_reads USING btree (tenant_id);
+
+
+--
+-- Name: esc_ticket_reads_9fdeb2e0ea26_ticket; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_ticket_reads_9fdeb2e0ea26_ticket ON public.escalated_ticket_reads USING btree (ticket_id);
+
+
+--
+-- Name: esc_tickets_account; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX esc_tickets_account ON public.escalated_tickets USING btree (account_type, account_id);
+
+
+--
 -- Name: escalated_api_tokens_tokenable_type_tokenable_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6209,6 +7627,13 @@ CREATE INDEX escalated_chat_sessions_ticket_id_index ON public.escalated_chat_se
 
 
 --
+-- Name: escalated_contacts_marketing_opt_out_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX escalated_contacts_marketing_opt_out_at_index ON public.escalated_contacts USING btree (marketing_opt_out_at);
+
+
+--
 -- Name: escalated_custom_field_values_entity_type_entity_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6227,6 +7652,20 @@ CREATE INDEX escalated_custom_object_records_object_id_index ON public.escalated
 --
 
 CREATE INDEX escalated_delayed_actions_ticket_id_index ON public.escalated_delayed_actions USING btree (ticket_id);
+
+
+--
+-- Name: escalated_guest_verifications_expires_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX escalated_guest_verifications_expires_at_index ON public.escalated_guest_verifications USING btree (expires_at);
+
+
+--
+-- Name: escalated_guest_verifications_tenant_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX escalated_guest_verifications_tenant_id_index ON public.escalated_guest_verifications USING btree (tenant_id);
 
 
 --
@@ -6262,6 +7701,90 @@ CREATE INDEX escalated_inbound_emails_from_email_index ON public.escalated_inbou
 --
 
 CREATE INDEX escalated_inbound_emails_status_index ON public.escalated_inbound_emails USING btree (status);
+
+
+--
+-- Name: escalated_newsletter_deliveries_contact_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX escalated_newsletter_deliveries_contact_id_index ON public.escalated_newsletter_deliveries USING btree (contact_id);
+
+
+--
+-- Name: escalated_newsletter_deliveries_newsletter_id_status_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX escalated_newsletter_deliveries_newsletter_id_status_index ON public.escalated_newsletter_deliveries USING btree (newsletter_id, status);
+
+
+--
+-- Name: escalated_newsletter_deliveries_status_claimed_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX escalated_newsletter_deliveries_status_claimed_at_index ON public.escalated_newsletter_deliveries USING btree (status, claimed_at);
+
+
+--
+-- Name: escalated_newsletter_list_members_contact_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX escalated_newsletter_list_members_contact_id_index ON public.escalated_newsletter_list_members USING btree (contact_id);
+
+
+--
+-- Name: escalated_newsletter_lists_created_by_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX escalated_newsletter_lists_created_by_index ON public.escalated_newsletter_lists USING btree (created_by);
+
+
+--
+-- Name: escalated_newsletter_lists_kind_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX escalated_newsletter_lists_kind_index ON public.escalated_newsletter_lists USING btree (kind);
+
+
+--
+-- Name: escalated_newsletter_templates_created_by_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX escalated_newsletter_templates_created_by_index ON public.escalated_newsletter_templates USING btree (created_by);
+
+
+--
+-- Name: escalated_newsletter_templates_theme_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX escalated_newsletter_templates_theme_index ON public.escalated_newsletter_templates USING btree (theme);
+
+
+--
+-- Name: escalated_newsletters_created_by_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX escalated_newsletters_created_by_index ON public.escalated_newsletters USING btree (created_by);
+
+
+--
+-- Name: escalated_newsletters_scheduled_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX escalated_newsletters_scheduled_at_index ON public.escalated_newsletters USING btree (scheduled_at);
+
+
+--
+-- Name: escalated_newsletters_status_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX escalated_newsletters_status_index ON public.escalated_newsletters USING btree (status);
+
+
+--
+-- Name: escalated_newsletters_status_scheduled_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX escalated_newsletters_status_scheduled_at_index ON public.escalated_newsletters USING btree (status, scheduled_at);
 
 
 --
@@ -6311,6 +7834,34 @@ CREATE INDEX escalated_side_conversation_replies_side_conversation_id_index ON p
 --
 
 CREATE INDEX escalated_side_conversations_ticket_id_index ON public.escalated_side_conversations USING btree (ticket_id);
+
+
+--
+-- Name: escalated_sla_policies_ticket_type_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX escalated_sla_policies_ticket_type_index ON public.escalated_sla_policies USING btree (ticket_type);
+
+
+--
+-- Name: escalated_slack_events_tenant_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX escalated_slack_events_tenant_id_index ON public.escalated_slack_events USING btree (tenant_id);
+
+
+--
+-- Name: escalated_slack_events_thread_key_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX escalated_slack_events_thread_key_index ON public.escalated_slack_events USING btree (thread_key);
+
+
+--
+-- Name: escalated_slack_threads_tenant_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX escalated_slack_threads_tenant_id_index ON public.escalated_slack_threads USING btree (tenant_id);
 
 
 --
@@ -6608,6 +8159,13 @@ CREATE INDEX game_systems_type_index ON public.game_systems USING btree (type);
 
 
 --
+-- Name: games_campaign_status_date_time_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX games_campaign_status_date_time_idx ON public.games USING btree (campaign_id, status, date_time);
+
+
+--
 -- Name: games_event_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6857,6 +8415,41 @@ CREATE INDEX locations_lat_lng_index ON public.locations USING btree (latitude, 
 --
 
 CREATE INDEX locations_place_id_index ON public.locations USING btree (place_id);
+
+
+--
+-- Name: mcp_calls_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX mcp_calls_created_at_index ON public.mcp_calls USING btree (created_at);
+
+
+--
+-- Name: mcp_calls_mcp_client_id_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX mcp_calls_mcp_client_id_created_at_index ON public.mcp_calls USING btree (mcp_client_id, created_at);
+
+
+--
+-- Name: mcp_calls_target_type_target_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX mcp_calls_target_type_target_id_index ON public.mcp_calls USING btree (target_type, target_id);
+
+
+--
+-- Name: mcp_calls_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX mcp_calls_user_id_index ON public.mcp_calls USING btree (user_id);
+
+
+--
+-- Name: mcp_clients_user_id_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX mcp_clients_user_id_created_at_index ON public.mcp_clients USING btree (user_id, created_at);
 
 
 --
@@ -7566,6 +9159,14 @@ ALTER TABLE ONLY public.escalated_department_agent
 
 
 --
+-- Name: escalated_departments escalated_departments_business_schedule_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_departments
+    ADD CONSTRAINT escalated_departments_business_schedule_id_foreign FOREIGN KEY (business_schedule_id) REFERENCES public.escalated_business_schedules(id) ON DELETE SET NULL;
+
+
+--
 -- Name: escalated_holidays escalated_holidays_schedule_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7603,6 +9204,54 @@ ALTER TABLE ONLY public.escalated_inbound_emails
 
 ALTER TABLE ONLY public.escalated_mentions
     ADD CONSTRAINT escalated_mentions_reply_id_foreign FOREIGN KEY (reply_id) REFERENCES public.escalated_replies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: escalated_newsletter_deliveries escalated_newsletter_deliveries_contact_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_newsletter_deliveries
+    ADD CONSTRAINT escalated_newsletter_deliveries_contact_id_foreign FOREIGN KEY (contact_id) REFERENCES public.escalated_contacts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: escalated_newsletter_deliveries escalated_newsletter_deliveries_newsletter_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_newsletter_deliveries
+    ADD CONSTRAINT escalated_newsletter_deliveries_newsletter_id_foreign FOREIGN KEY (newsletter_id) REFERENCES public.escalated_newsletters(id) ON DELETE CASCADE;
+
+
+--
+-- Name: escalated_newsletter_list_members escalated_newsletter_list_members_contact_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_newsletter_list_members
+    ADD CONSTRAINT escalated_newsletter_list_members_contact_id_foreign FOREIGN KEY (contact_id) REFERENCES public.escalated_contacts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: escalated_newsletter_list_members escalated_newsletter_list_members_list_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_newsletter_list_members
+    ADD CONSTRAINT escalated_newsletter_list_members_list_id_foreign FOREIGN KEY (list_id) REFERENCES public.escalated_newsletter_lists(id) ON DELETE CASCADE;
+
+
+--
+-- Name: escalated_newsletters escalated_newsletters_target_list_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_newsletters
+    ADD CONSTRAINT escalated_newsletters_target_list_id_foreign FOREIGN KEY (target_list_id) REFERENCES public.escalated_newsletter_lists(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: escalated_newsletters escalated_newsletters_template_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_newsletters
+    ADD CONSTRAINT escalated_newsletters_template_id_foreign FOREIGN KEY (template_id) REFERENCES public.escalated_newsletter_templates(id) ON DELETE SET NULL;
 
 
 --
@@ -7662,6 +9311,22 @@ ALTER TABLE ONLY public.escalated_side_conversations
 
 
 --
+-- Name: escalated_sla_policies escalated_sla_policies_business_schedule_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_sla_policies
+    ADD CONSTRAINT escalated_sla_policies_business_schedule_id_foreign FOREIGN KEY (business_schedule_id) REFERENCES public.escalated_business_schedules(id) ON DELETE SET NULL;
+
+
+--
+-- Name: escalated_sla_policies escalated_sla_policies_department_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_sla_policies
+    ADD CONSTRAINT escalated_sla_policies_department_id_foreign FOREIGN KEY (department_id) REFERENCES public.escalated_departments(id) ON DELETE RESTRICT;
+
+
+--
 -- Name: escalated_ticket_activities escalated_ticket_activities_ticket_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7691,6 +9356,14 @@ ALTER TABLE ONLY public.escalated_ticket_links
 
 ALTER TABLE ONLY public.escalated_ticket_links
     ADD CONSTRAINT escalated_ticket_links_parent_ticket_id_foreign FOREIGN KEY (parent_ticket_id) REFERENCES public.escalated_tickets(id) ON DELETE CASCADE;
+
+
+--
+-- Name: escalated_ticket_reads escalated_ticket_reads_ticket_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.escalated_ticket_reads
+    ADD CONSTRAINT escalated_ticket_reads_ticket_id_foreign FOREIGN KEY (ticket_id) REFERENCES public.escalated_tickets(id) ON DELETE CASCADE;
 
 
 --
@@ -8118,6 +9791,38 @@ ALTER TABLE ONLY public.locations
 
 
 --
+-- Name: mcp_calls mcp_calls_mcp_client_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mcp_calls
+    ADD CONSTRAINT mcp_calls_mcp_client_id_foreign FOREIGN KEY (mcp_client_id) REFERENCES public.mcp_clients(id) ON DELETE CASCADE;
+
+
+--
+-- Name: mcp_calls mcp_calls_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mcp_calls
+    ADD CONSTRAINT mcp_calls_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: mcp_clients mcp_clients_personal_access_token_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mcp_clients
+    ADD CONSTRAINT mcp_clients_personal_access_token_id_foreign FOREIGN KEY (personal_access_token_id) REFERENCES public.personal_access_tokens(id) ON DELETE SET NULL;
+
+
+--
+-- Name: mcp_clients mcp_clients_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mcp_clients
+    ADD CONSTRAINT mcp_clients_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: model_has_permissions model_has_permissions_permission_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -8391,7 +10096,7 @@ ALTER TABLE ONLY public.users
 --
 
 
--- Dumped from database version 16.15 (Debian 16.15-1.pgdg13+2)
+-- Dumped from database version 16.15
 -- Dumped by pg_dump version 18.6
 
 SET statement_timeout = 0;
@@ -8667,6 +10372,33 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 280	2026_10_21_010000_add_active_per_source_unique_to_local_subscriptions	13
 281	2026_10_23_090000_cull_legacy_session_zero_surveys	14
 282	2026_10_23_090100_drop_games_recap_projection	14
+283	2026_05_19_000001_create_escalated_newsletter_lists_table	15
+284	2026_05_19_000002_create_escalated_newsletter_list_members_table	15
+285	2026_05_19_000003_create_escalated_newsletter_templates_table	15
+286	2026_05_19_000004_create_escalated_newsletters_table	15
+287	2026_05_19_000005_create_escalated_newsletter_deliveries_table	15
+288	2026_05_19_000006_add_marketing_opt_out_at_to_escalated_contacts	15
+289	2026_05_29_000001_add_routing_columns_to_escalated_skills_table	15
+290	2026_09_29_000001_create_attachment_migrations_table	15
+291	2026_09_30_000001_add_tenant_namespaces	15
+292	2026_10_01_000001_add_verified_guest_access	15
+293	2026_10_02_000001_create_escalated_slack_inbox	15
+294	2026_10_13_000001_add_ticket_accounts_and_sla_targets	15
+295	2026_10_20_000001_create_escalated_rule_executions	15
+296	2026_10_21_000001_canonicalize_workflow_trigger_events	15
+297	2026_10_22_000001_add_business_schedule_to_sla_policies_and_departments	15
+298	2026_10_30_054621_add_campaign_status_date_time_index_to_games_table	15
+299	2026_10_30_171329_add_timezone_to_users_table	15
+300	2026_10_31_090000_true_utc_instants_and_timezone_override	15
+301	2026_11_03_090000_create_alertable_errors_table	15
+302	2026_11_05_000001_create_escalated_ticket_reads	15
+303	2026_11_05_000002_create_escalated_customer_presence	15
+304	2026_11_10_202247_create_mcp_clients_table	15
+305	2026_11_10_202248_create_mcp_calls_table	15
+306	2026_11_10_213500_add_actor_marker_to_mcp_calls_table	15
+307	2026_11_10_221953_add_mcp_agent_to_join_source_check	15
+308	2026_11_10_224500_add_target_to_mcp_calls_table	15
+309	2026_11_14_125454_create_notification_engagement_counters_table	16
 \.
 
 
@@ -8674,7 +10406,7 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 282, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 309, true);
 
 
 --

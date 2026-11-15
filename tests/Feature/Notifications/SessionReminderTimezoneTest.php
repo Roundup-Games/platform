@@ -51,9 +51,15 @@ it('renders the reminder time in each notifiable user\'s stored timezone', funct
             $pushBody = $notification->toPush($berlin)->body;
             $discordBody = $notification->toDiscord($berlin)->embeds[0]['description'] ?? '';
 
-            // Local time AND abbreviation are the Berlin pair, and differ per user
+            // Push keeps the recipient-tz wall clock (7:00 PM CET for Berlin,
+            // different per user); the Discord DM carries native timestamps
+            // instead of any server-rendered time string (T02).
+            $epoch = $game->date_time->getTimestamp();
+
             return str_contains($pushBody, '7:00 PM CET')
-                && str_contains($discordBody, '7:00 PM CET')
+                && str_contains($discordBody, "<t:{$epoch}:F>")
+                && str_contains($discordBody, "<t:{$epoch}:R>")
+                && ! str_contains($discordBody, 'CET')
                 && $notification->game->id === $game->id;
         });
 
@@ -64,6 +70,30 @@ it('renders the reminder time in each notifiable user\'s stored timezone', funct
             // Different local time AND different abbreviation than the Berlin user
             return str_contains($pushBody, '2:00 PM EDT')
                 && ! str_contains($pushBody, '7:00 PM CET');
+        });
+});
+
+it('renders the Discord DM description with native timestamps, not the recipient-tz string', function () {
+    // T02: the Discord embed carries the instant as native <t:F> + <t:R>
+    // markup — Discord renders it in each viewer's own timezone with a live
+    // relative label — while the push body keeps the recipient-tz string.
+    $game = Game::factory()->create([
+        'date_time' => Carbon::parse('2026-10-31 18:00:00', 'UTC'),
+    ]);
+
+    $newYork = User::factory()->create(['timezone' => 'America/New_York']);
+
+    $newYork->notify(new SessionReminder($game));
+
+    Notification::assertSentTo($newYork, SessionReminder::class,
+        function (SessionReminder $notification) use ($newYork, $game): bool {
+            $description = $notification->toDiscord($newYork)->embeds[0]['description'] ?? '';
+            $epoch = $game->date_time->getTimestamp();
+
+            return str_contains($description, "<t:{$epoch}:F>")
+                && str_contains($description, "<t:{$epoch}:R>")
+                && ! str_contains($description, 'EDT')
+                && ! str_contains($description, 'CET');
         });
 });
 

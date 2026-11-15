@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\EmailSuppression;
+use App\Notifications\Channels\TaggedMailChannel;
+use App\Services\NotificationEngagementCounters;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -15,14 +17,24 @@ use Throwable;
  * hygiene.
  *
  * Production mail runs on Resend (MAIL_MAILER=resend). Resend fires
- * post-delivery events — delivered, bounced, complained, failed, delivery_delayed
- * — that this controller ingests. They cover the gap left by NotificationService
- * (which only proves "handed off to Resend") and let us observe what Resend
- * actually observed, plus act on it:
+ * post-delivery events — delivered, opened, clicked, bounced, complained,
+ * failed, delivery_delayed — that this controller ingests. They cover the gap
+ * left by NotificationService (which only proves "handed off to Resend") and
+ * let us observe what Resend actually observed, plus act on it:
  *
  *   - email.bounced (Permanent) → suppress the address (never mail it again)
  *   - email.complained          → suppress the address (spam complaint)
  *   - email.delivered/failed/…  → structured log only (telemetry)
+ *
+ * Counted events (delivered, opened, clicked, bounced, complained, failed)
+ * additionally bump the per-(date, category, channel, event) daily aggregate
+ * in notification_engagement_counters (D284 passive telemetry — no per-event
+ * rows), attributed to the category the send was tagged with at dispatch
+ * ({@see TaggedMailChannel} stamps data.tags.roundup_category; Resend echoes
+ * the tags map back on every webhook). Untagged events — mail sent outside
+ * the notification pipeline — count under 'untagged'. Counter writes are
+ * best-effort: a failure is logged and swallowed, never allowed to break
+ * ingestion or suppression.
  *
  * Authenticity: every request is verified via the bundled Resend Svix signature
  * verifier (svix-id / svix-timestamp / svix-signature headers, HMAC-SHA256 over
@@ -30,15 +42,38 @@ use Throwable;
  * rejected with 400 before any processing.
  *
  * Idempotency: Resend may redeliver. Suppression rows are unique on email and
- * created with firstOrCreate, so a repeat bounce/complaint is a no-op.
+ * created with firstOrCreate, so a repeat bounce/complaint is a no-op. Counter
+ * rows are daily aggregates, so a redelivery bumps the same row's count —
+ * accepted by design (D284 counts events observed, not unique events).
  *
- * Reliability: a processing error returns 200 (not 5xx) so Resend does not retry
- * a payload we have already received — the error is logged for us instead.
+ * Reliability: a processing error on a telemetry-only event returns 200
+ * (not 5xx) so Resend does not retry a payload we have already received —
+ * the error is logged for us instead. Suppression-bearing events are the
+ * deliberate exception: bounced/complained failures return 500 so Resend
+ * retries, because the idempotent suppression write (firstOrCreate on a
+ * unique email) is load-bearing — a transient DB outage must not
+ * permanently lose the suppression (sender-reputation, CAN-SPAM/GDPR).
  *
  * @see https://resend.com/docs/webhooks/event-types
  */
 class ResendWebhookController extends Controller
 {
+    /**
+     * Resend event types that carry a counted engagement outcome, mapped to
+     * their counter event name (D284). Everything else — delivery_delayed and
+     * any unknown type — stays telemetry-logged without a counter.
+     */
+    private const COUNTED_EVENTS = [
+        'email.delivered' => 'delivered',
+        'email.opened' => 'opened',
+        'email.clicked' => 'clicked',
+        'email.bounced' => 'bounced',
+        'email.complained' => 'complained',
+        'email.failed' => 'failed',
+    ];
+
+    public function __construct(private readonly NotificationEngagementCounters $counters) {}
+
     public function __invoke(Request $request): JsonResponse
     {
         $secret = config('services.resend.webhook_secret');
@@ -121,6 +156,8 @@ class ResendWebhookController extends Controller
             'email.bounced' => $this->handleBounce($data, $emailId, $messageId, $recipient, $subject),
             'email.complained' => $this->suppress($recipient, 'complaint', $messageId, $emailId, $subject, $type),
             'email.delivered' => $this->logDelivery('mail.delivered', $emailId, $messageId, $recipient, $subject),
+            'email.opened' => $this->logDelivery('mail.opened', $emailId, $messageId, $recipient, $subject),
+            'email.clicked' => $this->logDelivery('mail.clicked', $emailId, $messageId, $recipient, $subject),
             'email.failed' => $this->logDelivery('mail.failed', $emailId, $messageId, $recipient, $subject),
             'email.delivery_delayed' => $this->logDelivery('mail.delivery_delayed', $emailId, $messageId, $recipient, $subject),
             default => Log::info('mail.webhook_event_unhandled', [
@@ -128,6 +165,17 @@ class ResendWebhookController extends Controller
                 'email_id' => $emailId,
             ]),
         };
+
+        // Counted AFTER the primary handler above: a suppression-bearing
+        // event whose write throws never reaches this line (the caller
+        // returns 500 so Resend retries), and the retry re-runs suppression
+        // plus this counter — so one real event is never counted twice by a
+        // retry. Log-only events never throw, and the counter itself swallows
+        // its own failures (see countEngagement()).
+        $countedEvent = self::COUNTED_EVENTS[$type] ?? null;
+        if ($countedEvent !== null) {
+            $this->countEngagement($countedEvent, self::notificationCategory($data));
+        }
     }
 
     /**
@@ -203,6 +251,45 @@ class ResendWebhookController extends Controller
             'recipient' => $recipient,
             'subject' => $subject,
         ]);
+    }
+
+    /**
+     * Best-effort engagement counter increment (D284): the suppression and
+     * telemetry logging above is the load-bearing behavior, so a counter
+     * write failure is logged and swallowed — it must never break ingestion
+     * (nor flip a would-be 200 into a retry-triggering 500).
+     */
+    private function countEngagement(string $event, string $category): void
+    {
+        try {
+            $this->counters->incrementFor($category, 'mail', $event);
+        } catch (Throwable $e) {
+            Log::warning('resend.engagement_counter_failed', [
+                'event' => $event,
+                'category' => $category,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Notification category the send was tagged with at dispatch time.
+     * {@see TaggedMailChannel} stamps the roundup_category MetadataHeader on
+     * every notification-pipeline mail (framework auth notifications
+     * included — they carry their class basename as the category) and Resend
+     * echoes the tags back as a name→value map at data.tags on every
+     * engagement webhook. Events with no matching tag — direct Mailable
+     * sends and Mail::raw() outside the notification pipeline — count under
+     * 'untagged'.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private static function notificationCategory(array $data): string
+    {
+        $tags = is_array($data['tags'] ?? null) ? $data['tags'] : [];
+        $category = self::string($tags[TaggedMailChannel::CATEGORY_TAG] ?? null);
+
+        return $category !== '' ? $category : 'untagged';
     }
 
     private static function string(mixed $value): string

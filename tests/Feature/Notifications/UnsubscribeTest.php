@@ -2,15 +2,33 @@
 
 use App\Enums\NotificationCategory;
 use App\Models\Game;
+use App\Models\NotificationEngagementCounter;
 use App\Models\User;
 use App\Notifications\EntityInvitation;
 use App\Notifications\WeeklyDigest;
+use App\Services\NotificationEngagementCounters;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
+    // Freeze the clock: the unsubscribe counter buckets on the UTC calendar
+    // date, so a test straddling UTC midnight would write and read different
+    // daily rows and false-fail.
+    $this->travelTo(Carbon::parse('2026-11-14 12:00:00'));
 });
+
+/** Today's (category, mail, unsubscribed) engagement counter — the D284 aggregate row (M080/S03/T04). */
+function unsubscribeCounterCount(string $category): int
+{
+    return (int) NotificationEngagementCounter::query()
+        ->where('date', now()->toDateString())
+        ->where('category', $category)
+        ->where('channel', 'mail')
+        ->where('event', 'unsubscribed')
+        ->value('count');
+}
 
 // smoke: signed URL unsubscribe
 it('unsubscribes user from a notification category via signed URL', function () {
@@ -35,6 +53,10 @@ it('unsubscribes user from a notification category via signed URL', function () 
     $settings = $this->user->fresh()->notification_settings;
     expect($settings[$category]['mail'])->toBeFalse();
     expect($settings[$category]['database'])->toBeTrue();
+
+    // D284: the unsubscribe is counted once under its category on the mail channel.
+    expect(unsubscribeCounterCount('game_invitation'))->toBe(1)
+        ->and(unsubscribeCounterCount('digest'))->toBe(0);
 });
 
 it('preserves other category settings when unsubscribing', function () {
@@ -64,6 +86,9 @@ it('rejects unsigned URLs with 403', function () {
     $this->actingAs($this->user)
         ->get($url)
         ->assertForbidden();
+
+    // An unverified request must never reach the settings write or the counter.
+    expect(NotificationEngagementCounter::count())->toBe(0);
 });
 
 it('rejects tampered signatures with 403', function () {
@@ -79,6 +104,8 @@ it('rejects tampered signatures with 403', function () {
     $this->actingAs($this->user)
         ->get($tamperedUrl)
         ->assertForbidden();
+
+    expect(NotificationEngagementCounter::count())->toBe(0);
 });
 
 it('returns 404 for unknown category', function () {
@@ -91,6 +118,9 @@ it('returns 404 for unknown category', function () {
     $this->actingAs($this->user)
         ->get($url)
         ->assertNotFound();
+
+    // Unknown category aborts before the settings write — no counter either.
+    expect(NotificationEngagementCounter::count())->toBe(0);
 });
 
 it('redirects to home for non-logged-in users', function () {
@@ -113,6 +143,9 @@ it('redirects to home for non-logged-in users', function () {
     // Verify settings were still updated
     $settings = $this->user->fresh()->notification_settings;
     expect($settings[$category]['mail'])->toBeFalse();
+
+    // The no-login path counts the same as the logged-in one (CAN-SPAM/GDPR telemetry).
+    expect(unsubscribeCounterCount('game_invitation'))->toBe(1);
 });
 
 it('generates valid unsubscribe URLs in notification emails', function () {
@@ -143,12 +176,42 @@ it('unsubscribes a user from the weekly digest via signed URL', function () {
     $response->assertRedirect(route('profile.show', ['locale' => 'en']));
     $response->assertSessionHas('status');
     expect($this->user->fresh()->weekly_digest_enabled)->toBeFalse();
+
+    // D284: the digest opt-out counts under the dedicated 'digest' category.
+    expect(unsubscribeCounterCount('digest'))->toBe(1);
 });
 
 it('rejects unsigned digest unsubscribe URLs with 403', function () {
     $url = url('/en/notifications/unsubscribe-digest/'.$this->user->id);
 
     $this->get($url)->assertForbidden();
+
+    expect(NotificationEngagementCounter::count())->toBe(0);
+});
+
+it('does not fail the unsubscribe when the engagement counter write fails', function () {
+    $counters = Mockery::mock(NotificationEngagementCounters::class);
+    $counters->shouldReceive('incrementFor')->andThrow(new RuntimeException('counters unavailable'));
+    $this->app->instance(NotificationEngagementCounters::class, $counters);
+
+    $this->user->update([
+        'notification_settings' => NotificationCategory::defaultSettings(),
+    ]);
+
+    $url = URL::signedRoute('notifications.unsubscribe', [
+        'locale' => 'en',
+        'user' => $this->user->id,
+        'category' => 'game_invitation',
+    ]);
+
+    // Telemetry is best-effort (D284): the settings write is load-bearing, so
+    // a counter failure is logged and swallowed — the redirect still happens
+    // and the user is still unsubscribed.
+    $this->actingAs($this->user)
+        ->get($url)
+        ->assertRedirect(route('profile.show', ['locale' => 'en']));
+
+    expect($this->user->fresh()->notification_settings['game_invitation']['mail'])->toBeFalse();
 });
 
 it('renders a translated digest unsubscribe link in the weekly digest email', function () {
@@ -163,8 +226,9 @@ it('renders a translated digest unsubscribe link in the weekly digest email', fu
 
     expect($rendered)->toContain('unsubscribe-digest/'.$germanUser->id)
         ->and($rendered)->toContain('signature')
-        // German action label is present (not the English fallback)
-        ->and($rendered)->toContain('Wochen-Digest abbestellen');
+        // German action label is present (not the English fallback) —
+        // wording-agnostic per K004: resolve the key, never pin the literal.
+        ->and($rendered)->toContain(__('notifications.action_unsubscribe_digest', [], 'de'));
 });
 
 it('labels digest groups by the per-notification data.type discriminator', function () {
@@ -183,6 +247,8 @@ it('labels digest groups by the per-notification data.type discriminator', funct
 
     $rendered = (string) (new WeeklyDigest($user->unreadNotifications))->toMail($user)->render();
 
-    expect($rendered)->toContain('Game invitation')
-        ->and($rendered)->toContain('Campaign invitation');
+    // Wording-agnostic per K004: resolve the digest label keys the renderer
+    // itself resolves, instead of pinning the English literals.
+    expect($rendered)->toContain(__('notifications.label_digest_game_invitation', [], 'en'))
+        ->and($rendered)->toContain(__('notifications.label_digest_campaign_invitation', [], 'en'));
 });

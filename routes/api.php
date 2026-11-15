@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\CitiesSuggestController;
 use App\Http\Controllers\Api\GeocodeController;
 use App\Http\Controllers\Api\PushSubscriptionController;
 use Illuminate\Support\Facades\Route;
+use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,7 +38,14 @@ Route::middleware(['throttle:api'])->prefix('v1')->group(function () {
 
     // ── Authenticated Endpoints ────────────────────────
 
-    Route::middleware(['auth:sanctum', 'not.disabled'])->group(function () {
+    // EnsureFrontendRequestsAreStateful: the first-party frontend calls these
+    // routes with session cookies (push.js fetch uses credentials:
+    // 'same-origin'), not bearer tokens. Without Sanctum's SPA-stateful
+    // middleware the session is never booted on API routes, so auth:sanctum
+    // 401s every browser subscribe/unsubscribe (observed live 2026-11-15:
+    // Enable/Disable push never worked from the settings UI — actingAs-based
+    // tests seed the guard directly and cannot catch this).
+    Route::middleware([EnsureFrontendRequestsAreStateful::class, 'auth:sanctum', 'not.disabled'])->group(function () {
         Route::post('push/subscribe', [PushSubscriptionController::class, 'subscribe'])
             ->name('api.push.subscribe');
 

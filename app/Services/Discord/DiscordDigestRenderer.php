@@ -354,8 +354,13 @@ class DiscordDigestRenderer
 
     private function gameTime(Game $game): string
     {
-        // Community display zone (R089): digest times are Berlin wall times.
-        return $game->date_time?->copy()->setTimezone(community_timezone())->format('H:i') ?? '--:--';
+        // Native Discord short time (T02): <t:t> renders HH:MM in the
+        // VIEWER's own timezone and locale, so no server-side wall clock.
+        // NB: the markup is <t:…:t> — a colon after the opening t, never a
+        // closing bracket (<t>… renders as literal text, not a timestamp).
+        return $game->date_time !== null
+            ? "<t:{$game->date_time->getTimestamp()}:t>"
+            : '--:--';
     }
 
     private function gameName(Game $game): string
@@ -453,7 +458,16 @@ class DiscordDigestRenderer
     }
 
     /**
-     * Locale-aware date heading for an embed title, e.g. "Friday 25 Jul".
+     * Date heading for an embed title.
+     *
+     * Titles are the one timestamp surface that must stay server-rendered:
+     * Discord only renders <t:…> markup in message content, embed
+     * descriptions, and embed field values — titles show the code as
+     * literal text (validated against Discord's documented rendering
+     * matrix, 2026-11-15 M080 review). So the heading formats on the
+     * community wall clock (R089) in the guild locale, matching the
+     * dateKey grouping below it; the per-game times inside the field
+     * values stay native <t:t> (viewer-local, T02).
      *
      * @param  Collection<int, Game>  $dateGames
      */
@@ -466,17 +480,15 @@ class DiscordDigestRenderer
             return $this->trans('discord.content_digest_undated', [], $this->resolveLocale($context->locale));
         }
 
-        // Community display zone (R089).
         $carbon = $date->copy()->setTimezone(community_timezone());
-        if ($context->locale !== null && $context->locale !== '') {
-            $carbon->locale($context->locale);
-        }
+        $carbon->locale($this->resolveLocale($context->locale));
 
         return $carbon->translatedFormat('l j M');
     }
 
     // Both sort keys format on the community clock (R089) so intra-group
-    // ordering matches the rendered Berlin wall times.
+    // ordering is deterministic and matches the community-clock date
+    // headings (the per-game <t:t> times themselves render viewer-local).
     private function dateTimeSortKey(Game $game): string
     {
         return $game->date_time?->copy()->setTimezone(community_timezone())->format('Y-m-d\TH:i:s') ?? '9999-99-99T99:99:99';

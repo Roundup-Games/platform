@@ -45,6 +45,10 @@ return [
     // Notification preferences UI
     'content_notification_preferences' => 'Notification Settings',
     'flash_notification_preferences_saved' => 'Notification preferences saved.',
+    // Discord link default-shift notice (M080/S05, D282 companion) — one-shot
+    // banner flashed when linking Discord re-points the notification defaults.
+    'flash_discord_link_default_shift' => 'Discord linked — invitations, application updates, waitlist moves and other actionable notifications now arrive as Discord messages, and email for urgent categories is switched off. Everything stays adjustable in your notification settings.',
+    'action_discord_notification_settings' => 'Notification settings',
     'channel_in_app' => 'In-App',
     // Trinary state labels
     'hint_preference_channels' => 'Toggle each channel on or off per notification category. Push notifications require enabling in the device section below.',
@@ -191,7 +195,7 @@ return [
     'action_team_invitation' => 'View Team',
     'subject_session_added_to_campaign' => 'New session added to :campaign',
     'body_session_added_to_campaign' => 'A new session was added to the campaign **:campaign**. Check the details and mark your calendar.',
-    'action_session_added_to_campaign' => 'View Session',
+    'action_session_added_to_campaign' => 'View Game',
     // Email subjects — Applications
     'subject_new_application' => ':applicant applied to join your :entity',
     'body_new_application' => '**:applicant** applied to join your :entity_type **:entity**. Review their profile and respond.',
@@ -225,7 +229,7 @@ return [
     'body_review_content' => 'Review content: :body',
     // Game updated
     'category_game_updated' => 'Game Details Updated',
-    'subject_game_updated' => ':game has been updated',
+    'subject_game_updated' => ':game updated: :summary',
     'body_game_updated' => 'The game **:game** has been updated. Changes: :fields.',
     'action_view_game' => 'View Game',
     // Game system request
@@ -237,14 +241,15 @@ return [
     'subject_game_system_request_approved' => 'Game System Added: :name',
     'body_game_system_request_approved' => 'Your game system request for **:name** has been approved! It\'s now available on the platform.',
     'action_create_game' => 'Create Game',
-    'subject_game_system_request_rejected' => 'Game System Request Update',
+    'subject_game_system_request_rejected' => 'Game System Request Declined: :name',
+    'subject_game_system_request_rejected_reason' => 'Game System Request Declined: :name — :reason',
     'body_game_system_request_rejected' => 'Your game system request for **:name** could not be added at this time.',
-    'subject_game_system_request_duplicate' => 'Game System Already Exists',
+    'subject_game_system_request_duplicate' => 'Game System Already Exists: :name',
     'body_game_system_request_duplicate' => 'The game system **:name** you requested already exists as **:existing**.',
     'action_view_game_system' => 'View Game System',
     // Campaign updated
     'category_campaign_updated' => 'Campaign Details Updated',
-    'subject_campaign_updated' => ':campaign has been updated',
+    'subject_campaign_updated' => ':campaign updated: :summary',
     'body_campaign_updated' => 'The campaign **:campaign** has been updated. Changes: :fields.',
     'action_view_campaign' => 'View Campaign',
     // Push notification titles & bodies
@@ -370,4 +375,25 @@ return [
     'subject_badge_upgraded' => 'Your badge leveled up: :badge',
     'body_badge_upgraded' => 'Your badge advanced to **:badge**. Thank you for sticking with it.',
     'action_badge_awarded' => 'View Profile',
+    // Discord RSVP menu ("My seat") — rendered in the clicker's locale, driven
+    // by the interaction payload's locale field (see DiscordRsvpMenuRenderer).
+    'content_rsvp_hosting' => '🎲 You\'re hosting this game. Manage the roster and details on roundup.',
+    'content_rsvp_approved' => '✅ You\'re in — your seat is saved. 🎲',
+    'content_rsvp_approved_seat' => '✅ You\'re in (seat :current of :max) — your seat is saved. 🎲',
+    'content_rsvp_waitlisted' => '📋 You\'re on the waitlist — you\'ll move up the moment a seat opens.',
+    'content_rsvp_waitlisted_position' => '📋 You\'re #:position on the waitlist — you\'ll move up the moment a seat opens.',
+    'content_rsvp_benched' => '🏋️ You\'re on the bench — you\'ll move up the moment a seat frees up.',
+    'content_rsvp_pending' => '⏳ Your RSVP is pending. Leave to cancel it, or hold tight.',
+    'content_rsvp_not_on_roster' => 'You\'re not currently on the roster for this game.',
+    'content_rsvp_joiner_open_roster' => '🎟️ :approved joined · open roster — claim your seat.',
+    'content_rsvp_joiner_seats_left' => '🎟️ :approved/:max seats · :left left — claim yours.',
+    'content_rsvp_joiner_full' => '🎟️ :max/:max seats — full. Join to grab a waitlist spot; you\'ll move up the moment a seat opens.',
+    'content_rsvp_game_cancelled' => 'This game has been cancelled — check roundup for the latest.',
+    'content_rsvp_game_completed' => 'This game has been completed — check roundup for the latest.',
+    'action_rsvp_join' => '✅ Join',
+    'action_rsvp_join_waitlist' => 'Join waitlist',
+    'action_rsvp_leave' => '🚪 Leave',
+    'action_rsvp_leave_waitlist' => 'Leave waitlist',
+    'error_rsvp_game_not_found' => 'This game couldn\'t be found — it may have been removed.',
+    'error_rsvp_unprocessable' => 'This button couldn\'t be processed. Try RSVPing on roundup, or tap the game\'s link for the latest details.',
 ];

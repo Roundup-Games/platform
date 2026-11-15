@@ -408,6 +408,24 @@ class DiscordCardRendererTest extends TestCase
     }
 
     #[Test]
+    public function when_field_uses_native_discord_timestamps()
+    {
+        $game = $this->makeGame(['expected_duration' => 3.5]);
+
+        $when = $this->field($this->renderer->render($game, new DiscordCardContext)->embed, 'When');
+
+        // Native <t:F> (absolute) + <t:R> (live relative) on the stored
+        // instant — Discord renders both in the VIEWER's own timezone (T02),
+        // so no server-side wall clock may remain in the field.
+        $epoch = $game->date_time->getTimestamp();
+        $this->assertStringContainsString("<t:{$epoch}:F>", $when);
+        $this->assertStringContainsString("<t:{$epoch}:R>", $when);
+        $this->assertStringNotContainsString('2026', $when, 'no server-rendered wall clock may remain');
+        // The duration line rides along unchanged.
+        $this->assertStringContainsString('3h 30m', $when);
+    }
+
+    #[Test]
     public function cross_community_uses_generic_phrase_when_no_guild_name()
     {
         $game = $this->makeGame();

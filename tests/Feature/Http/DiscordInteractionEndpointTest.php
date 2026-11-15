@@ -33,12 +33,25 @@ class DiscordInteractionEndpointTest extends TestCase
 
     private string $publicKeyHex;
 
+    /**
+     * Provision a fresh Ed25519 keypair per test and inject its public key
+     * via config('services.discord.bot_public_key').
+     *
+     * This per-test keypair injection is DELIBERATE proof, not a fixture
+     * shortcut: every test below runs against an arbitrary, previously
+     * unseen keypair, so the suite pins that the endpoint is
+     * application-agnostic — it serves ANY configured Discord application
+     * (the production bot and the roundup-dev verification app, D282,
+     * alike), with identity carried entirely by the configured public key
+     * and never by code. The mirror-image pin is the
+     * different-application-keypair test below: a valid signature from any
+     * OTHER application's keypair must 401, so only the configured
+     * application's interactions land.
+     */
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Provision a fresh Ed25519 keypair per test and wire the public key
-        // into config — mirrors how production reads DISCORD_BOT_PUBLIC_KEY.
         $keypair = sodium_crypto_sign_keypair();
         $this->secretKey = sodium_crypto_sign_secretkey($keypair);
         $this->publicKeyHex = bin2hex(sodium_crypto_sign_publickey($keypair));
@@ -154,6 +167,40 @@ class DiscordInteractionEndpointTest extends TestCase
         $garbageSignature = bin2hex(random_bytes(64));
 
         $response = $this->postSigned('{"type":1}', $garbageSignature);
+
+        $response->assertStatus(401);
+    }
+
+    #[Test]
+    public function a_correctly_signed_request_from_a_different_application_keypair_returns_401()
+    {
+        // D282 app-isolation pin: a VALID Ed25519 signature over the exact
+        // body+timestamp — correctly formed, not garbage, not tampered — but
+        // produced by a DIFFERENT application's keypair (e.g. the production
+        // bot's key while the roundup-dev app's key is configured). Only the
+        // CONFIGURED application's interactions may land, so this must 401.
+        // Guards against future lenient-verification refactors that accept
+        // any well-formed signature instead of pinning to the configured key.
+        $otherKeypair = sodium_crypto_sign_keypair();
+        $otherSecretKey = sodium_crypto_sign_secretkey($otherKeypair);
+
+        $body = '{"type":1}';
+        $timestamp = (string) time();
+        $signatureBytes = sodium_crypto_sign_detached($timestamp.$body, $otherSecretKey);
+
+        // Prove the signature is genuinely valid — for the OTHER keypair.
+        // This makes the 401 below unambiguous: the request is rejected
+        // because the signer is not the configured application, not because
+        // the signature is malformed. The explicit timestamp passed to
+        // postSigned rules out the wrong-reason failure of a ticking clock
+        // second between signing and posting.
+        $this->assertTrue(sodium_crypto_sign_verify_detached(
+            $signatureBytes,
+            $timestamp.$body,
+            sodium_crypto_sign_publickey($otherKeypair),
+        ));
+
+        $response = $this->postSigned($body, bin2hex($signatureBytes), $timestamp);
 
         $response->assertStatus(401);
     }
@@ -314,10 +361,12 @@ class DiscordInteractionEndpointTest extends TestCase
 
     /**
      * Build a signed MESSAGE_COMPONENT interaction body for a button click.
+     * Discord sends the clicker's client locale (e.g. "de", "en-US") on every
+     * interaction — pass $locale to emulate a client in that language.
      */
-    private function componentBody(string $customId, string $memberSnowflake, string $guildId = '999888777666555444', string $token = 'interaction-token-xyz'): string
+    private function componentBody(string $customId, string $memberSnowflake, string $guildId = '999888777666555444', string $token = 'interaction-token-xyz', ?string $locale = null): string
     {
-        return json_encode([
+        $payload = [
             'type' => 3,
             'token' => $token,
             'guild_id' => $guildId,
@@ -328,7 +377,13 @@ class DiscordInteractionEndpointTest extends TestCase
             'member' => [
                 'user' => ['id' => $memberSnowflake],
             ],
-        ], JSON_THROW_ON_ERROR);
+        ];
+
+        if ($locale !== null) {
+            $payload['locale'] = $locale;
+        }
+
+        return json_encode($payload, JSON_THROW_ON_ERROR);
     }
 
     #[Test]
@@ -621,11 +676,169 @@ class DiscordInteractionEndpointTest extends TestCase
         $response->assertJsonPath('type', 4); // CHANNEL_MESSAGE
         $response->assertJsonPath('data.flags', 64); // EPHEMERAL
 
-        // The menu content includes seat info, and a Join button is present.
+        // The menu content is the localized joiner line for a fresh 4-seat
+        // roster (0 approved, 4 left) — resolved from the same key the
+        // renderer uses (K004), in the payload-less fallback (app) locale.
         $json = $response->json();
-        $this->assertStringContainsString('seats', $json['data']['content']);
+        $this->assertSame(
+            __('notifications.content_rsvp_joiner_seats_left', ['approved' => 0, 'max' => 4, 'left' => 4], config('app.locale')),
+            $json['data']['content']
+        );
 
         // No job dispatched — the menu is a state read, not a write.
+        Queue::assertNotPushed(ProcessDiscordRsvp::class);
+        Queue::assertNotPushed(ProcessDiscordLeave::class);
+    }
+
+    /**
+     * A clicker whose Discord client is set to German gets the fully
+     * localized menu: content, Join button, and the View-on-roundup link all
+     * resolve their lang keys in the interaction payload's locale.
+     */
+    #[Test]
+    public function a_menu_request_with_a_german_locale_interaction_returns_a_german_menu()
+    {
+        Queue::fake();
+
+        $owner = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'campaign_id' => null,
+            'max_players' => 4,
+            'status' => 'scheduled',
+            'visibility' => 'public',
+        ]);
+
+        $clicker = User::factory()->create();
+        LinkedAccount::create([
+            'user_id' => $clicker->id,
+            'provider' => OAuthProvider::Discord,
+            'provider_user_id' => $snowflake = '777666555444333223',
+            'token' => 'dummy',
+        ]);
+
+        $body = $this->componentBody("roundup:rsvp:{$game->id}", $snowflake, locale: 'de');
+        $response = $this->postSigned($body);
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('type', 4);
+        $response->assertJsonPath('data.flags', 64);
+
+        $json = $response->json();
+        $this->assertSame(
+            __('notifications.content_rsvp_joiner_seats_left', ['approved' => 0, 'max' => 4, 'left' => 4], 'de'),
+            $json['data']['content']
+        );
+        // Join button + View-on-roundup link render their labels in German too.
+        $this->assertSame(__('notifications.action_rsvp_join', [], 'de'), $json['data']['components'][0]['components'][0]['label']);
+        $this->assertSame('roundup:join:'.$game->id, $json['data']['components'][0]['components'][0]['custom_id']);
+        $this->assertSame(__('discord.content_card_button_view', [], 'de'), $json['data']['components'][1]['components'][0]['label']);
+
+        Queue::assertNotPushed(ProcessDiscordRsvp::class);
+        Queue::assertNotPushed(ProcessDiscordLeave::class);
+    }
+
+    /**
+     * Discord sends regional locale tags ("de-AT", "en-GB") — the primary
+     * subtag must map to the supported locale.
+     */
+    #[Test]
+    public function a_menu_request_with_a_regional_locale_tag_maps_to_its_primary_locale()
+    {
+        Queue::fake();
+
+        $owner = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'campaign_id' => null,
+            'max_players' => 4,
+            'status' => 'scheduled',
+            'visibility' => 'public',
+        ]);
+
+        $clicker = User::factory()->create();
+        LinkedAccount::create([
+            'user_id' => $clicker->id,
+            'provider' => OAuthProvider::Discord,
+            'provider_user_id' => $snowflake = '777666555444333224',
+            'token' => 'dummy',
+        ]);
+
+        $body = $this->componentBody("roundup:rsvp:{$game->id}", $snowflake, locale: 'de-AT');
+        $response = $this->postSigned($body);
+
+        $response->assertStatus(200);
+        $this->assertSame(
+            __('notifications.content_rsvp_joiner_seats_left', ['approved' => 0, 'max' => 4, 'left' => 4], 'de'),
+            $response->json('data.content')
+        );
+    }
+
+    /**
+     * An unsupported client locale (e.g. "fr") degrades to the app locale —
+     * never a raw-key leak or a 500.
+     */
+    #[Test]
+    public function a_menu_request_with_an_unsupported_locale_falls_back_to_the_app_locale()
+    {
+        Queue::fake();
+
+        $owner = User::factory()->create();
+        $game = Game::factory()->create([
+            'owner_id' => $owner->id,
+            'campaign_id' => null,
+            'max_players' => 4,
+            'status' => 'scheduled',
+            'visibility' => 'public',
+        ]);
+
+        $clicker = User::factory()->create();
+        LinkedAccount::create([
+            'user_id' => $clicker->id,
+            'provider' => OAuthProvider::Discord,
+            'provider_user_id' => $snowflake = '777666555444333225',
+            'token' => 'dummy',
+        ]);
+
+        $body = $this->componentBody("roundup:rsvp:{$game->id}", $snowflake, locale: 'fr');
+        $response = $this->postSigned($body);
+
+        $response->assertStatus(200);
+        $this->assertSame(
+            __('notifications.content_rsvp_joiner_seats_left', ['approved' => 0, 'max' => 4, 'left' => 4], config('app.locale')),
+            $response->json('data.content')
+        );
+    }
+
+    /**
+     * The menu path's game-not-found error renders in the clicker's locale
+     * (the ephemeral error strings share the interaction-locale plumbing).
+     */
+    #[Test]
+    public function a_menu_request_for_an_unknown_game_returns_the_localized_not_found_error()
+    {
+        Queue::fake();
+
+        $clicker = User::factory()->create();
+        LinkedAccount::create([
+            'user_id' => $clicker->id,
+            'provider' => OAuthProvider::Discord,
+            'provider_user_id' => $snowflake = '777666555444333226',
+            'token' => 'dummy',
+        ]);
+
+        $unknownGameId = '11111111-2222-3333-4444-555555555555';
+        $body = $this->componentBody("roundup:rsvp:{$unknownGameId}", $snowflake, locale: 'de');
+        $response = $this->postSigned($body);
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('type', 4);
+        $response->assertJsonPath('data.flags', 64);
+        $this->assertSame(
+            __('notifications.error_rsvp_game_not_found', [], 'de'),
+            $response->json('data.content')
+        );
+
         Queue::assertNotPushed(ProcessDiscordRsvp::class);
         Queue::assertNotPushed(ProcessDiscordLeave::class);
     }

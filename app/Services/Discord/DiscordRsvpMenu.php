@@ -41,9 +41,12 @@ final class DiscordRsvpMenu
      * CHANNEL_MESSAGE + ephemeral flag). Components are omitted entirely when
      * empty so Discord doesn't receive an empty action row.
      *
+     * @param  string|null  $locale  Locale for the "View on roundup" link
+     *                               label — the clicker's interaction locale.
+     *                               Null resolves against the app locale.
      * @return array<string, mixed>
      */
-    public function toResponse(?string $appUrl = null, ?string $gameId = null): array
+    public function toResponse(?string $appUrl = null, ?string $gameId = null, ?string $locale = null): array
     {
         $data = [
             'content' => $this->content,
@@ -53,7 +56,7 @@ final class DiscordRsvpMenu
         $components = $this->components;
 
         if ($this->includeViewLink && $appUrl !== null && $gameId !== null) {
-            $components[] = $this->viewLinkRow($appUrl, $gameId);
+            $components[] = $this->viewLinkRow($appUrl, $gameId, $locale);
         }
 
         if ($components !== []) {
@@ -66,7 +69,7 @@ final class DiscordRsvpMenu
     /**
      * @return array<string, mixed>
      */
-    private function viewLinkRow(string $appUrl, string $gameId): array
+    private function viewLinkRow(string $appUrl, string $gameId, ?string $locale): array
     {
         return [
             'type' => 1, // ACTION_ROW
@@ -74,7 +77,7 @@ final class DiscordRsvpMenu
                 [
                     'type' => 2, // BUTTON
                     'style' => 5, // LINK
-                    'label' => 'View on roundup',
+                    'label' => __('discord.content_card_button_view', [], $locale),
                     'url' => rtrim($appUrl, '/').'/games/'.$gameId,
                 ],
             ],

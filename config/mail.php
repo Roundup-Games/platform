@@ -115,4 +115,19 @@ return [
         'name' => env('MAIL_FROM_NAME', config('company.display_name', 'Roundup Games')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Project Mail Tag
+    |--------------------------------------------------------------------------
+    |
+    | When set, every outgoing message carries an "X-Tags" header with this
+    | value so the shared non-prod Mailpit can separate this project's mail
+    | from other homelab projects (docs/notification-verification.md §6).
+    | Leave unset in production: the tag is a non-prod observability aid and
+    | must never ride the Resend API `headers` field into real user mail.
+    |
+    */
+
+    'project_tag' => env('MAIL_PROJECT_TAG'),
+
 ];
