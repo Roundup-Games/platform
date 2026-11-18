@@ -7,7 +7,8 @@ use function Pest\Laravel\get;
 
 //
 // Google user-data disclosure on /privacy (Google OAuth sensitive-scope
-// verification requirement, docs/google-verification/): the page must
+// verification requirement — runbook kept in the internal GSD research notes,
+// .gsd/research/google-verification/): the page must
 // disclose per-scope use, the Google API Services User Data Policy
 // Limited Use compliance statement, retention, and revocation — in every
 // supported locale. Google reviewers click the consent-screen policy link
