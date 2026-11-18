@@ -17,35 +17,25 @@ class WaitlistPromoted extends BaseNotification
     public function __construct(
         public Game|Campaign $entity,
         /**
-         * Deploy-boundary tolerance (M081 review): queued notifications
-         * unserialize inside SendQueuedNotifications, and jobs serialized
-         * by the pre-M081 code carry the deadline as a STRING (the old
-         * `public string $confirmationDeadline = ''`). A Carbon-only type
-         * makes those in-flight payloads fail unserialization — the whole
-         * notification (database + mail + push + discord) is lost. Accept
-         * both shapes and normalize at read time; narrow to Carbon once no
-         * pre-M081 job can remain in the queue.
-         *
-         * @var Carbon|string|null
+         * The seat-confirmation deadline as a Carbon instant (INV-17:
+         * temporal boundary data is CarbonInterface — the label converts to
+         * the recipient's wall clock and locale at render time, never at
+         * enqueue time). The M081 deploy-boundary string tolerance was
+         * removed after the 2026-11-18 deploy of 95e4e2bd drained the last
+         * pre-M081-serialized queue jobs (zero failed jobs at cutover).
          */
-        public Carbon|string|null $confirmationDeadline = null,
+        public ?Carbon $confirmationDeadline = null,
     ) {}
 
     /**
      * Recipient-facing deadline label (R089): the instant converts to the
      * recipient's wall clock and renders in their locale — every channel
-     * shows the same label. Callers pass the Carbon; pre-formatted strings
-     * froze the queue's English locale into German mail (M081 follow-up).
-     * Legacy string values (queued by pre-M081 code) parse through here.
+     * shows the same label. Callers pass the Carbon (INV-17).
      */
     private function deadlineLabel(User $notifiable): string
     {
-        $deadline = is_string($this->confirmationDeadline)
-            ? ($this->confirmationDeadline === '' ? null : Carbon::parse($this->confirmationDeadline))
-            : $this->confirmationDeadline;
-
-        return $deadline !== null
-            ? format_date($deadline, 'datetime', $notifiable->timezone ?? community_timezone())
+        return $this->confirmationDeadline !== null
+            ? format_date($this->confirmationDeadline, 'datetime', $notifiable->timezone ?? community_timezone())
             : '';
     }
 

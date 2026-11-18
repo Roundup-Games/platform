@@ -367,12 +367,10 @@ fi
 # class. Temporal constructor properties are typed CarbonInterface (the
 # nullable variants included); epoch integers are the sanctioned wire format
 # (PushPayload::$timestamp). Pre-rendered strings and string unions fail.
-# Waiver (time-boxed, remove with the post-deploy narrowing commit):
-#   app/Notifications/WaitlistPromoted.php  Carbon|string|null — the
-#     deploy-boundary tolerance for jobs serialized by pre-M081 production
-#     code (string-typed property); delete the union + this waiver once the
-#     M081 deploy (95e4e2bd) has cut over and the queue drained.
-temporal_waivers='^app/Notifications/WaitlistPromoted\.php:'
+# Waivers: none — the WaitlistPromoted deploy-boundary union was removed
+# after the 2026-11-18 deploy drained the pre-M081 queue (zero failed jobs
+# at cutover). A future waiver needs a removal criterion in this comment.
+temporal_waivers='^$'
 # Property-declaration shapes, single-quoted so the ERE escapes survive
 # shell expansion. The \\$ sigil anchors the match to a property NAME —
 # without it, body identifiers like date_time in query strings tripwire.
