@@ -131,7 +131,7 @@
             <p class="text-on-surface-variant mb-8 leading-relaxed">{{ __('privacy.content_third_intro') }}</p>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                @foreach (['posthog', 'paddle', 'cloudflare', 'nominatim'] as $service)
+                @foreach (['posthog', 'paddle', 'cloudflare', 'nominatim', 'google'] as $service)
                     <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                         <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">
                             {{ __('privacy.heading_third_' . $service) }}
@@ -141,6 +141,22 @@
                         </p>
                     </div>
                 @endforeach
+            </div>
+
+            {{-- Google user data disclosure (OAuth verification requirement):
+                per-scope use, Limited Use compliance, retention, revocation. --}}
+            <div class="mt-12 pt-10 border-t border-outline-variant">
+                <h2 class="text-3xl sm:text-4xl font-heading font-bold tracking-tight text-on-surface mb-4">
+                    {{ __('privacy.heading_google_user_data') }}
+                </h2>
+                <p class="text-on-surface-variant mb-6 leading-relaxed">{{ __('privacy.content_google_intro') }}</p>
+                <div class="space-y-4">
+                    @foreach (['signin', 'calendar', 'limited_use', 'retention', 'revoke'] as $googleTopic)
+                        <p class="text-on-surface-variant leading-relaxed">
+                            {{ __('privacy.content_google_' . $googleTopic) }}
+                        </p>
+                    @endforeach
+                </div>
             </div>
         </div>
     </section>

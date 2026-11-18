@@ -60,6 +60,16 @@ return [
     'content_third_cloudflare_body' => 'CDN, DDoS protection, and DNS. Cloudflare may temporarily log IP addresses for security purposes. Cloudflare is committed to GDPR compliance. See cloudflare.com/privacypolicy for details.',
     'heading_third_nominatim' => 'Nominatim (Geocoding)',
     'content_third_nominatim_body' => 'Open-source geocoding by OpenStreetMap. Used to convert addresses to coordinates when organizers set event locations. Nominatim usage is governed by the OpenStreetMap Foundation\'s privacy policy.',
+    'heading_third_google' => 'Google (Sign-In & Calendar Sync)',
+    'content_third_google_body' => 'We use Google OAuth for "Sign in with Google" and, only if you explicitly connect it, for Google Calendar sync. Exactly what is accessed in each case is described in the Google user data block below.',
+    // ── Google User Data ───────────────────────────────
+    'heading_google_user_data' => 'Google User Data',
+    'content_google_intro' => 'When you use a Google feature, we access your Google data only as described here — nothing more, and only while the feature stays connected.',
+    'content_google_signin' => 'Sign in with Google: when you choose this method, we receive your name, email address, and profile picture. This is stored on your account, just like the data from any other sign-up method. Scope used: openid, email, profile.',
+    'content_google_calendar' => 'Google Calendar sync (optional, off by default): if you connect your calendar, we create, update, and delete calendar events that mirror your Roundup game-session commitments — and nothing else. We never read, store, or share events you created elsewhere, and we do not analyze your calendar. Scope used: calendar.events.',
+    'content_google_limited_use' => 'Roundup Games complies with the Google API Services User Data Policy, including the Limited Use requirements. We do not transfer Google user data to third parties except as strictly necessary to provide the feature you enabled. We do not use Google user data for advertising, and we do not use it to train AI models.',
+    'content_google_retention' => 'Retention: sign-in data is stored on your account for as long as your account exists. Calendar sync stores only the connection itself (an OAuth refresh token) — the events live in your Google Calendar, not in our database.',
+    'content_google_revoke' => 'You can disconnect Google Calendar at any time under Settings → Linked Accounts: we immediately delete the Roundup-managed events from your calendar and discard the connection. Disconnecting Google sign-in, or deleting your account, removes your Google sign-in data with it.',
     // ── Your Rights (GDPR) ─────────────────────────────
     'heading_your_rights' => 'Your Rights',
     'content_rights_intro' => 'Under the GDPR, you have the following rights regarding your personal data:',

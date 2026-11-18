@@ -60,6 +60,16 @@ return [
     'content_third_cloudflare_body' => 'CDN, DDoS-Schutz und DNS. Cloudflare kann temporär IP-Adressen für Sicherheitszwecke protokollieren. Cloudflare ist DSGVO-konform. Siehe cloudflare.com/privacypolicy für Details.',
     'heading_third_nominatim' => 'Nominatim (Geocoding)',
     'content_third_nominatim_body' => 'Quelloffenes Geocoding von OpenStreetMap. Wird verwendet, um Adressen in Koordinaten umzuwandeln, wenn Organisatoren Veranstaltungsorte festlegen. Die Nutzung von Nominatim unterliegt der Datenschutzerklärung der OpenStreetMap Foundation.',
+    'heading_third_google' => 'Google (Anmeldung & Kalender-Sync)',
+    'content_third_google_body' => 'Wir nutzen Google OAuth für „Mit Google anmelden“ und — nur wenn Du ihn ausdrücklich verbindest — für den Google-Kalender-Sync. Was genau dabei zugegriffen wird, beschreibt der folgende Block zu Google-Nutzerdaten.',
+    // ── Google-Nutzerdaten ─────────────────────────────
+    'heading_google_user_data' => 'Google-Nutzerdaten',
+    'content_google_intro' => 'Wenn Du eine Google-Funktion nutzt, greifen wir nur auf die hier beschriebenen Deiner Google-Daten zu — auf nichts weiter, und nur solange die Funktion verbunden bleibt.',
+    'content_google_signin' => 'Anmeldung mit Google: Wenn Du diese Methode wählst, erhalten wir Deinen Namen, Deine E-Mail-Adresse und Dein Profilfoto. Sie werden auf Deinem Konto gespeichert — genauso wie die Daten jeder anderen Registrierungsmethode. Genutzter Scope: openid, email, profile.',
+    'content_google_calendar' => 'Google-Kalender-Sync (optional, standardmäßig aus): Wenn Du Deinen Kalender verbindest, erstellen, aktualisieren und löschen wir ausschließlich Kalender-Termine, die Deine Roundup-Runden-Verpflichtungen spiegeln — und nichts anderes. Wir lesen, speichern oder teilen niemals Termine, die Du woanders erstellt hast, und wir analysieren Deinen Kalender nicht. Genutzter Scope: calendar.events.',
+    'content_google_limited_use' => 'Roundup Games hält die Google API Services User Data Policy ein, einschließlich der Limited-Use-Anforderungen. Wir geben Google-Nutzerdaten nicht an Dritte weiter, außer soweit es für die von Dir aktivierte Funktion zwingend erforderlich ist. Wir nutzen Google-Nutzerdaten nicht für Werbung und nicht zum Training von KI-Modellen.',
+    'content_google_retention' => 'Speicherdauer: Anmeldedaten werden so lange auf Deinem Konto gespeichert, wie Dein Konto besteht. Der Kalender-Sync speichert nur die Verbindung selbst (ein OAuth-Refresh-Token) — die Termine liegen in Deinem Google-Kalender, nicht in unserer Datenbank.',
+    'content_google_revoke' => 'Du kannst den Google-Kalender-Sync jederzeit unter Einstellungen → Verknüpfte Konten trennen: Wir löschen dann sofort die von Roundup verwalteten Termine aus Deinem Kalender und verwerfen die Verbindung. Wenn Du die Google-Anmeldung trennst oder Dein Konto löschst, werden Deine Google-Anmeldedaten ebenfalls entfernt.',
     // ── Deine Rechte (DSGVO) ───────────────────────────
     'heading_your_rights' => 'Deine Rechte',
     'content_rights_intro' => 'Unter der DSGVO hast Du folgende Rechte bezüglich Deiner personenbezogenen Daten:',
