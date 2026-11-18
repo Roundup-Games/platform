@@ -180,6 +180,12 @@ class NotificationsPushTestCommand extends Command
             return self::FAILURE;
         }
 
+        // argument() is statically string only when larastan's kernel-booted
+        // command list includes this command; CI's env-less analysis falls
+        // back to the wide stub union (array|bool|float|int|string|null).
+        // The {category} argument is required, so it is always a string at
+        // runtime — narrow via @var instead of weakening the call sites.
+        /** @var string $slug */
         $slug = $this->argument('category');
         $category = NotificationCategory::tryFrom($slug);
         if ($category === null) {
