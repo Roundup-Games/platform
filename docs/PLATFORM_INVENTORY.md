@@ -1,8 +1,7 @@
 # Roundup Games — Complete Platform Inventory
 
-> **Purpose:** Comprehensive functional inventory for non-profit incorporation, funding applications, and collaborator onboarding.
-> **Generated:** 2026-05-20 | **Source:** Full codebase analysis (403 PHP files, 183 Blade views, 170 migrations, 46 completed
-development milestones)
+> **Purpose:** Functional inventory for non-profit incorporation, funding applications, and collaborator onboarding.
+> **Maintenance:** This is a living document, refreshed alongside the shipped platform — the repository is the source of truth for exact counts, versions, and history.
 
 ---
 
@@ -12,33 +11,7 @@ development milestones)
 
 **Platform identity:** "There's a seat waiting for you." — emphasis on belonging, imaginative play, curiosity, and safety. Not competition-focused; sessions and campaigns are primary content, events are infrastructure.
 
-**Tech stack:** Laravel 13 · PHP 8.x · PostgreSQL · Redis · Livewire 4 · Tailwind CSS · Alpine.js · Vite · Paddle (payments) · PostHog (analytics) · Filament (admin) · Escalated (helpdesk)
-
----
-
-## Platform Scale
-
-| Metric | Count |
-|--------|-------|
-| Total PHP source files | 403 |
-| Lines of application PHP code | 57,787 |
-| Lines of frontend code (Blade + JS + CSS) | 24,070 |
-| Livewire components | 66 |
-| Eloquent models | 42 |
-| Enum types | 22 |
-| Service classes | 43 |
-| Notification types | 37 |
-| Console commands | 29 |
-| Filament admin resources/pages | 63 |
-| Blade templates | 183 |
-| Database migrations | 170 |
-| Authorization policies | 14 |
-| Middleware classes | 9 |
-| Queued job types | 9 |
-| Development milestones completed | 46 |
-| Architectural decisions recorded | 63 |
-| Supported locales | 2 (English, German) |
-| Third-party Composer packages | 212 |
+**Tech stack:** Laravel · PHP · PostgreSQL · Redis · Livewire · Tailwind CSS · Alpine.js · Vite · Paddle (payments) · PostHog (analytics) · Filament (admin) · Escalated (helpdesk) — version specifics live in `composer.json`/`package.json` and the README, which stay authoritative.
 
 ---
 
@@ -88,7 +61,7 @@ All public pages are locale-prefixed (`/{locale}/...`), SEO-optimized with sitem
 
 | Feature | Implementation | Status |
 |---------|---------------|--------|
-| XML Sitemap | 8 sitemap types (static, game-systems, events, games, campaigns, profiles, venues, cities) | ✅ Complete |
+| XML Sitemap | Typed sitemaps (static pages, game systems, events, games, campaigns, profiles, venues, cities) with per-type freshness priorities | ✅ Complete |
 | SEO Metadata | Per-entity overrides (title, description, image, canonical URL, robots directives) on 7 content types | ✅ Complete |
 | CDN Caching | Public pages cached 60s client / 300s CDN, with private-page exclusion list | ✅ Complete |
 | Cloudflare Integration | Cache rule sync command for route-based cache policies | ✅ Complete |
@@ -108,7 +81,9 @@ All public pages are locale-prefixed (`/{locale}/...`), SEO-optimized with sitem
 | `/auth/{provider}/redirect` | OAuth redirect (Google) |
 | `/auth/{provider}/callback` | OAuth callback |
 | `/invite-optout/{emailHash}` | Email invite opt-out flow |
-| `/notifications/unsubscribe/{user}/{category}` | One-click notification unsubscribe (signed URL) |
+| `/notifications/unsubscribe/{user}/{category}` | One-click notification unsubscribe (signed URL, RFC 8058 POST) |
+| `/calendar/{code}` | Personal webcal feed (token-authenticated iCal) |
+| `/discord/interactions` | Discord interaction webhook (Ed25519-verified) |
 | `/paddle/webhook` | Paddle payment webhook (CSRF-exempt) |
 
 ---
@@ -148,6 +123,14 @@ All public pages are locale-prefixed (`/{locale}/...`), SEO-optimized with sitem
 | Authenticated Profile | Full profile viewer with games, campaigns, GM reviews, reliability badge, team memberships | ✅ Complete |
 | Reliability Score | Computed from attendance history: attended (+1), late_cancel (−0.3), no_show (−1). Tiers: New / Active / Reliable (>95%) | ✅ Complete |
 | Profile Slug | User-chosen URL slug for public profiles | ✅ Complete |
+
+### 2.4 Personal AI Agents (MCP)
+
+| Feature | Description | Status |
+|------|-------------|--------|
+| MCP ops surface | The platform speaks the Model Context Protocol — users connect the AI assistant they already use via per-agent tokens issued in Settings | ✅ Complete |
+| Agent roles | Each agent is read-only companion, participant, or GM workspace — it acts only as its user, under the same eligibility rules, rate limits, and audit trail as the website | ✅ Complete |
+| Revocable | Per-agent tokens can be revoked at any time; usage is observable on the admin ops page | ✅ Complete |
 
 ---
 
@@ -311,74 +294,72 @@ All public pages are locale-prefixed (`/{locale}/...`), SEO-optimized with sitem
 
 ## 5. Notifications & Communication
 
+Every notification is a corpus class rendered per channel — in-app, email, Discord, and web push — routed by the recipient's per-category channel preferences and speaking one design language across all four.
+
 ### 5.1 Notification System
 
 | Feature | Description | Status |
-|---------|-------------|--------|
+|------|-------------|--------|
 | Notification Bell | Sidebar bell with unread count badge, dropdown with recent grouped notifications. Polls every 30 seconds. | ✅ Complete |
 | Notification History | Full paginated history grouped by type + day with expandable groups | ✅ Complete |
-| Per-Category Preferences | Users choose delivery channels per category (database, email, push) | ✅ Complete |
-| One-Click Unsubscribe | Signed URL for instant email unsubscribe per category | ✅ Complete |
-| 34 Notification Types | See full list below | ✅ Complete |
+| Per-Category Preferences | Users choose delivery channels per category (database, email, Discord, push), with a per-category settings shortcut on every bell row | ✅ Complete |
+| One-Click Unsubscribe | Signed-URL category unsubscribe honoring RFC 8058 — the List-Unsubscribe header and body link share one signature; scanners can't trip it (GET confirms, POST writes) | ✅ Complete |
+| Weekly Digest | One weekly summary mail for users who keep email off for noisy categories — entity-named rows deep-linked to the thing they're about, with its own one-click opt-out | ✅ Complete |
+| Cross-Channel Read Sync | Acting on an email CTA or push action marks the matching in-app notification read — the bell badge stays truthful whichever channel the user acted on | ✅ Complete |
+| Engagement Counters | Per-category daily aggregates (sent/delivered/unsubscribed per channel) feeding the verification harness | ✅ Complete |
 
-### 5.2 Notification Types (34)
+### 5.2 Notification Corpus
 
-**Game/Campaign Lifecycle:**
-1. ApplicationApproved — Application approved
-2. ApplicationRejected — Application rejected
-3. ParticipantJoined — Someone joined your game/campaign
-4. ParticipantRemoved — Someone removed from game/campaign
-5. PlayerBenched — Player placed on bench
-6. BelowMinPlayersWarning — Game drops below minimum players
-7. GameCancelled / CampaignCancelled — Entity cancelled
-8. GameCompleted / CampaignCompleted — Entity completed
-9. GameUpdated / CampaignUpdated — Entity details changed
-10. GameInvitation / CampaignInvitation — Invited to entity
-11. SessionAddedToCampaign — New session in campaign
-12. SessionReminder — Push-only 1h/24h reminders (from artisan command)
-13. RecapPosted — Host writes game recap
-14. DebriefingAvailable — Debriefing prompts available
+Every corpus class ships an explicit render per channel — a channel's voice is written, never derived, and a class may deliberately opt out of a channel. The corpus spans:
 
-**Waitlist:**
-15. WaitlistPromoted — Promoted from waitlist with confirmation deadline
-16. ConfirmationExpired — Confirmation window expired
-17. WaitlistExpiredRejected — Permanently rejected after too many expirations
+- **Entity lifecycle** — invitations, updates, cancellations, completions for games, campaign sessions, and events (unified entity classes)
+- **Participation** — applications approved/rejected, joins, removals, benching, below-minimum warnings, session reminders, recaps, debriefings
+- **Waitlist & bench** — promotions with confirmation deadlines, expirations, permanent rejections, nachrücken notices
+- **Attendance** — peer-reported attendance, resolution outcomes
+- **Social** — follows, applications, bulletins, announcements
+- **Moderation & account** — suspensions, content removals, warnings (mail-on by default)
+- **Game system requests & teams** — request outcomes, team invitations, roster changes
+- **Weekly digest** — mail-only summary (deliberately no bell row or DM)
 
-**Attendance:**
-18. AttendanceReported — Someone reported your attendance
-19. DisputeResolved — Attendance dispute resolved
+A corpus render harness re-renders every class in both locales and machine-enforces the cross-cutting invariants (branded theme, preheaders, unsubscribe lines, read-marker CTAs, verb-first copy) — a new class that misses one fails CI. See `docs/notification-verification.md`.
 
-**Social:**
-20. NewFollower — Someone follows you
-21. NewApplication — Someone applies to your game/campaign
-
-**Reviews:**
-22. ReviewReported — A review was reported
-
-**Admin/Moderation:**
-23. AccountSuspended — Account suspended via content report
-24. ContentRemoved — Content removed via report
-25. ContentReportWarning — Admin warning via report
-
-**Game Systems:**
-26. GameSystemRequestApproved — Request approved
-27. GameSystemRequestDuplicate — Request closed as duplicate
-28. GameSystemRequestRejected — Request rejected
-
-**Teams:**
-29. TeamInvitation — Invited to a team
-30. TeamMemberRemoved — Removed from a team
-
-### 5.3 Push Notifications (PWA)
+### 5.3 Email Channel
 
 | Feature | Description | Status |
-|---------|-------------|--------|
-| Web Push via VAPID | Standard Web Push API with VAPID key authentication | ✅ Complete |
-| Subscribe/Unsubscribe | API endpoints for push subscription management | ✅ Complete |
-| Session Reminders | Automated 24h and 1h push reminders for upcoming games | ✅ Complete |
-| Stale Subscription Cleanup | Weekly cleanup of stale push subscriptions (>180 days) | ✅ Complete |
+|------|-------------|--------|
+| Branded design system | One warm amber/cream roundup theme for every notification mail and mailable — light-locked (clients that recolor break dual-scheme mail), with per-class EN/DE inbox preview lines | ✅ Complete |
+| Trust headers | List-Unsubscribe + List-Unsubscribe-Post (RFC 8058 one-click) stamped at a single channel chokepoint; mailto fallback configurable | ✅ Complete |
+| Calendar attachments | iTIP invitations ride along with the mail (see 5.5) | ✅ Complete |
+| Escalated mail branding | Helpdesk ticket mails carry the roundup brand via view overrides (vendor package untouched) | ✅ Complete |
+| Welcome mail | Purpose-written single-CTA welcome (EN/DE), queued and suppression-aware, covering form signup and both OAuth branches | ✅ Complete |
 
----
+### 5.4 Push & Discord Channels
+
+| Feature | Description | Status |
+|------|-------------|--------|
+| Web Push via VAPID | Standard Web Push API with VAPID authentication; service-worker render layer with a vitest-pinned test suite | ✅ Complete |
+| Rich payloads | Action buttons (e.g. Confirm Spot on waitlist promotions), event timestamps, per-category urgency/TTL, replace-and-renotify for deadline-critical pushes, monochrome Android tray badge | ✅ Complete |
+| Subscription hygiene | Poison-key detection with deterministic probing (never mass-deletes on a VAPID problem), expiry cleanup scoped per user, stale subscription pruning | ✅ Complete |
+| Session Reminders | Automated 24h and 1h push reminders for upcoming games | ✅ Complete |
+| Discord DMs | Every corpus class carries an explicit Discord DM render — semantic status colors (emerald default, red cancellation, grey ambient), host/cover-enriched invitations, and `allowed_mentions` hardened so user text can never trigger @everyone/@role/@user | ✅ Complete |
+
+### 5.5 Calendar (ICS) Lifecycle
+
+| Feature | Description | Status |
+|------|-------------|--------|
+| iTIP mail lifecycle | Hand-rolled RFC 5545/5546 writer: METHOD:REQUEST invitations, same-UID SEQUENCE-bumped updates when schedule/venue/duration change, METHOD:CANCEL revocations — one shared builder with octet-exact folding and TEXT escaping | ✅ Complete |
+| Personal webcal feed | Token-authenticated `/calendar/{code}` feed (METHOD:PUBLISH) mirroring the user's confirmed games, campaign sessions, and event registrations on a rolling 90-day window; cancellations publish STATUS:CANCELLED | ✅ Complete |
+| Add-to-calendar links | Google Calendar template deep links on the game page and Discord card | ✅ Complete |
+
+### 5.6 Discord Bridge
+
+| Feature | Description | Status |
+|------|-------------|--------|
+| OAuth login | Sign in / sign up with Discord; per-user link with DM routing preview | ✅ Complete |
+| Guild cards | Games published to linked guilds as rich cards (roster state, seat availability), refreshed in place on RSVP changes | ✅ Complete |
+| Interactions | "My seat" RSVP menu with localized ephemeral Join/Leave confirmations; joins run the same screened participant pipeline as the web (public games only) | ✅ Complete |
+| Bulletins & digests | Game bulletins post to guild threads; daily calendar digest per guild | ✅ Complete |
+| Identity resolution | Discord snowflake ↔ roundup account resolution with graceful unlinked on-ramps | ✅ Complete |
 
 ## 6. Billing & Membership
 
@@ -411,29 +392,16 @@ All public pages are locale-prefixed (`/{locale}/...`), SEO-optimized with sitem
 
 The admin panel at `/admin` provides comprehensive back-office management.
 
-**Resources (10):**
+**Resources:** one admin resource per managed entity — Users, Teams, Games, Campaigns, Events, Membership Types, Game Systems (with conditional BGG/TTRPG sections and taxonomy management), Categories and Mechanics (with similar-item cross-references), Cities and Locations (venues), Departments, Tickets, Badge Definitions, BGG Sync Logs — with relation managers for rosters/registrations and per-entity SEO overrides where relevant.
 
-| Resource | Model | Key Capabilities |
-|----------|-------|-----------------|
-| Users | User | Full profile editing, role assignment, SEO overrides, disable/enable with audit log, linked accounts viewer |
-| Teams | Team | Team management with roster via relation manager, SEO overrides |
-| Games | Game | Game session management with participants relation manager, SEO overrides |
-| Campaigns | Campaign | Campaign management with participants relation manager, SEO overrides |
-| Events | Event | Full event management with registrations + announcements relation managers, SEO overrides |
-| Membership Types | MembershipType | Plan management (active/inactive/archived, Paddle/local) |
-| Game Systems | GameSystem | Rich game system editing with conditional BGG/TTRPG sections, taxonomy management, SEO overrides |
-| Categories | GameSystemCategory | Category management with similar-category cross-references |
-| Mechanics | GameSystemMechanic | Mechanic management with similar-mechanic cross-references |
-| BGG Sync Logs | BggSyncLog | Read-only sync history (status, timing, error tracking) |
+**Report pages:**
+- Event Attendance Report — filterable table with CSV export
+- Membership Report — filterable table with CSV export
+- Signup Attribution Report — signup funnel attribution
 
-**Report Pages (2):**
-- Event Attendance Report — filterable table with CSV export (14 columns)
-- Membership Report — filterable table with CSV export (11 columns)
+**System pages:** scheduled-task visibility, queue structure, PHP runtime observability, Core Web Vitals, search performance (GSC digest, AI-surface telemetry), MCP usage, city-hub settings.
 
-**Dashboard Widgets (3):**
-- System Info — Environment, deploy timestamp, database size, cache stats, versions
-- Queue Health — Pending jobs (per-queue breakdown), failed jobs
-- User Stats — Total users, profile completion rate, email verification rate, recent verification trends
+**Dashboard widgets:** system info (environment, deploy timestamp, database size, cache stats), queue health (pending/failed jobs per queue), user stats (totals, profile completion, verification trends).
 
 **Custom Ticket View (Escalated Integration):**
 - Game System Request handling: Sync from BGG, Search BGG, Create Manually
@@ -474,25 +442,38 @@ The admin panel at `/admin` provides comprehensive back-office management.
 
 ## 8. Scheduled Operations
 
+Verified against `routes/console.php`; all one-server guarded where order matters.
+
 | Frequency | Task | Purpose |
 |-----------|------|---------|
-| Every 1 min | Helpdesk Automation | Ticket routing and auto-actions |
-| Every 5 min | Session Reminders | Push reminders for 24h/1h upcoming games |
-| Every 5 min | Waitlist Expiration Sweep | Safety net for missed confirmation expirations |
-| Every 5 min | Helpdesk Escalation | Auto-escalation evaluation |
-| Every 5 min | Helpdesk SNOOZE Wake | Wake snoozed tickets |
-| Every 10 min | Discovery Cache Sweep | Recompute discovery caches for active nearby users |
-| Every 30 min | Auto-Attend Sweep | Auto-attend participants after 48h |
-| Daily 02:00 | Auto-Close Resolved | Close resolved helpdesk tickets |
-| Daily 03:00 | BGG Weekly Sync | Sync all game systems from BGG (also runs weekly Mon) |
-| Daily 03:00 | Platform Scores | Recompute all game system popularity scores |
-| Daily 03:00 | Short Link Pruning | Expire/soft-delete old short links, hard-delete analytics >90 days |
-| Daily 03:30 | Activity Purging | Helpdesk activity log cleanup |
-| Daily 04:30 | Export Pruning | Delete expired GDPR export ZIPs |
-| Weekly Sun 03:00 | Push Subscription Cleanup | Remove stale push subscriptions |
-| Weekly Sun 04:00 | Invite Email Anonymization | Privacy: anonymize old invite emails on completed entities |
-| Monthly | App Visit Pruning | Remove old app visit tracking data |
-| Weekly Mon 03:00 | BGG Weekly Sync | Full game system data refresh |
+| Every 1 min | Helpdesk automations | Ticket routing and auto-actions |
+| Every 5 min | Session reminders | Push reminders for 24h/1h upcoming games |
+| Every 5 min | Waitlist expiration sweep | Safety net for missed confirmation expirations |
+| Every 5 min | Helpdesk escalation & SNOOZE wake | Auto-escalation evaluation; wake snoozed tickets |
+| Every 5 min | Discovery cache sweep | Recompute discovery caches for active nearby users |
+| Every 5 min | Observability scan | Error-pattern scanning for the ops digest |
+| Every 10 min | Discovery cache sweep | (windowed sweep for active viewers — see above) |
+| Every 30 min | Attendance sweeps | Resolve reports, auto-complete sessions, send nudges |
+| Hourly | City hub recompute | Refresh per-city hub activity |
+| Daily 02:00 | Auto-close resolved | Close resolved helpdesk tickets |
+| Daily 03:00 | Platform scores | Recompute game system popularity scores |
+| Daily 03:00 | Short link pruning | Expire/soft-delete old short links, hard-delete analytics |
+| Daily 03:15 | Subscription expiry | Expire ended memberships |
+| Daily 03:30 | Activity purging | Helpdesk activity log cleanup |
+| Daily 04:30 | Export pruning | Delete expired GDPR export ZIPs |
+| Daily 04:45 | Failed-job pruning | Trim the failed-jobs table |
+| Daily 05:00 | Data audit | Integrity audit across participant rosters and counters |
+| Daily 05:15 | Data repair | Auto-repair audit findings |
+| Daily 06:00 | Discord digest | Publish the daily calendar digest per guild |
+| Daily 06:30 | Badge sweep + observability digest | Award earned badges; email the ops digest |
+| Daily 06:45 | Badge rarity | Recompute badge rarity distribution |
+| Weekly Mon 03:00 | BGG weekly sync | Full game system data refresh |
+| Weekly Mon 04:00 | Weekly digest | One summary mail per opted-in user |
+| Weekly Mon 05:00 | Core Web Vitals check | CWV measurements refresh |
+| Weekly Mon 06:00 | GSC digest | Search Performance trend digest |
+| Weekly Sun 03:00 | Push subscription cleanup | Remove stale push subscriptions |
+| Weekly Sun 04:00 | Invite email anonymization | Privacy: anonymize old invite emails on completed entities |
+| Monthly | App visit pruning | Remove old app visit tracking data |
 
 ---
 
@@ -521,7 +502,7 @@ The admin panel at `/admin` provides comprehensive back-office management.
 |---------|-------------|--------|
 | Supported Locales | English (en), German (de) | ✅ Complete |
 | URL Strategy | `/{locale}/` prefix for all routes; root redirect to detected locale | ✅ Complete |
-| Translation Architecture | 13 domain-based PHP translation files per locale (auth, events, teams, games, campaigns, billing, profile, discovery, safety, location, emails, pages, common) | ✅ Complete |
+| Translation Architecture | Domain-based PHP translation files per locale (games, campaigns, events, teams, billing, profile, discovery, notifications, emails, pages, common, and more) — parity and dead-key hygiene machine-enforced | ✅ Complete |
 | Entity Language | Fixed enum (de, en, de+en) on games, campaigns, events — drives content validation rules | ✅ Complete |
 | Translatable Content | Event announcements support per-locale content via spatie/laravel-translatable | ✅ Complete |
 | Content Fallback | Show requested locale, fall back to available with visual indicator | ✅ Complete |
@@ -610,25 +591,26 @@ The admin panel at `/admin` provides comprehensive back-office management.
 
 | Component | Technology |
 |-----------|-----------|
-| Backend Framework | Laravel 13 (PHP 8.x) |
-| Full-Stack Components | Livewire 4 (66 components) |
+| Backend Framework | Laravel (PHP) — version per `composer.json` |
+| Full-Stack Components | Livewire |
 | Frontend Styling | Tailwind CSS + CSS custom properties |
 | Frontend JS | Alpine.js (bundled with Livewire) |
-| Build Tool | Vite 8 |
-| Database | PostgreSQL |
+| Build Tool | Vite |
+| Database | PostgreSQL (squashed schema baseline + stacked migrations) |
 | Cache & Queue | Redis (predis) |
-| Authentication | Laravel Breeze + Google OAuth |
+| Authentication | Laravel Breeze + Google/Discord OAuth |
 | Authorization | Spatie Laravel Permission (scoped roles: global, team, event) |
 | Media | Spatie Laravel Media Library |
 | SEO | ralphjsmit/laravel-seo |
-| Admin Panel | Filament 4 |
+| Admin Panel | Filament |
 | Helpdesk | Escalated (custom integration) |
-| Payments | Laravel Paddle (Paddle SDK) |
+| Payments | Laravel Cashier — Paddle |
 | Analytics | PostHog (custom integration) |
 | Geocoding | Nominatim (OpenStreetMap) with 1-hour cache |
 | BGG Integration | Custom XML API client |
 | Translatable Content | spatie/laravel-translatable |
-| Web Push | Minishlink/WebPush |
+| Web Push | Minishlink/WebPush (VAPID) |
+| Email | Resend (delivery webhooks + suppression) |
 
 ### 14.3 Authorization Model
 
@@ -664,19 +646,26 @@ Three-tier scoped RBAC via `ScopedRoleService`:
 | `platform-scores:compute` | Compute all platform popularity scores |
 | `export:user-data {user}` | Generate GDPR user data export ZIP |
 | `pwa:generate-vapid-keys` | Generate VAPID key pairs for web push |
+| `pwa:send-session-reminders` | Send push reminders for upcoming games |
+| `pwa:prune-stale-subscriptions` | Remove stale push subscriptions |
+| `pwa:prune-visits` | Remove old app visit tracking data |
+| `notifications:weekly-digest` | Send the weekly summary mail |
+| `discord:publish-digest` | Publish the daily guild calendar digest |
+| `attendance:resolve` / `attendance:auto-complete` / `attendance:nudge` | Attendance resolution, session auto-completion, nudges |
+| `waitlist:sweep-expired-confirmations` | Handle expired waitlist confirmations |
+| `badges:sweep` / `badges:rarity` / `badges:sync` | Award earned badges, recompute rarity, sync definitions |
+| `subscriptions:expire` | Expire ended memberships |
+| `cityhubs:recompute` | Refresh per-city hub activity |
+| `discovery:sweep-active` | Recompute discovery caches for active users |
+| `data:audit` / `data:repair` | Integrity audit and auto-repair |
+| `observability:scan` / `observability:digest` | Error-pattern scanning and the ops digest |
+| `cwv:check` | Core Web Vitals measurements |
+| `seo:gsc-digest` / `seo:dedupe-game-systems` | Search Performance digest; dedupe game systems |
+| `cloudflare:cache-rules` | Sync Cloudflare cache rules from routes |
 | `short-links:prune` | Expire/soft-delete old short links + analytics |
 | `anonymize:stale-invite-emails` | Privacy: anonymize old invite emails |
 | `exports:prune` | Delete expired GDPR export ZIPs |
-| `pwa:prune-visits` | Remove old app visit tracking data |
-| `pwa:prune-stale-subscriptions` | Remove stale push subscriptions |
-| `pwa:send-session-reminders` | Send push reminders for upcoming games |
-| `discovery:sweep-active` | Recompute discovery caches for active users |
-| `attendance:sweep-auto-attend` | Auto-attend after 48 hours |
-| `waitlist:sweep-expired-confirmations` | Handle expired waitlist confirmations |
-| `cloudflare:cache-rules` | Sync Cloudflare cache rules from routes |
-| `i18n:check` | Verify translation file integrity |
-| `i18n:dead-strings` | Find unused translation keys |
-| `i18n:missing` | Report missing translation keys |
+| `i18n:check` / `i18n:dead-strings` / `i18n:missing` | Translation integrity, dead keys, missing keys |
 | `fonts:audit` | Audit icon usage vs config |
 | `posthog:test-event` | Test PostHog connectivity (non-production only) |
 
@@ -692,37 +681,24 @@ production (see AppServiceProvider::boot).
 
 ## 16. Development History & Maturity
 
-The platform has been developed through **46 completed milestones**, demonstrating systematic growth:
+The platform is developed through a documented, milestone-based process: every feature area ships as a planned milestone with recorded architectural decisions, verification evidence, and a human review loop — then is refined through scheduled depth-review passes. The full history is public in the repository (commit log plus the decision records in `docs/adr/`); this inventory describes the shipped result, not the chronology.
 
-| Phase | Milestones | Focus |
-|-------|-----------|-------|
-| Foundation | M001–M002 | Laravel migration, production hardening |
-| Design | M003 | Full visual rebrand ("The Tactile Hearth" design system) |
-| Internationalization | M004, M011, M046 | DACH launch prep, i18n restructuring, translatable content |
-| Data & Content | M005, M015, M020 | BGG data collection, game system knowledge base, StartPlaying integration |
-| Core Features | M006, M007, M008 | Campaign-session inheritance, game listings, player profile enrichment |
-| Community | M009, M010, M023 | Landing pages, discovery rebuild, board games vs adventures fork |
-| Social | M012, M013, M014 | Follow system, visibility, auth-gated UX |
-| GM Ecosystem | M021 | GM profiles, workspace, and reviews |
-| Engagement | M016, M017, M022, M036 | Nearby people discovery, notifications, dashboard revamp |
-| Infrastructure | M018, M027, M041 | Async discovery pipeline, PWA + push, PostHog analytics |
-| Quality | M019, M030–M034 | Test suite remediation (5 milestones dedicated to testing) |
-| UX Polish | M024, M025, M029 | Language overhaul, profile redesign, type-adaptive forms |
-| Operations | M026, M035, M037–M039, M044 | Game system request queue, shareable links, email invites, waitlist hardening, short links |
-| Trust & Compliance | M040, M042, M043, M045 | SEO, helpdesk, trust branding, GDPR compliance |
-| Enhancements | M028, M037 | Reliability scores, engagement signals |
+Quality posture at a glance:
+
+- **Testing:** a full Pest feature suite plus PHPUnit unit tests, a vitest suite for the service worker, and a smoke group that runs before every commit. CI additionally enforces code style, static analysis (Larastan), Eloquent best practices, platform invariants, and translation parity.
+- **Review culture:** cross-cutting surfaces (notifications, mail, discovery) carry corpus-level machine pins so new code cannot silently drift from the design language.
 
 ---
 
 ## Summary Assessment
 
-**Platform maturity: Production-ready.** All 16 feature domains are fully implemented with no scaffolded or placeholder functionality.
+**Platform maturity: Production-ready.** All feature domains in this inventory are fully implemented with no scaffolded or placeholder functionality.
 
 The codebase demonstrates:
 
 - **Depth over breadth:** Each domain has complete lifecycle management (create → manage → discover → share → archive) with proper authorization, notifications, and edge case handling.
 - **Privacy-by-design:** GDPR compliance, field-level privacy controls, geolocation privacy, consent-gated analytics, data export and anonymization — all implemented, not planned.
-- **Operational maturity:** 17 scheduled tasks, 9 queued jobs, 6 model observers, comprehensive admin tooling, and a fully integrated helpdesk for user support.
+- **Operational maturity:** A comprehensive scheduled-operations suite (section 8), Redis-backed queues with Horizon, model observers, per-category engagement counters, and a fully integrated helpdesk for user support.
 - **Community-first architecture:** Social graph, taste-matching discovery, waitlist with urgency scaling, GM ecosystem, and review system — all designed for community building, not competition.
-- **International readiness:** Full German localization with DACH-specific compliance (Impressum), translatable content, and locale-aware routing.
-- **63 documented architectural decisions** showing deliberate, recorded choices rather than ad-hoc development.
+- **International readiness:** Full German localization with DACH-specific compliance (Impressum), translatable content, and locale-aware routing — machine-enforced for parity and dead-key hygiene.
+- **Deliberate architecture:** Architectural decisions are recorded as they are made (`docs/adr/`), and a maintained domain glossary (`docs/GLOSSARY.md`, `CONTEXT.md`) keeps the ubiquitous language stable across code, copy, and both locales.

@@ -145,7 +145,22 @@
                 </p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                {{-- Notification language & time (M080) — most recent receipt first --}}
+                {{-- Notification design language (M081) — most recent receipt first --}}
+                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">notifications_active</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('roadmap.heading_delivered_notification_design') }}</h3>
+                            <p class="text-sm text-on-surface-variant leading-relaxed">
+                                {{ __('roadmap.content_delivered_notification_design_body') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Notification language & time (M080) --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
                         <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">

@@ -374,7 +374,7 @@ Dual-variant (light/dark background), dual-resolution (nav vs full):
 | Shadow elevation | `200ms` | Card hover |
 | Navigation dropdown | `200ms ease-out` enter, `150ms ease-in` leave | Alpine.js |
 | Mobile nav | `200ms ease-out` enter | Slide + fade |
-| Page transitions | SPA via `wire:navigate` | Livewire 3, no full reload |
+| Page transitions | SPA via `wire:navigate` | Livewire, no full reload |
 | PWA install prompt | `300ms ease-out` enter, `200ms ease-in` leave | Slide up + fade |
 | Notification polling | 30s interval | Livewire polling |
 

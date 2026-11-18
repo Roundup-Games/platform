@@ -831,7 +831,8 @@ Completeness proof: the live sends above prove transport, tagging, and
 browser review for representative classes — NOT class completeness.
 All-classes coverage is machine-proven by
 `tests/Feature/Notifications/NotificationCorpusRenderTest.php`
-(44 classes × en/de × channels, 761 assertions, registry-pinned; §7).
+(every corpus class × en/de × channels, registry-pinned — the registry
+self-guard keeps the dataset honest as classes are added; §7).
 
 Re-send preconditions — a shared-mailbox flush must be recoverable, so
 the exact tinker one-liners are recorded (single quotes outer, double

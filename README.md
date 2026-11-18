@@ -20,7 +20,7 @@ Open-source, non-profit platform for finding, joining, and organizing in-person 
 - **Teams** — team rosters with captain/coach/player/substitute roles, invites, and promotion flows.
 - **Venues** — community-proposed and claimable commercial venues with public directory pages.
 - **Discord integration** — OAuth login plus an optional bot: publish games to guilds, RSVP via interactions, daily calendar digest.
-- **Notifications** — preference-routed across database, mail, and web push; weekly digest; one-click unsubscribe; invite opt-out and bounce suppression.
+- **Notifications** — one design language across four channels (in-app, branded email, Discord, web push), routed by per-category preferences; one-click unsubscribe (RFC 8058), weekly entity-aware digest, calendar invitations with a full ICS lifecycle plus a personal webcal feed, action-button pushes, and cross-channel read sync. Invite opt-out and bounce suppression included.
 - **PWA** — installable, offline support, web push session reminders, personal iCal calendar feed.
 - **Billing** — Paddle subscriptions and one-time charges (the GM workspace is subscriber-funded).
 - **Support & admin** — Escalated-powered helpdesk with SLA automations; Filament admin panel with resources, reports, exports, and scheduled-task visibility.
