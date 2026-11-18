@@ -107,7 +107,10 @@ trait RendersBrandedCorpusMail
             'EntityInvitationEmail' => new EntityInvitationEmail(
                 'game',
                 'Branding Corpus Game',
-                Carbon::parse('2026-12-04 20:00:00'),
+                // Just-in-time dating (D292): the fixture session stays
+                // ahead of the wall clock — a fixed date would age past
+                // every future-facing gate and render as a past session.
+                now()->addDays(16)->setTime(20, 0),
                 'Community Café',
                 'Sarah',
                 // Non-RFC-2606 domain: the envelope recipient comes from this

@@ -9,6 +9,7 @@ use App\Models\Event;
 use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Spatie\Permission\Models\Role;
 
 //
@@ -17,6 +18,16 @@ use Spatie\Permission\Models\Role;
 // (fallback Europe/Berlin). Fixtures sit in November 2026 (CET +1 for
 // Berlin, EST -5 for New York) so the offsets are stable and distinct.
 //
+// The clock is FROZEN (just-in-time dating convention, D292): the absolute
+// fixtures feed form validation that compares against now() — the event
+// form rejects start dates not after today — so a free clock would break
+// these tests the moment wall time passed 2026-12-05. Frozen + absolute =
+// eternally deterministic; the EST/CET offsets hold for the frozen date.
+//
+
+beforeEach(function () {
+    $this->travelTo(Carbon::parse('2026-11-02 12:00:00'));
+});
 
 function timezoneEdgeHost(?string $timezone): User
 {

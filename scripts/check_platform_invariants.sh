@@ -62,6 +62,11 @@
 #                                 ParticipantService (host invites),
 #                                 OverflowRouter, HandlesWaitlist,
 #                                 HasParticipantDefaults boot defaults
+#   INV-17 temporal typing         -> temporal constructor properties on
+#                                 notifications, jobs, mailables, and DTOs
+#                                 are CarbonInterface (or epoch int for wire
+#                                 formats) — never pre-rendered strings or
+#                                 string unions (D292/D295)
 #
 # Scope: app/, resources/, routes/, tests/ as noted per check. Patterns use
 # fixed strings where possible (grep -F) to stay bash-safe.
@@ -353,6 +358,32 @@ if [ "$dqs_callers" = "$expected_dqs_callers" ]; then
     pass "INV-16 discovery seam methods consumed externally only by the landing service"
 else
     fail "INV-16 discovery seam methods have callers outside the contract: $(echo "$dqs_callers" | tr '\n' ' '). A second builder consumer bypasses mode scoping, the hydration cap, and merge ordering — route through results()/curated() or record the exception as a decision in the same change."
+fi
+
+# --- INV-17: temporal data at serialization boundaries is Carbon, not strings --
+# D292/D295: a temporal value typed string on a notification, job, mailable,
+# or DTO freezes the enqueue-time locale/timezone into every later render —
+# the M081 "German participant reads an English-formatted deadline" bug
+# class. Temporal constructor properties are typed CarbonInterface (the
+# nullable variants included); epoch integers are the sanctioned wire format
+# (PushPayload::$timestamp). Pre-rendered strings and string unions fail.
+# Waiver (time-boxed, remove with the post-deploy narrowing commit):
+#   app/Notifications/WaitlistPromoted.php  Carbon|string|null — the
+#     deploy-boundary tolerance for jobs serialized by pre-M081 production
+#     code (string-typed property); delete the union + this waiver once the
+#     M081 deploy (95e4e2bd) has cut over and the queue drained.
+temporal_waivers='^app/Notifications/WaitlistPromoted\.php:'
+# Property-declaration shapes, single-quoted so the ERE escapes survive
+# shell expansion. The \\$ sigil anchors the match to a property NAME —
+# without it, body identifiers like date_time in query strings tripwire.
+temporal_string_re='public (readonly )?string \$[A-Za-z_]*([Dd]eadline|At$|_at$|[Dd]ate([A-Z_]|$)|[Dd]ate[Tt]ime$|[Tt]imestamp$|[Tt]ime$|_time$)'
+temporal_union_re='public (readonly )?(Carbon\|string|string\|Carbon)[ ?]'
+temporal_string_hits=$(grep -rnE "$temporal_string_re" app/Notifications/ app/Jobs/ app/Mail/ app/Dto/ --include='*.php' 2>/dev/null | grep -vE ':[0-9]+:\s*(\*|//|/\*)' | grep -vE "$temporal_waivers" | sort)
+temporal_union_hits=$(grep -rnE "$temporal_union_re" app/Notifications/ app/Jobs/ app/Mail/ app/Dto/ --include='*.php' 2>/dev/null | grep -vE ':[0-9]+:\s*(\*|//|/\*)' | grep -vE "$temporal_waivers" | sort)
+if [ -z "$temporal_string_hits" ] && [ -z "$temporal_union_hits" ]; then
+    pass "INV-17 temporal boundary properties are CarbonInterface (or epoch int), never strings"
+else
+    fail "INV-17 temporal data typed as string at a serialization boundary: $(echo "$temporal_string_hits $temporal_union_hits" | tr '\n' ' '). Type it CarbonInterface (resolve locale/timezone per recipient at render time — format_date) or epoch int for wire formats; a string union is transitional and needs a time-boxed waiver in this script."
 fi
 
 # --- Summary ----------------------------------------------------------------

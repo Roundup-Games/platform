@@ -574,8 +574,9 @@ describe('Unsubscribe links in registrant mail', function () {
         $user = User::factory()->create(['name' => 'Rosa']);
         $event = Event::factory()->create([
             'name' => 'Winter Gala',
-            'start_date' => '2026-12-05',
-            'end_date' => '2026-12-06',
+            // Just-in-time dating (D292): keep the fixture ahead of now().
+            'start_date' => now()->addDays(17)->toDateString(),
+            'end_date' => now()->addDays(18)->toDateString(),
             'venue_name' => 'Grand Hall',
         ]);
 

@@ -315,11 +315,15 @@ it('attaches a REQUEST for application approvals and waitlist promotions', funct
 
 it('attaches a REQUEST for event registrations as an all-day VEVENT with exclusive DTEND', function () {
     $recipient = User::factory()->create();
+    // Just-in-time dating (D292): the event sits relative to now() — an
+    // absolute date would silently age past every future-facing gate the
+    // dispatch surface consults.
+    $start = now()->addDays(17);
     $event = Event::factory()->create([
         'name' => ['en' => 'Winter Gala'],
         'venue_name' => 'Roundup Hall',
-        'start_date' => '2026-12-05',
-        'end_date' => '2026-12-06',
+        'start_date' => $start->toDateString(),
+        'end_date' => $start->copy()->addDay()->toDateString(),
     ]);
     $registration = EventRegistration::factory()->confirmed()->create([
         'user_id' => $recipient->id,
@@ -339,10 +343,10 @@ it('attaches a REQUEST for event registrations as an all-day VEVENT with exclusi
     expect(icsContent($ics))
         ->toContain('METHOD:REQUEST')
         ->toContain('UID:event-'.$event->id.'@roundup.games')
-        ->toContain('DTSTART;VALUE=DATE:20261205')
+        ->toContain('DTSTART;VALUE=DATE:'.$start->format('Ymd'))
         // All-day DTEND is exclusive (RFC 5545 §3.6.1): the gala ends on
         // the 6th, so the VEVENT carries the 7th.
-        ->toContain('DTEND;VALUE=DATE:20261207')
+        ->toContain('DTEND;VALUE=DATE:'.$start->copy()->addDays(2)->format('Ymd'))
         ->toContain('LOCATION:Roundup Hall');
 });
 
@@ -505,10 +509,11 @@ it('revokes a registered event’s calendar entry with METHOD:CANCEL on event ca
     // registrant with a CONFIRMED calendar entry and reminders for a
     // cancelled event (M081 fifth-pass review).
     $recipient = User::factory()->create();
+    $start = now()->addDays(17);
     $event = Event::factory()->create([
         'name' => ['en' => 'Winter Gala'],
-        'start_date' => '2026-12-05',
-        'end_date' => '2026-12-06',
+        'start_date' => $start->toDateString(),
+        'end_date' => $start->copy()->addDay()->toDateString(),
     ]);
     $registration = EventRegistration::factory()->confirmed()->create([
         'user_id' => $recipient->id,
@@ -539,7 +544,7 @@ it('revokes a registered event’s calendar entry with METHOD:CANCEL on event ca
         ->toContain('SEQUENCE:1')
         ->toContain('STATUS:CANCELLED')
         // All-day shape preserved on the revoke so clients match the entry.
-        ->toContain('DTSTART;VALUE=DATE:20261205');
+        ->toContain('DTSTART;VALUE=DATE:'.$start->format('Ymd'));
 });
 
 it('revokes the calendar event when a seat is demoted', function () {

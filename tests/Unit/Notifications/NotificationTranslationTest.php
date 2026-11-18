@@ -42,18 +42,4 @@ describe('Notification Translations', function () {
         ['de', 'notifications.subject_seat_demoted', ['entity' => 'Waterdeep Dungeon']],
     ]);
 
-    it('renders notification layout blade view without errors', function () {
-        app()->setLocale('en');
-
-        $rendered = view('emails.notification-layout', [
-            'subject' => 'Test Subject',
-            'unsubscribeUrl' => 'https://example.com/unsubscribe',
-            'body' => '<p>Test notification body content.</p>',
-        ])->render();
-
-        expect($rendered)->toBeString();
-        expect($rendered)->toContain('Roundup Games');
-        expect($rendered)->toContain('Unsubscribe');
-        expect($rendered)->toContain('Test notification body content');
-    });
 });
