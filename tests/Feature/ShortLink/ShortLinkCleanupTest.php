@@ -262,6 +262,12 @@ describe('PruneExpiredShortLinks command', function () {
         ]);
 
         Log::partialMock()
+            // Absorb app-noise logging: with VAPID env absent (CI has no
+            // .env), the WebPush singleton's degradation warning reaches
+            // this partial mock during Artisan::call — an un-stubbed method
+            // would fall through to real LogManager code on the
+            // uninitialized mock instance and crash (config null).
+            ->shouldReceive('warning')
             ->shouldReceive('channel')
             ->with('daily')
             ->andReturnSelf()

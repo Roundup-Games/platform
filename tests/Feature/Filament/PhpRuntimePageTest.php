@@ -8,10 +8,12 @@ use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
 
 // PHP Runtime admin page: OPcache + FPM pool visibility (scaling-prep
-// 2026-11-13). The page renders through FPM in production, but the test
-// runner executes under the CLI SAPI where opcache_get_status()/
-// fpm_get_status() return false — the page must degrade to its
+// 2026-11-13). The page renders through FPM in production; under CLI
+// SAPIs the metrics MAY be unavailable — the page must degrade to its
 // explanatory banner, never 500, mirroring the ScheduledTasksPage rule.
+// Never assume CLI = degraded, though: CI boots pest with opcache enabled
+// for speed, so opcache_get_status() reports live data there — the tests
+// branch on the page's real inputs instead of hardcoding a SAPI verdict.
 
 beforeEach(function () {
     seedRoles();
@@ -39,12 +41,23 @@ it('shows runtime metrics or the degraded banner — never an error', function (
     $page = phpRuntimeRenders();
     $page->assertOk();
 
-    $underFpm = function_exists('fpm_get_status') && fpm_get_status() !== false;
+    // Mirror the page's own availability probe: the blade gates the
+    // degradation banner on $opcache === null alone (FPM only adds its
+    // pool card), so branch on the same live SAPI state the page read.
+    $opcacheLive = function_exists('opcache_get_status') && is_array(opcache_get_status(false));
+    $fpmLive = function_exists('fpm_get_status') && is_array(fpm_get_status());
 
-    if ($underFpm) {
-        $page->assertSee('FPM pool');
+    if ($opcacheLive) {
+        // The stats card renders — and the degradation banner must not.
+        $page
+            ->assertSee('OPcache')
+            ->assertDontSee('Runtime metrics unavailable');
     } else {
         $page->assertSee('Runtime metrics unavailable');
+    }
+
+    if ($fpmLive) {
+        $page->assertSee('FPM pool');
     }
 
     // Whatever the SAPI, the OPcache verdict is coherent: either the
