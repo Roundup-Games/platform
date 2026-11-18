@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 use App\Models\Event;
 use App\Models\User;
+use App\Services\Discord\DiscordPalette;
 use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 
@@ -59,13 +60,28 @@ class EventCancelled extends BaseNotification
             $mail->line('**'.__('common.content_venue').':** '.$event->venue_name);
         }
 
-        return $mail
-            ->action(__('events.action_view_event_details'), route('events.detail', [
-                'locale' => $locale,
-                'slug' => $event->slug,
-            ]))
+        $mail->action(__('events.action_view_event_details'), $this->actionUrlWithMarker($notifiable, route('events.detail', [
+            'locale' => $locale,
+            'slug' => $event->slug,
+        ])))
             ->line(__('events.content_we_re_sorry_for_any_inconvenience'))
             ->line($this->unsubscribeLine($notifiable, 'event_registration'));
+
+        // iTIP METHOD:CANCEL (D287): EventRegistrationConfirmed attaches the
+        // event-{id}@roundup.games REQUEST — the cancellation must revoke the
+        // SAME UID with a bumped SEQUENCE, or every registrant who accepted
+        // the mail invite keeps a CONFIRMED calendar entry and gets reminders
+        // for a cancelled event (the webcal feed alone corrects subscribers
+        // only, lazily). Same shape as EntityCancelled's game/campaign
+        // cancel leg (M081 fifth-pass review).
+        $this->attachIcsCancellation(
+            $mail,
+            $this->event,
+            $notifiable,
+            route('events.detail', ['locale' => $locale, 'slug' => $event->slug]),
+        );
+
+        return $this->withPreheader($mail, 'notifications.preheader_event_cancelled');
     }
 
     /**
@@ -116,9 +132,19 @@ class EventCancelled extends BaseNotification
             __('events.field_event_cancelled_name', [
                 'name' => $event->name ?? __('events.content_event'),
             ]),
-            route('events.detail', ['locale' => $this->resolveLocale($notifiable), 'slug' => $event->slug]),
+            $this->actionUrlWithMarker($notifiable, route('events.detail', ['locale' => $this->resolveLocale($notifiable), 'slug' => $event->slug])),
             "event-cancelled-{$event->id}",
         );
+    }
+
+    /**
+     * Cancellation bucket (D280): the event lifecycle's negative outcome
+     * resolves to the shared palette red — the same constant a cancelled
+     * game/campaign DM carries, so one stream shows one red.
+     */
+    protected function semanticColor(): int
+    {
+        return DiscordPalette::CANCELLATION;
     }
 
     /**
@@ -134,8 +160,6 @@ class EventCancelled extends BaseNotification
             __('events.content_event_cancelled_notice', [
                 'event' => $event->name ?? __('events.content_event'),
             ]),
-            // Discord red — a negative lifecycle outcome, overriding the blurple default.
-            0xED4245,
         );
     }
 }

@@ -7,9 +7,10 @@ namespace App\Enums;
  *
  * Parallel to {@see DiscordRsvpOutcome} (the join enum). Carries the
  * confirmation copy PATCHed to the interaction's @original response so the
- * clicker sees why their leave resolved the way it did. Hardcoded English to
- * match the join enum's precedent (localization is a follow-up — the deferred
- * job does not carry the interaction locale).
+ * clicker sees why their leave resolved the way it did — resolved from the
+ * `notifications.content_rsvp_outcome_*` lang keys in the clicker's
+ * interaction locale (MEM1741 — the deferred job carries the locale the
+ * controller resolved from the interaction payload).
  */
 enum DiscordLeaveOutcome: string
 {
@@ -41,15 +42,11 @@ enum DiscordLeaveOutcome: string
 
     /**
      * The ephemeral confirmation copy PATCHed to the interaction's @original
-     * response.
+     * response, resolved from the `notifications.content_rsvp_outcome_*` lang
+     * keys in the clicker's locale. A null $locale renders in the app locale.
      */
-    public function confirmationContent(): string
+    public function confirmationContent(?string $locale = null): string
     {
-        return match ($this) {
-            self::Left => "You've left this game. Your seat has been released — see you at the next one. 👋",
-            self::NotAParticipant => "You're not on the roster for this game, so there's nothing to leave.",
-            self::OwnerCannotLeave => "You're hosting this session — hosts can't leave their own game.",
-            self::NotFound => "This game couldn't be found. It may have been removed.",
-        };
+        return __("notifications.content_rsvp_outcome_{$this->value}", [], $locale);
     }
 }

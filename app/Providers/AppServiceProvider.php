@@ -162,8 +162,13 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(WebPush::class, function ($app) {
             $publicKey = config('services.vapid.public_key');
             $privateKey = config('services.vapid.private_key');
+            $subject = config('services.vapid.subject');
 
-            if ($publicKey === null || $publicKey === '' || $privateKey === null || $privateKey === '') {
+            // The subject is load-bearing too: VAPID::validate() throws on a
+            // missing subject, so keys without one would throw at container
+            // resolution — turning the documented graceful degradation into a
+            // delivery outage for every notification send. Guard it like the keys.
+            if ($publicKey === null || $publicKey === '' || $privateKey === null || $privateKey === '' || $subject === null || $subject === '') {
                 Log::warning('VAPID keys not configured, push notifications disabled');
 
                 return null;
@@ -176,7 +181,7 @@ class AppServiceProvider extends ServiceProvider
             // zombie-endpoint cleanup 3×.
             return new WebPush([
                 'VAPID' => [
-                    'subject' => config('services.vapid.subject'),
+                    'subject' => $subject,
                     'publicKey' => $publicKey,
                     'privateKey' => $privateKey,
                 ],
@@ -207,8 +212,9 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(AttendanceService::class);
 
-        // iCal feed renderer — pure mapping of Game → VEVENT (eluceo/ical v2.x).
-        // Singleton: stateless and reused across requests.
+        // iCal feed renderer — pure mapping of the feed window onto the
+        // shared IcsBuilder (METHOD:PUBLISH; D287/T02). Singleton: stateless
+        // and reused across requests.
         $this->app->singleton(ICalFeedRenderer::class);
 
         // Escalated customer portal: use Blade renderer instead of default Inertia.

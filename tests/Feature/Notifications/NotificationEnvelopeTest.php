@@ -5,6 +5,7 @@ namespace Tests\Feature\Notifications;
 use App\Enums\ContentLanguage;
 use App\Models\User;
 use App\Notifications\BaseNotification;
+use App\Services\Discord\DiscordPalette;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\HtmlString;
 use Tests\Feature\Notifications\Fixtures\EnvelopeProbeNotification;
@@ -112,7 +113,7 @@ class NotificationEnvelopeTest extends TestCase
 
     // ── discordEmbed ──────────────────────────────────────────────────
 
-    public function test_discord_embed_wraps_the_shared_blurple_envelope(): void
+    public function test_discord_embed_wraps_the_shared_emerald_envelope(): void
     {
         $payload = (new EnvelopeProbeNotification)
             ->probeDiscordEmbed('Title', 'https://roundup.test/game/1', 'Body copy');
@@ -124,7 +125,8 @@ class NotificationEnvelopeTest extends TestCase
             'description' => 'Body copy',
             'color' => BaseNotification::DISCORD_EMBED_COLOR,
         ], $payload->embeds[0]);
-        $this->assertSame(0x5865F2, $payload->embeds[0]['color']);
+        // D280: the default is the roundup emerald accent (blurple is gone).
+        $this->assertSame(DiscordPalette::EMERALD, $payload->embeds[0]['color']);
         $this->assertNull($payload->components);
     }
 
@@ -206,22 +208,29 @@ class NotificationEnvelopeTest extends TestCase
             implode("\n", $violations),
         ));
 
-        // The blurple accent is brand-wide, not notification-only: Discord
-        // embed builders outside app/Notifications must reference the shared
-        // constant (DiscordWebhookPayload::BLURPLE), never restate the hex.
-        $blurpleRestatements = [];
-        foreach (glob(app_path('Jobs').'/*.php') as $file) {
-            if (str_contains((string) file_get_contents($file), '0x5865F2')) {
-                $blurpleRestatements[] = basename($file).' restates the blurple literal — reference DiscordWebhookPayload::BLURPLE';
-            }
-        }
-        foreach (glob(app_path('Services/Discord').'/*.php') as $file) {
-            if (str_contains((string) file_get_contents($file), '0x5865F2')
-                && basename($file, '.php') !== 'DiscordWebhookPayload') {
-                $blurpleRestatements[] = basename($file).' restates the blurple literal — reference DiscordWebhookPayload::BLURPLE';
+        // D280: the shared palette is the single home of the Discord accent
+        // colors. The retired blurple literal (0x5865F2) is banned outright,
+        // and the palette literals may only appear in DiscordPalette.php —
+        // every other builder references the constants, never the hex.
+        $paletteHome = 'DiscordPalette.php';
+        $bannedLiterals = ['0x5865F2', '0x2ECC71', '0xE74C3C', '0x95A5A6', '0xF1C40F'];
+        $literalRestatements = [];
+        foreach ([app_path('Notifications'), app_path('Jobs'), app_path('Services/Discord')] as $dir) {
+            foreach (glob($dir.'/*.php') as $file) {
+                $base = basename($file);
+                if ($dir === app_path('Services/Discord') && $base === $paletteHome) {
+                    continue;
+                }
+
+                $source = strtolower((string) file_get_contents($file));
+                foreach ($bannedLiterals as $literal) {
+                    if (str_contains($source, strtolower($literal))) {
+                        $literalRestatements[] = $base.' restates the hex '.$literal.' — reference DiscordPalette (D280)';
+                    }
+                }
             }
         }
 
-        $this->assertSame([], $blurpleRestatements, implode("\n", $blurpleRestatements));
+        $this->assertSame([], $literalRestatements, implode("\n", $literalRestatements));
     }
 }

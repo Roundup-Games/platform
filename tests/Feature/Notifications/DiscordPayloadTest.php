@@ -6,6 +6,8 @@ use App\Enums\AttendanceStatus;
 use App\Enums\ContentLanguage;
 use App\Models\AttendanceReport;
 use App\Models\Campaign;
+use App\Models\Event;
+use App\Models\EventAnnouncement;
 use App\Models\Game;
 use App\Models\User;
 use App\Notifications\ApplicationApproved;
@@ -14,14 +16,21 @@ use App\Notifications\AttendanceReported;
 use App\Notifications\AttendanceResolved;
 use App\Notifications\DisputeResolved;
 use App\Notifications\EntityCancelled;
+use App\Notifications\EntityInvitation;
+use App\Notifications\EventAnnouncementPublished;
+use App\Notifications\EventCancelled;
 use App\Notifications\NewFollower;
+use App\Notifications\RecapPosted;
 use App\Notifications\SessionReminder;
 use App\Notifications\WaitlistExpiredRejected;
 use App\Notifications\WaitlistPromoted;
+use App\Services\Discord\DiscordPalette;
 use App\Services\Discord\DiscordWebhookPayload;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Foundation\Testing\TestCase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Composition proof for toDiscord() overrides across the notification fleet
@@ -263,16 +272,77 @@ class DiscordPayloadTest extends TestCase
         $this->assertStringContainsString($game->name, $embed['description']);
     }
 
-    // -- All embeds carry the brand color -----------------------------------
+    // -- D280: emerald default + semantic status colors ---------------------
 
-    public function test_every_embed_carries_the_discord_blurple_color(): void
+    /**
+     * D280: the blurple default is gone. Every embed whose class declares no
+     * semantic bucket resolves to the roundup emerald accent from the shared
+     * palette (SessionReminder is the no-bucket representative).
+     */
+    public function test_every_embed_defaults_to_the_roundup_emerald_accent(): void
     {
-        $game = Game::factory()->create();
+        $game = Game::factory()->create(['date_time' => now()->addHour()]);
         $notifiable = User::factory()->create(['preferred_language' => ContentLanguage::En]);
 
-        $embed = $this->embed((new AttendanceNudge($game, Carbon::parse('2026-11-06 18:00:00', 'UTC')))->toDiscord($notifiable));
+        $embed = $this->embed((new SessionReminder($game))->toDiscord($notifiable));
 
-        $this->assertSame(0x5865F2, $embed['color']);
+        $this->assertSame(DiscordPalette::EMERALD, $embed['color']);
+    }
+
+    /**
+     * D280 semantic matrix: one representative class per bucket asserts its
+     * color. Cancellation red, ambient grey (completed/informational),
+     * action-needed amber. (EntityCompleted and the GameSystemRequest family
+     * are null opt-outs (D130) — their overrides document the bucket for a
+     * future DM, so they have no embed to assert here.)
+     */
+    public function test_semantic_status_colors_map_one_representative_per_bucket(): void
+    {
+        $game = Game::factory()->create();
+        $author = User::factory()->create();
+        $notifiable = User::factory()->create(['preferred_language' => ContentLanguage::En]);
+        $event = Event::factory()->create(['organizer_id' => $notifiable->id]);
+
+        $cases = [
+            'cancellation (EntityCancelled)' => [
+                (new EntityCancelled($game))->toDiscord($notifiable),
+                DiscordPalette::CANCELLATION,
+            ],
+            'cancellation (EventCancelled — event family, realigned to the palette red)' => [
+                (new EventCancelled($event))->toDiscord($notifiable),
+                DiscordPalette::CANCELLATION,
+            ],
+            'cancellation (WaitlistExpiredRejected — expiry family)' => [
+                (new WaitlistExpiredRejected($game, 2))->toDiscord($notifiable),
+                DiscordPalette::CANCELLATION,
+            ],
+            'positive event outcome (EventAnnouncementPublished — brand emerald, not Discord-brand green)' => [
+                (new EventAnnouncementPublished(
+                    EventAnnouncement::create([
+                        'event_id' => $event->id,
+                        'author_id' => $notifiable->id,
+                        'title' => 'Probe announcement',
+                        'content' => 'A rendered probe body.',
+                        'is_published' => true,
+                    ]),
+                    $event,
+                ))->toDiscord($notifiable),
+                DiscordPalette::EMERALD,
+            ],
+            'ambient (RecapPosted)' => [
+                (new RecapPosted($game, $author))->toDiscord($notifiable),
+                DiscordPalette::AMBIENT,
+            ],
+            'action-needed (AttendanceNudge)' => [
+                (new AttendanceNudge($game, Carbon::parse('2026-11-06 18:00:00', 'UTC')))->toDiscord($notifiable),
+                DiscordPalette::ACTION_NEEDED,
+            ],
+        ];
+
+        foreach ($cases as $label => [$payload, $expected]) {
+            $embed = $this->embed($payload);
+            $this->assertSame($expected, $embed['color'], $label.' must resolve to its D280 palette constant');
+        }
     }
 
     // -- Structural mention guard (allowed_mentions parse:[] default) ------
@@ -327,6 +397,90 @@ class DiscordPayloadTest extends TestCase
         $this->assertSame(['parse' => []], $body['allowed_mentions']);
         $this->assertArrayNotHasKey('users', $body['allowed_mentions']);
         $this->assertArrayNotHasKey('roles', $body['allowed_mentions']);
+    }
+
+    // -- S04/T02: invitation enrichment (cover thumbnail + host author) --
+
+    /**
+     * S04/T02: the invitation embed reads as personally hosted. With a
+     * host-uploaded cover present, the embed carries the 'thumb' conversion
+     * URL as an ABSOLUTE thumbnail (Discord rejects relative paths), and
+     * the author block names the inviter with their public profile link.
+     * The structural parse:[] mention guard must survive the enrichment.
+     */
+    public function test_invitation_embed_carries_absolute_cover_thumbnail_and_host_author(): void
+    {
+        Storage::fake('public');
+
+        $game = Game::factory()->create();
+        $game->addMedia(UploadedFile::fake()->image('cover.jpg', 800, 600))
+            ->toMediaCollection('cover');
+        $inviter = User::factory()->create();
+        $notifiable = User::factory()->create(['preferred_language' => ContentLanguage::En]);
+
+        $payload = (new EntityInvitation($game, $inviter))->toDiscord($notifiable);
+
+        $embed = $this->embed($payload);
+        // Thumbnail: the cover's 'thumb' conversion URL, absolutely prefixed
+        // (local disks resolve relative /storage/... paths; Discord rejects
+        // relative URLs, so the guard in EntityInvitation absolutizes them).
+        $expectedThumb = $game->getFirstMedia('cover')->getUrl('thumb');
+        if (! str_starts_with($expectedThumb, 'http')) {
+            $expectedThumb = rtrim((string) config('app.url'), '/').$expectedThumb;
+        }
+        $this->assertSame($expectedThumb, $embed['thumbnail']['url']);
+        $this->assertStringStartsWith('http', $embed['thumbnail']['url']);
+        // Author: the host (inviter), deep-linked to their public profile.
+        $this->assertSame($inviter->name, $embed['author']['name']);
+        $this->assertSame(
+            route('profile.public', ['locale' => 'en', 'user' => $inviter]),
+            $embed['author']['url'],
+        );
+        // D288 structural mention guard still present on the enriched payload.
+        $this->assertSame(['parse' => []], $payload->toArray()['allowed_mentions']);
+    }
+
+    /**
+     * S04/T02 graceful skip: an entity without host-uploaded cover media
+     * omits the thumbnail key entirely — never a broken or fabricated URL.
+     * The author block is independent of media state and still renders.
+     */
+    public function test_invitation_embed_without_cover_media_omits_thumbnail_key(): void
+    {
+        $game = Game::factory()->create();
+        $inviter = User::factory()->create();
+        $notifiable = User::factory()->create(['preferred_language' => ContentLanguage::En]);
+
+        $payload = (new EntityInvitation($game, $inviter))->toDiscord($notifiable);
+
+        $embed = $this->embed($payload);
+        $this->assertArrayNotHasKey('thumbnail', $embed);
+        $this->assertSame($inviter->name, $embed['author']['name']);
+    }
+
+    /**
+     * S04/T02 campaign variant: invitations for campaigns pull the thumbnail
+     * from the campaign's own 'cover' collection (Campaign composes the same
+     * ResolvesCoverImage trait), not from a game relationship.
+     */
+    public function test_campaign_invitation_embed_uses_campaign_cover_collection(): void
+    {
+        Storage::fake('public');
+
+        $campaign = Campaign::factory()->create();
+        $campaign->addMedia(UploadedFile::fake()->image('campaign-cover.png', 1200, 630))
+            ->toMediaCollection('cover');
+        $inviter = User::factory()->create();
+        $notifiable = User::factory()->create(['preferred_language' => ContentLanguage::En]);
+
+        $embed = $this->embed((new EntityInvitation($campaign, $inviter))->toDiscord($notifiable));
+
+        $expectedThumb = $campaign->getFirstMedia('cover')->getUrl('thumb');
+        if (! str_starts_with($expectedThumb, 'http')) {
+            $expectedThumb = rtrim((string) config('app.url'), '/').$expectedThumb;
+        }
+        $this->assertSame($expectedThumb, $embed['thumbnail']['url']);
+        $this->assertStringContainsString('/campaigns/'.$campaign->id, $embed['url']);
     }
 
     // -- Null opt-out: push-null notifications return null (D130) ----------

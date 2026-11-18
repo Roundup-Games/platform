@@ -411,7 +411,15 @@ class DiscordInteractionEndpointTest extends TestCase
         $response = $this->postSigned($body);
 
         $response->assertStatus(200);
-        $response->assertJson(['type' => 5]);
+        // EPHEMERAL is declared on the DEFERRED ack: ephemerality is fixed
+        // when the source message is created and cannot be added by the
+        // later PATCH @original — without data.flags=64 every Join/Leave
+        // confirmation posts PUBLICLY to the guild channel (M081 fifth-pass
+        // review).
+        $response->assertJson([
+            'type' => 5,
+            'data' => ['flags' => 64],
+        ]);
 
         // The job is dispatched with the exact primitives the deferred path needs.
         Queue::assertPushed(ProcessDiscordRsvp::class, function (ProcessDiscordRsvp $job) use ($gameId, $user, $guildId) {
@@ -420,6 +428,61 @@ class DiscordInteractionEndpointTest extends TestCase
                 && $job->guildId === $guildId
                 && $job->interactionToken === 'tok-123';
         });
+    }
+
+    #[Test]
+    public function a_german_locale_join_dispatches_the_rsvp_job_with_the_interaction_locale()
+    {
+        // MEM1741: the deferred confirmation must render in the clicker's
+        // locale, so the controller carries the interaction payload's locale
+        // (here "de") into the dispatched job.
+        Queue::fake();
+
+        $user = User::factory()->create();
+        $snowflake = '555444333222111000';
+
+        LinkedAccount::factory()->create([
+            'user_id' => $user->id,
+            'provider' => OAuthProvider::Discord->value,
+            'provider_user_id' => $snowflake,
+        ]);
+
+        $gameId = (string) Game::factory()->create()->id;
+        $body = $this->componentBody("roundup:join:{$gameId}", $snowflake, locale: 'de');
+
+        $this->postSigned($body)->assertStatus(200);
+
+        Queue::assertPushed(
+            ProcessDiscordRsvp::class,
+            fn (ProcessDiscordRsvp $job) => $job->locale === 'de'
+        );
+    }
+
+    #[Test]
+    public function a_german_locale_leave_dispatches_the_leave_job_with_the_interaction_locale()
+    {
+        // MEM1741 on the leave path: the leave job carries the clicker's
+        // interaction locale exactly like the join job does.
+        Queue::fake();
+
+        $user = User::factory()->create();
+        $snowflake = '666777888999000111';
+
+        LinkedAccount::factory()->create([
+            'user_id' => $user->id,
+            'provider' => OAuthProvider::Discord->value,
+            'provider_user_id' => $snowflake,
+        ]);
+
+        $gameId = (string) Game::factory()->create()->id;
+        $body = $this->componentBody("roundup:leave:{$gameId}", $snowflake, locale: 'de');
+
+        $this->postSigned($body)->assertStatus(200);
+
+        Queue::assertPushed(
+            ProcessDiscordLeave::class,
+            fn (ProcessDiscordLeave $job) => $job->locale === 'de'
+        );
     }
 
     #[Test]

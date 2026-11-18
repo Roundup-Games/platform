@@ -121,6 +121,16 @@ CREATE TABLE public.cache_locks (
     expiration bigint NOT NULL
 );
 
+CREATE TABLE public.calendar_lifecycle_counters (
+    id bigint NOT NULL,
+    entity_type varchar(16) NOT NULL,
+    entity_id varchar NOT NULL,
+    uid varchar(255) NOT NULL,
+    sequence integer NOT NULL DEFAULT 0,
+    created_at timestamp NULL,
+    updated_at timestamp NULL
+);
+
 CREATE TABLE public.campaign_applications (
     id varchar NOT NULL,
     campaign_id varchar NOT NULL,
@@ -182,7 +192,7 @@ CREATE TABLE public.campaign_participants (
     confirmation_expires_at timestamp NULL,
     confirmation_attempts integer NULL,
     created_at timestamp NULL,
-    CONSTRAINT campaign_participants_join_source_check CHECK (((join_source)::text = ANY ((ARRAY['friend_invite'::varchar, 'share_link'::varchar, 'application'::varchar, 'email_invite'::varchar, 'short_link'::varchar, 'discord'::varchar, 'mcp_agent'::varchar])::text[]))),
+    CONSTRAINT campaign_participants_join_source_check CHECK (((join_source)::text = ANY (ARRAY[('friend_invite'::varchar)::text, ('share_link'::varchar)::text, ('application'::varchar)::text, ('email_invite'::varchar)::text, ('short_link'::varchar)::text, ('discord'::varchar)::text, ('mcp_agent'::varchar)::text]))),
     CONSTRAINT campaign_participants_role_check CHECK (((role)::text = ANY (ARRAY[('owner'::varchar)::text, ('player'::varchar)::text, ('invited'::varchar)::text, ('applicant'::varchar)::text]))),
     CONSTRAINT campaign_participants_status_check CHECK (((status)::text = ANY (ARRAY[('approved'::varchar)::text, ('rejected'::varchar)::text, ('pending'::varchar)::text, ('waitlisted'::varchar)::text, ('benched'::varchar)::text, ('removed'::varchar)::text])))
 );
@@ -806,7 +816,7 @@ CREATE TABLE public.escalated_newsletter_deliveries (
     is_test boolean NOT NULL DEFAULT false,
     created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
     tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C",
-    CONSTRAINT escalated_newsletter_deliveries_status_check CHECK (((status)::text = ANY ((ARRAY['pending'::varchar, 'queued'::varchar, 'sent'::varchar, 'bounced'::varchar, 'complained'::varchar, 'suppressed'::varchar, 'failed'::varchar])::text[])))
+    CONSTRAINT escalated_newsletter_deliveries_status_check CHECK (((status)::text = ANY (ARRAY[('pending'::varchar)::text, ('queued'::varchar)::text, ('sent'::varchar)::text, ('bounced'::varchar)::text, ('complained'::varchar)::text, ('suppressed'::varchar)::text, ('failed'::varchar)::text])))
 );
 
 CREATE TABLE public.escalated_newsletter_list_members (
@@ -828,7 +838,7 @@ CREATE TABLE public.escalated_newsletter_lists (
     created_at timestamp NULL,
     updated_at timestamp NULL,
     tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C",
-    CONSTRAINT escalated_newsletter_lists_kind_check CHECK (((kind)::text = ANY ((ARRAY['static'::varchar, 'dynamic'::varchar])::text[])))
+    CONSTRAINT escalated_newsletter_lists_kind_check CHECK (((kind)::text = ANY (ARRAY[('static'::varchar)::text, ('dynamic'::varchar)::text])))
 );
 
 CREATE TABLE public.escalated_newsletter_templates (
@@ -868,7 +878,7 @@ CREATE TABLE public.escalated_newsletters (
     created_at timestamp NULL,
     updated_at timestamp NULL,
     tenant_id varchar(128) DEFAULT ''::varchar NOT NULL COLLATE pg_catalog."C",
-    CONSTRAINT escalated_newsletters_status_check CHECK (((status)::text = ANY ((ARRAY['draft'::varchar, 'scheduled'::varchar, 'sending'::varchar, 'sent'::varchar, 'paused'::varchar, 'failed'::varchar])::text[])))
+    CONSTRAINT escalated_newsletters_status_check CHECK (((status)::text = ANY (ARRAY[('draft'::varchar)::text, ('scheduled'::varchar)::text, ('sending'::varchar)::text, ('sent'::varchar)::text, ('paused'::varchar)::text, ('failed'::varchar)::text])))
 );
 
 CREATE TABLE public.escalated_permissions (
@@ -1398,7 +1408,7 @@ CREATE TABLE public.game_participants (
     approved_at timestamp NULL,
     promoted_manually boolean NOT NULL DEFAULT false,
     CONSTRAINT game_participants_attendance_status_check CHECK (((attendance_status)::text = ANY (ARRAY[('attended'::varchar)::text, ('no_show'::varchar)::text, ('late_cancel'::varchar)::text, ('excused'::varchar)::text, ('cancelled_early'::varchar)::text]))),
-    CONSTRAINT game_participants_join_source_check CHECK (((join_source)::text = ANY ((ARRAY['friend_invite'::varchar, 'share_link'::varchar, 'application'::varchar, 'email_invite'::varchar, 'short_link'::varchar, 'discord'::varchar, 'mcp_agent'::varchar])::text[]))),
+    CONSTRAINT game_participants_join_source_check CHECK (((join_source)::text = ANY (ARRAY[('friend_invite'::varchar)::text, ('share_link'::varchar)::text, ('application'::varchar)::text, ('email_invite'::varchar)::text, ('short_link'::varchar)::text, ('discord'::varchar)::text, ('mcp_agent'::varchar)::text]))),
     CONSTRAINT game_participants_role_check CHECK (((role)::text = ANY (ARRAY[('owner'::varchar)::text, ('player'::varchar)::text, ('invited'::varchar)::text, ('applicant'::varchar)::text]))),
     CONSTRAINT game_participants_status_check CHECK (((status)::text = ANY (ARRAY[('approved'::varchar)::text, ('rejected'::varchar)::text, ('pending'::varchar)::text, ('waitlisted'::varchar)::text, ('benched'::varchar)::text, ('removed'::varchar)::text])))
 );

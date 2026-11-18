@@ -3,16 +3,24 @@
 namespace App\Notifications;
 
 use App\Dto\PushPayload;
+use App\Models\Campaign;
+use App\Models\Event;
+use App\Models\Game;
 use App\Models\User;
 use App\Notifications\Channels\DiscordChannel;
 use App\Notifications\Channels\PushChannel;
+use App\Services\Calendar\IcsAttachment;
+use App\Services\Calendar\IcsBuilder;
+use App\Services\Discord\DiscordPalette;
 use App\Services\Discord\DiscordWebhookPayload;
+use App\Services\Mail\SignedUnsubscribeUrls;
+use App\Services\Notifications\SignedReadMarker;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Channels\MailChannel;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\HtmlString;
 
 /**
@@ -42,16 +50,25 @@ use Illuminate\Support\HtmlString;
  * toDiscord()/toPush(): every subclass keeps an explicit per-channel method
  * (payload = DM/push; null = deliberate opt-out, D130/D247) — a channel's
  * voice must always be written, not derived.
+ *
+ * @method array<string, mixed> toDatabase(User $notifiable) Every concrete corpus class carries a database payload; actionUrlWithMarker() derives the read-marker's entity binding from it.
  */
 abstract class BaseNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    /** Discord blurple accent shared by every notification embed (canonical home: DiscordWebhookPayload::BLURPLE). */
-    public const DISCORD_EMBED_COLOR = DiscordWebhookPayload::BLURPLE;
+    /** Discord embed default color — the roundup emerald accent (canonical home: DiscordPalette, D280). */
+    public const DISCORD_EMBED_COLOR = DiscordPalette::EMERALD;
 
     /** PWA icon shared by every push payload. */
     public const PUSH_ICON = '/icons/pwa-192x192.png';
+
+    /**
+     * Monochrome status-bar badge (Android tray, D286): the five-pip die
+     * derived from the Material Symbols `casino` glyph — white-on-transparent
+     * 96×96; Android masks the alpha channel and tints it itself.
+     */
+    public const string PUSH_BADGE = '/icons/push-badge.png';
 
     /**
      * Channels resolved by NotificationService for a specific recipient —
@@ -154,45 +171,133 @@ abstract class BaseNotification extends Notification implements ShouldQueue
 
     /**
      * Push payload wrapped in the shared envelope: platform PWA icon plus
-     * the caller's title/body/url/tag.
+     * the caller's title/body/url/tag and the optional richness fields
+     * (M081/S05): action buttons, the event timestamp (epoch seconds — the
+     * Web Push display timestamp), and renotify, which the PushPayload
+     * constructor guards to require a non-empty tag.
+     *
+     * @param  array<int, array{label: string, url: string, action?: string}>|null  $actions
      */
-    protected function pushPayload(string $title, string $body, string $url, ?string $tag = null): PushPayload
-    {
+    protected function pushPayload(
+        string $title,
+        string $body,
+        string $url,
+        ?string $tag = null,
+        ?array $actions = null,
+        ?int $timestamp = null,
+        ?string $badge = null,
+        bool $renotify = false,
+    ): PushPayload {
         return new PushPayload(
             title: $title,
             body: $body,
             icon: self::PUSH_ICON,
             url: $url,
             tag: $tag,
+            actions: $actions,
+            timestamp: $timestamp,
+            badge: $badge,
+            renotify: $renotify,
         );
     }
 
     /**
-     * Discord DM wrapped in the shared envelope: one blurple embed with the
-     * caller's title/url/description (D130: Discord mirrors push). Classes
-     * with a semantic accent (event lifecycle green/red) pass an explicit
-     * $color; everything else inherits the blurple default.
+     * Discord DM wrapped in the shared envelope: one embed with the
+     * caller's title/url/description (D130: Discord mirrors push). The
+     * color resolves through the semantic layer (D280): an explicit $color
+     * wins, else semanticColor() per class, else the emerald default.
+     *
+     * Enrichment (M081/S04/T02): an optional thumbnail URL and author block
+     * render only when the caller provides them — null keys are omitted so
+     * Discord applies its own defaults rather than receiving explicit nulls
+     * (which Discord treats as "clear this field").
+     *
+     * @param  array{name: string, url?: string}|null  $author
      */
-    protected function discordEmbed(string $title, string $url, string $description, ?int $color = null): DiscordWebhookPayload
-    {
-        return DiscordWebhookPayload::embed([
+    protected function discordEmbed(
+        string $title,
+        string $url,
+        string $description,
+        ?int $color = null,
+        ?string $thumbnailUrl = null,
+        ?array $author = null,
+    ): DiscordWebhookPayload {
+        $embed = [
             'title' => $title,
             'url' => $url,
             'description' => $description,
-            'color' => $color ?? self::DISCORD_EMBED_COLOR,
-        ]);
+            'color' => $color ?? $this->semanticColor(),
+        ];
+
+        if ($thumbnailUrl !== null && $thumbnailUrl !== '') {
+            $embed['thumbnail'] = ['url' => $thumbnailUrl];
+        }
+
+        if ($author !== null) {
+            $embed['author'] = $author;
+        }
+
+        return DiscordWebhookPayload::embed($embed);
+    }
+
+    /**
+     * Semantic status color for this notification's Discord DM embed (D280).
+     *
+     * The base returns the roundup brand accent (emerald) — the single
+     * default every embed carries. Subclasses whose meaning maps onto a
+     * semantic bucket override this and return the palette constant:
+     * cancellations red (EntityCancelled, EventCancelled,
+     * ConfirmationExpired, WaitlistExpiredRejected),
+     * completed/ambient grey (EntityCompleted, BulletinPosted, RecapPosted),
+     * action-needed amber (EntityInvitation, BelowMinPlayersWarning,
+     * AttendanceNudge, the GameSystemRequest family). The layering is
+     * deliberate — brand accent first, semantics on top — so the DM design
+     * language stays conscious per class (D280) instead of falling out of
+     * incidental hex picks. Classes whose toDiscord() is a null opt-out
+     * still declare their bucket, so a future DM inherits the right color.
+     */
+    protected function semanticColor(): int
+    {
+        return DiscordPalette::EMERALD;
+    }
+
+    /**
+     * Attach the localized inbox preheader to a mail message (D279).
+     *
+     * The preheader is the hidden preview line mail clients show next to
+     * the subject. It travels as MailMessage view data ('preheader') —
+     * public and merged into data() by the framework — so the published
+     * notifications wrapper renders it in the hidden preview slot at the
+     * very top of the body. No per-class view override is needed, and
+     * queued/TaggedMailChannel sends are unaffected. Copy lives under
+     * notifications.preheader_* in every locale; completeness is pinned
+     * by NotificationCorpusRenderTest, which fails for any toMail()
+     * class that does not attach one.
+     *
+     * @param  array<string, string>  $replace
+     */
+    protected function withPreheader(MailMessage $message, string $key, array $replace = []): MailMessage
+    {
+        $message->viewData['preheader'] = __($key, $replace);
+
+        return $message;
     }
 
     /**
      * Generate a signed unsubscribe URL for the given user and category.
+     *
+     * Delegates to SignedUnsubscribeUrls (M081/S02/T01) — the single
+     * generator shared with the digest action and the TaggedMailChannel
+     * List-Unsubscribe headers, so body links and mail headers can never
+     * drift onto different URL constructions.
      */
     protected function unsubscribeUrl(User $notifiable, string $category): string
     {
-        return URL::signedRoute('notifications.unsubscribe', [
-            'locale' => $this->resolveLocale($notifiable),
-            'user' => $notifiable->id,
-            'category' => $category,
-        ]);
+        return app(SignedUnsubscribeUrls::class)->forCategory(
+            $notifiable,
+            $this->resolveLocale($notifiable),
+            $category,
+        );
     }
 
     /**
@@ -203,6 +308,128 @@ abstract class BaseNotification extends Notification implements ShouldQueue
         $url = $this->unsubscribeUrl($notifiable, $category);
         $label = __('notifications.email_unsubscribe');
 
-        return new HtmlString('<small><a href="'.$url.'" style="color: #8a846e;">'.$label.'</a></small>');
+        // The raw URL travels as visible small text after the link: the text
+        // part strips tags (strip_tags in the text layout), so without it a
+        // text-part reader gets the label but no way to opt out (M081
+        // fifth-pass review). Both parts read "label (https://…)".
+        return new HtmlString('<small><a href="'.$url.'" style="color: #5c5641;">'.$label.'</a> ('.$url.')</small>');
+    }
+
+    /**
+     * Wrap a channel action target in the signed cross-channel read
+     * marker (D288 item 1, M081/S08): landing on the marker URL marks the
+     * sibling in-app notification read via markReadByType, then redirects
+     * to the original target — so the bell badge stays truthful after the
+     * user acts on mail or push, not just in-app.
+     *
+     * Use for toMail ->action() URLs and toPush() urls of classes that
+     * have a database sibling (a bell row). Mail-only classes (WeeklyDigest)
+     * skip the marker — there is no in-app row to clear.
+     *
+     * Binding derivation: $type defaults to this notification's class name
+     * (what the notifications.type column stores); the entity pair is
+     * derived from the toDatabase payload — the first id key of
+     * SignedReadMarker::ALLOWED_DATA_KEYS the payload carries, so the
+     * marker queries exactly the key the bell row was stored under
+     * (entity_id for most classes; game_id/campaign_id for the
+     * RoutesGameOrCampaign family; team_id for TeamInvitation). Payloads
+     * with no whitelisted id (one-off notices: AccountSuspended,
+     * moderation mail) bind user+type only — clicking then marks that
+     * type's unread rows read.
+     */
+    protected function actionUrlWithMarker(
+        User $notifiable,
+        string $url,
+        ?string $type = null,
+        int|string|null $entityId = null,
+        ?string $dataKey = null,
+    ): string {
+        [$derivedEntityId, $derivedDataKey] = $this->deriveEntityBinding($notifiable);
+
+        return app(SignedReadMarker::class)->build(
+            $notifiable,
+            $this->resolveLocale($notifiable),
+            $type ?? static::class,
+            $entityId ?? $derivedEntityId,
+            $dataKey ?? $derivedDataKey,
+            $this->relativeActionPath($url),
+        );
+    }
+
+    /**
+     * Entity binding (id + payload key) this notification's bell rows are
+     * stored under, derived from the toDatabase payload.
+     *
+     * @return array{0: int|string|null, 1: string|null} [entityId, dataKey]
+     */
+    private function deriveEntityBinding(User $notifiable): array
+    {
+        $payload = $this->toDatabase($notifiable);
+
+        foreach (SignedReadMarker::ALLOWED_DATA_KEYS as $key) {
+            $value = $payload[$key] ?? null;
+
+            if (is_int($value) || is_string($value)) {
+                return [$value, $key];
+            }
+        }
+
+        return [null, null];
+    }
+
+    /**
+     * Collapse an absolute action URL to its root-relative path (+ query +
+     * fragment) — the marker's redirect target. The redirect must be an
+     * internal path (open-redirect guard on landing), and the path already
+     * carries its own locale segment.
+     */
+    private function relativeActionPath(string $url): string
+    {
+        $components = parse_url($url);
+
+        if (! is_array($components)) {
+            return '/';
+        }
+
+        return ($components['path'] ?? '/')
+            .(isset($components['query']) ? '?'.$components['query'] : '')
+            .(isset($components['fragment']) ? '#'.$components['fragment'] : '');
+    }
+
+    // ── iTIP calendar attachments (D287, M081/S07) ─────────────────────
+    //
+    // The shared RFC 5545/5546 lifecycle payload: METHOD:REQUEST invites
+    // and same-UID updates, METHOD:CANCEL revocations — rendered by
+    // IcsBuilder and attached as a text/calendar part whose Content-Type
+    // method= parameter drives the client's Add-to-calendar handling.
+    // Entities that resolve to no VEVENT (a bare campaign — a container,
+    // not a scheduled occurrence — or an entity without a date) attach
+    // nothing, and the mail renders unchanged.
+
+    /**
+     * Attach the iTIP METHOD:REQUEST calendar payload for the entity: the
+     * initial calendar invitation, or a same-UID update (SEQUENCE bump)
+     * when the recipient already holds the event.
+     */
+    protected function attachIcsRequest(MailMessage $mail, Game|Campaign|Event $entity, User $recipient, string $url): void
+    {
+        $this->attachIcs($mail, app(IcsBuilder::class)->request($entity, $recipient, $url));
+    }
+
+    /**
+     * Attach the iTIP METHOD:CANCEL twin — STATUS:CANCELLED plus a
+     * SEQUENCE increment so clients drop the event they hold for this UID
+     * (cancellations, seat revocations).
+     */
+    protected function attachIcsCancellation(MailMessage $mail, Game|Campaign|Event $entity, User $recipient, string $url): void
+    {
+        $this->attachIcs($mail, app(IcsBuilder::class)->cancel($entity, $recipient, $url));
+    }
+
+    private function attachIcs(MailMessage $mail, ?IcsAttachment $ics): void
+    {
+        if ($ics !== null) {
+            $mail->attachData($ics->content, $ics->filename, ['mime' => $ics->mimeType]);
+        }
     }
 }

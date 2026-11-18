@@ -8,6 +8,7 @@ use App\Models\Game;
 use App\Models\GameSystem;
 use App\Models\Location;
 use App\Models\User;
+use App\Services\Calendar\GoogleTemplateLink;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Str;
@@ -46,15 +47,16 @@ class DiscordCardRenderer
      * Roundup brand color (emerald green) for the embed side-stripe.
      *
      * Discord embed colors are a decimal int (0xRRGGBB). Emerald differentiates
-     * roundup cards from Apollo's default embeds in a shared channel.
+     * roundup cards from Apollo's default embeds in a shared channel. Canonical
+     * home: {@see DiscordPalette} (D280 unification — DMs, cards, digest share it).
      */
-    public const COLOR_BRAND = 0x2ECC71;
+    public const COLOR_BRAND = DiscordPalette::EMERALD;
 
     /** A cancelled/canceled game posts a red card so members see the change. */
-    public const COLOR_CANCELED = 0xE74C3C;
+    public const COLOR_CANCELED = DiscordPalette::CANCELLATION;
 
     /** A completed game posts a muted grey card (historical, not actionable). */
-    public const COLOR_COMPLETED = 0x95A5A6;
+    public const COLOR_COMPLETED = DiscordPalette::AMBIENT;
 
     /**
      * Render a Game into a postable enriched card.
@@ -429,7 +431,11 @@ class DiscordCardRenderer
         $lines = [];
 
         // Venue name, hyperlinked to its website when one is on record.
-        $name = trim($location->name);
+        // The name becomes a markdown link label — strip the characters that
+        // would break `[label](url)` parsing so a crafted venue name cannot
+        // inject arbitrary embed markdown (pings stay structurally suppressed
+        // via allowed_mentions parse:[]).
+        $name = str_replace(['[', ']', '(', ')', '\\', '`'], '', trim($location->name));
         $website = $this->urlOrNull($location->website_url);
         if ($name !== '') {
             $lines[] = $website !== null ? "[**{$name}**]({$website})" : "**{$name}**";
@@ -489,9 +495,10 @@ class DiscordCardRenderer
 
     /**
      * One action row: a primary "Join" button (handled by the HTTP Interactions
-     * endpoint, carrying the game_id in its custom_id) plus a link button to
+     * endpoint, carrying the game_id in its custom_id), a link button to
      * the roundup game page (the fallback for members who haven't linked
-     * Discord, and the "view full details" affordance).
+     * Discord, and the "view full details" affordance), and — when the game
+     * has a date (D287) — a Google-template "Add to calendar" link button.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -517,6 +524,28 @@ class DiscordCardRenderer
                 'url' => $deepLink,
             ],
         ];
+
+        // Zero-OAuth calendar tier (D287): same Google-template URL as the
+        // game page's "Add to calendar" affordance — pure attribute read,
+        // venue NAME only. Undated games get no button (nothing to prefill).
+        // 512 cap: Discord rejects link-button urls longer than 512 characters
+        // with a 400 that fails the whole card — the builder sheds the venue
+        // name, then the title tail, never the dates or deep link.
+        $calendarUrl = GoogleTemplateLink::forGame(
+            $game,
+            $deepLink,
+            $this->loadedLocation($game)?->name,
+            maxUrlLength: 512,
+        );
+
+        if ($calendarUrl !== null) {
+            $buttons[] = [
+                'type' => 2, // BUTTON
+                'style' => 5, // LINK
+                'label' => $this->trans('discord.content_card_button_add_calendar', [], $context->locale),
+                'url' => $calendarUrl,
+            ];
+        }
 
         return [
             [

@@ -35,7 +35,7 @@
         <span class="material-symbols-outlined text-lg">notifications</span>
         <span class="hidden xl:inline">{{ __('notifications.nav_label') }}</span>
         @if($unreadCount > 0)
-            <span class="{{ request()->routeIs('notifications.*') ? 'hidden' : '' }} absolute top-1 {{ auth()->user() ? 'left-7' : 'left-7' }} bg-error text-on-surface-container-lowest text-xs rounded-full min-w-5 h-5 flex items-center justify-center px-1 font-semibold leading-none">
+            <span class="{{ request()->routeIs('notifications.*') ? 'hidden' : '' }} absolute top-1 left-7 bg-error text-on-surface-container-lowest text-xs rounded-full min-w-5 h-5 flex items-center justify-center px-1 font-semibold leading-none">
                 {{ $unreadCount > 99 ? '99+' : $unreadCount }}
             </span>
         @endif
@@ -72,29 +72,53 @@
         {{-- Notification List --}}
         <div class="max-h-96 overflow-y-auto divide-y divide-outline-variant/10">
             @forelse($notifications as $group)
-                <button
-                    wire:click="markAsRead('{{ $group->groupKey }}')"
-                    class="w-full text-left px-4 py-3 hover:bg-surface-container-high transition-colors {{ $group->isRead ? 'opacity-60' : '' }}"
-                    role="menuitem"
-                >
-                    <div class="flex items-start gap-3">
-                        {{-- Unread indicator --}}
-                        <span class="mt-1.5 shrink-0 w-2 h-2 rounded-full {{ $group->isRead ? 'bg-transparent' : 'bg-primary' }}"></span>
+                {{-- Inline @php(...) would mis-pair with the @endphp of the raw-php
+                     block further down (Blade pairs first-@php → first-@endphp), so
+                     this uses the explicit block form. --}}
+                @php
+                    $settingsLink = $this->categorySettingsLink($group);
+                @endphp
+                <div class="flex items-stretch hover:bg-surface-container-high transition-colors {{ $group->isRead ? 'opacity-60' : '' }}">
+                    <button
+                        wire:click="markAsRead('{{ $group->groupKey }}')"
+                        class="flex-1 min-w-0 text-left px-4 py-3"
+                        role="menuitem"
+                    >
+                        <div class="flex items-start gap-3">
+                            {{-- Unread indicator --}}
+                            <span class="mt-1.5 shrink-0 w-2 h-2 rounded-full {{ $group->isRead ? 'bg-transparent' : 'bg-primary' }}"></span>
 
-                        <div class="flex-1 min-w-0">
-                            {{-- Display string --}}
-                            <p class="text-sm text-on-surface leading-snug line-clamp-2">{!! $group->displayHtml !!}</p>
+                            <div class="flex-1 min-w-0">
+                                {{-- Display string --}}
+                                <p class="text-sm text-on-surface leading-snug line-clamp-2">{!! $group->displayHtml !!}</p>
 
-                            {{-- Meta row: time ago + count --}}
-                            <div class="flex items-center gap-2 mt-1">
-                                <span class="text-xs text-on-surface-variant">{{ $group->latest->created_at->diffForHumans() }}</span>
-                                @if($group->count > 1)
-                                    <span class="text-xs text-on-surface-variant/60">&middot; {{ $group->count }} {{ __('notifications.label_notifications') }}</span>
-                                @endif
+                                {{-- Meta row: time ago + count --}}
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="text-xs text-on-surface-variant">{{ $group->latest->created_at->diffForHumans() }}</span>
+                                    @if($group->count > 1)
+                                        <span class="text-xs text-on-surface-variant/60">&middot; {{ $group->count }} {{ __('notifications.label_notifications') }}</span>
+                                    @endif
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </button>
+                    </button>
+
+                    {{-- Per-category settings shortcut (M081/S06): deep-link to the
+                         preference row governing this row's category; omitted when the
+                         stored type has no preference family (administrative one-offs). --}}
+                    @if($settingsLink !== null)
+                        <a
+                            href="{{ $settingsLink['url'] }}"
+                            wire:navigate
+                            @click="open = false"
+                            class="shrink-0 flex items-center px-3 text-on-surface-variant/60 hover:text-primary transition-colors"
+                            aria-label="{{ __('notifications.aria_manage_category_settings', ['category' => $settingsLink['label']]) }}"
+                            title="{{ __('notifications.aria_manage_category_settings', ['category' => $settingsLink['label']]) }}"
+                        >
+                            <span class="material-symbols-outlined text-base" aria-hidden="true">tune</span>
+                        </a>
+                    @endif
+                </div>
             @empty
                 <div class="px-4 py-8 text-center">
                     <span class="material-symbols-outlined text-3xl text-on-surface-variant/40 mb-2 block">notifications_off</span>

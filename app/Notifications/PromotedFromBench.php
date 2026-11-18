@@ -29,7 +29,7 @@ class PromotedFromBench extends BaseNotification
     {
         $locale = $this->resolveLocale($notifiable);
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('notifications.subject_promoted_from_bench', [
                 'game' => $this->entity->name,
             ]))
@@ -37,8 +37,10 @@ class PromotedFromBench extends BaseNotification
             ->line(__('notifications.body_promoted_from_bench', [
                 'game' => $this->entity->name,
             ]))
-            ->action(__('notifications.action_view_'.$this->getEntityType()), $this->getEntityRoute($locale))
+            ->action(__('notifications.action_view_'.$this->getEntityType()), $this->actionUrlWithMarker($notifiable, $this->getEntityRoute($locale)))
             ->line($this->unsubscribeLine($notifiable, 'bench_updates'));
+
+        return $this->withPreheader($mail, 'notifications.preheader_promoted_from_bench');
     }
 
     /**
@@ -64,7 +66,7 @@ class PromotedFromBench extends BaseNotification
             __('notifications.push_body_promoted_from_bench', [
                 'game' => $this->entity->name,
             ]),
-            $this->getEntityRoute($this->resolveLocale($notifiable)),
+            $this->actionUrlWithMarker($notifiable, $this->getEntityRoute($this->resolveLocale($notifiable))),
             "promoted-from-bench-{$this->getEntityType()}-{$this->entity->id}",
         );
     }

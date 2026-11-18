@@ -20,10 +20,10 @@ describe('Notification Translations', function () {
         }
     })->with([
         ['en', 'notifications.subject_new_follower',  ['follower' => 'Alice']],
-        ['en', 'notifications.subject_game_invitation', ['inviter' => 'Bob']],
+        ['en', 'notifications.subject_game_invitation', ['inviter' => 'Bob', 'game' => 'Waterdeep Dungeon']],
         ['en', 'common.field_hey_name',          ['name' => 'Charlie']],
         ['de', 'notifications.subject_new_follower',  ['follower' => 'Alice']],
-        ['de', 'notifications.subject_game_invitation', ['inviter' => 'Bob']],
+        ['de', 'notifications.subject_game_invitation', ['inviter' => 'Bob', 'game' => 'Waterdeep Dungeon']],
         ['de', 'common.field_hey_name',          ['name' => 'Charlie']],
         // S04/T03 — new interpolation contracts: update subjects carry the
         // change scope (:summary), game-system-request subjects carry the

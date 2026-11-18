@@ -58,12 +58,19 @@ class ProcessDiscordLeave implements ShouldQueue
      * @param  string  $guildId  Discord guild snowflake (for logging).
      * @param  string  $interactionToken  Discord interaction token — used to
      *                                    resolve the deferred state via @original.
+     * @param  string|null  $locale  the clicker's interaction locale (MEM1741)
+     *                               — renders the @original confirmation in
+     *                               the clicker's language. Defaults to 'en';
+     *                               nullable (with a null-coalesced read) so
+     *                               payloads serialized before this field
+     *                               existed still resolve to English.
      */
     public function __construct(
         public string $gameId,
         public string $userId,
         public string $guildId,
         public string $interactionToken,
+        public ?string $locale = 'en',
     ) {}
 
     public function handle(DiscordWebhookClient $webhookClient, DiscordPublisher $publisher): void
@@ -192,7 +199,7 @@ class ProcessDiscordLeave implements ShouldQueue
         }
 
         $payload = new DiscordWebhookPayload(
-            content: $outcome->confirmationContent(),
+            content: $outcome->confirmationContent($this->locale ?? 'en'),
             flags: 64, // FLAG_EPHEMERAL — visible only to the clicker
         );
 

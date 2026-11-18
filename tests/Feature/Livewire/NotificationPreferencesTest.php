@@ -244,3 +244,22 @@ describe('discord master toggles', function () {
         }
     });
 });
+
+// ── Coherence guards (M081 fifth-pass review) ─────────────────────────────
+
+// The settings blade renders preference rows from grouped(), whose case
+// lists are hand-maintained. A case missing from grouped() never renders a
+// row — so the #category-{value} anchor every bell/page shortcut links to
+// would land mid-page nowhere, silently. Pin the two sets equal so adding a
+// case forces adding its grouped() entry (and vice versa).
+it('renders a preference row and anchor for every enum category', function () {
+    $groupedValues = collect(NotificationCategory::grouped())
+        ->flatMap(fn (array $group) => array_keys($group['options']))
+        ->sort()
+        ->values()
+        ->all();
+
+    expect($groupedValues)->toBe(
+        collect(NotificationCategory::values())->sort()->values()->all()
+    );
+});

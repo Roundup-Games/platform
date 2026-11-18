@@ -64,11 +64,11 @@ describe('Campaign location notification uses shared i18n key', function () {
             ->set('edit_location_id', $newVenue->id)
             ->call('saveCampaignEdit');
 
-        // Verify the notification includes "Location" label
+        // Verify the notification reports the venue column
         Notification::assertSentTo(
             $participant,
             EntityUpdated::class,
-            fn (EntityUpdated $notification) => in_array(__('common.field_location'), $notification->changedFields)
+            fn (EntityUpdated $notification) => in_array('location_id', $notification->changedColumns, true)
         );
     });
 
@@ -90,11 +90,11 @@ describe('Campaign location notification uses shared i18n key', function () {
             ->set('edit_description', 'New description')
             ->call('saveCampaignEdit');
 
-        // Verify the notification includes "Description" label
+        // Verify the notification reports the description column
         Notification::assertSentTo(
             $participant,
             EntityUpdated::class,
-            fn (EntityUpdated $notification) => in_array(__('common.field_description'), $notification->changedFields)
+            fn (EntityUpdated $notification) => in_array('description', $notification->changedColumns, true)
         );
     });
 });

@@ -30,7 +30,7 @@ return [
     'content_digest_roster_open' => 'offen',
     'content_digest_more_marker' => '… (+:count weitere)',
     'content_digest_more_ahead' => 'Weitere Runden folgen',
-    'content_digest_overflow_body' => '{1} :count anstehendes Spiel angezeigt — das vollständige Zwei-Wochen-Kalender findest du auf roundup.|[2,*] :count anstehende Spiele angezeigt — das vollständige Zwei-Wochen-Kalender findest du auf roundup.',
+    'content_digest_overflow_body' => '{1} :count anstehendes Spiel angezeigt — das vollständige Zwei-Wochen-Kalender findest Du auf roundup.|[2,*] :count anstehende Spiele angezeigt — das vollständige Zwei-Wochen-Kalender findest Du auf roundup.',
     'content_digest_empty_title' => 'Keine öffentlichen Runden geplant',
     'content_digest_empty_body' => '📭 In den nächsten zwei Wochen sind keine öffentlichen roundup-Spiele geplant — schau bald wieder vorbei.',
 
@@ -46,13 +46,13 @@ return [
     'content_bulletin_read_more' => 'Lies das vollständige Update auf der Rundenseite.',
 
     // Unlinked "My seat" on-ramp ephemeral body (M059/S02)
-    'content_unlinked_onramp_body' => 'Du bist nur einen Klick von deinem Platz entfernt. Verbinde dein Discord-Konto und wir setzen dich direkt auf die Teilnehmerliste — es dauert nur wenige Sekunden. (Beim nächsten Mal zusagt dieser Button dich direkt aus Discord heraus.)',
+    'content_unlinked_onramp_body' => 'Du bist nur einen Klick von Deinem Platz entfernt. Verbinde Dein Discord-Konto und wir setzen Dich direkt auf die Teilnehmerliste — es dauert nur wenige Sekunden. (Beim nächsten Mal meldet Dich dieser Button direkt aus Discord heraus an.)',
 
     // ── Guild settings page (/discord/guilds/{id}) ──
     'content_guild_settings_subtitle' => 'Lege fest, wo roundup Runden-Karten veröffentlicht, und pausiere die Veröffentlichung jederzeit.',
     'flash_channels_saved' => 'Kanäle gespeichert.',
     'flash_language_saved' => 'Sprache gespeichert.',
-    'content_posting_paused_banner' => 'Die Veröffentlichung ist für diesen Server pausiert. Runden-Karten werden erst wieder veröffentlicht, wenn du sie fortsetzt.',
+    'content_posting_paused_banner' => 'Die Veröffentlichung ist für diesen Server pausiert. Runden-Karten werden erst wieder veröffentlicht, wenn Du sie fortsetzt.',
     'heading_channels' => 'Kanäle',
     'content_channels_help' => 'roundup veröffentlicht erweiterte Runden-Karten im Spiele-Kanal. Der Kalender-Kanal ist der Übersicht der anstehenden Runden vorbehalten.',
     'error_channels_load_failed' => 'Kanäle konnten nicht von Discord geladen werden. Prüfe, ob der Bot die Berechtigung „Kanäle ansehen“ hat, und lade erneut.',
@@ -85,19 +85,19 @@ return [
 
     // ── Opt-in-Liste für Organisatoren (/discord/organizer-guilds) ──
     'heading_discord_servers' => 'Discord-Server',
-    'content_organizer_servers_subtitle' => 'Server, in denen du bist und roundup nutzen, können deine öffentlichen Runden in ihren Spiele-Kanal veröffentlichen. Du gibst pro Server frei — geteilt wird erst, wenn du zustimmst.',
+    'content_organizer_servers_subtitle' => 'Server, in denen Du bist und roundup nutzen, können Deine öffentlichen Runden in ihren Spiele-Kanal veröffentlichen. Du gibst pro Server frei — geteilt wird erst, wenn Du zustimmst.',
     'flash_publishing_enabled' => 'Veröffentlichung aktiviert. Deine öffentlichen Runden erscheinen auf diesem Server.',
     'flash_publishing_paused' => 'Veröffentlichung für diesen Server pausiert.',
-    'content_link_discord_title' => 'Verbinde dein Discord-Konto',
-    'content_link_discord_body' => 'Verbinde Discord in deinen Einstellungen, damit roundup Server findet, in denen du bist und die den Bot bereits nutzen.',
+    'content_link_discord_title' => 'Verbinde Dein Discord-Konto',
+    'content_link_discord_body' => 'Verbinde Discord in Deinen Einstellungen, damit roundup Server findet, in denen Du bist und die den Bot bereits nutzen.',
     'action_link_discord' => 'Discord verbinden',
     'content_no_roundup_servers_title' => 'Noch keine roundup-Server',
-    'content_no_roundup_servers_body' => 'Keiner deiner Server hat roundup installiert. Frag die Server-Verwaltung, den Bot hinzuzufügen, und lade die Seite dann neu.',
+    'content_no_roundup_servers_body' => 'Keiner Deiner Server hat roundup installiert. Frag die Server-Verwaltung, den Bot hinzuzufügen, und lade die Seite dann neu.',
     'action_refresh' => 'Aktualisieren',
     'aria_roundup_servers_list' => 'Discord-Server mit roundup',
     'content_publishing_on' => 'Öffentliche Runden werden auf diesem Server veröffentlicht.',
     'content_opted_in' => 'Freigegeben :when.',
-    'content_publishing_off' => 'Keine Veröffentlichung. Deine Runden bleiben auf diesem Server privat, bis du sie freigibst.',
+    'content_publishing_off' => 'Keine Veröffentlichung. Deine Runden bleiben auf diesem Server privat, bis Du sie freigibst.',
     'aria_stop_publishing_to' => 'Veröffentlichung an :name stoppen',
     'aria_publish_events_to' => 'Runden an :name veröffentlichen',
 
@@ -124,5 +124,6 @@ return [
     'content_card_cross_value_generic' => '**:count** nehmen von außerhalb dieses Servers teil — die roundup-Community reicht über Server hinweg',
     'content_card_button_my_seat' => '🎟️ Mein Platz',
     'content_card_button_view' => 'Auf roundup ansehen',
+    'content_card_button_add_calendar' => 'Zum Kalender hinzufügen',
 
 ];

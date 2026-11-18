@@ -2,95 +2,108 @@
 
 namespace App\Services\ICal;
 
-use App\Enums\GameStatus;
+use App\Models\Event;
 use App\Models\Game;
-use Eluceo\iCal\Domain\Entity\Calendar;
-use Eluceo\iCal\Domain\Entity\Event;
-use Eluceo\iCal\Domain\Enum\EventStatus;
-use Eluceo\iCal\Domain\ValueObject\Date;
-use Eluceo\iCal\Domain\ValueObject\DateTime;
-use Eluceo\iCal\Domain\ValueObject\GeographicPosition;
-use Eluceo\iCal\Domain\ValueObject\Location;
-use Eluceo\iCal\Domain\ValueObject\SingleDay;
-use Eluceo\iCal\Domain\ValueObject\TimeSpan;
-use Eluceo\iCal\Domain\ValueObject\UniqueIdentifier;
-use Eluceo\iCal\Domain\ValueObject\Uri;
-use Eluceo\iCal\Presentation\Factory\CalendarFactory;
-use Illuminate\Support\Carbon;
+use App\Services\Calendar\IcsBuilder;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
 /**
- * Renders a collection of Game models into a RFC 5545 iCalendar document.
+ * Renders the feed owner's schedulable occurrences (Games + registered
+ * Events) into a METHOD:PUBLISH iCalendar document (D123 feed, D287/T02
+ * upgrade).
  *
- * One VEVENT per game. The renderer is locale-aware via {@see render()}:
- * translatable fields (name/description) are resolved to a single locale so a
- * given feed byte-stream is stable for that locale. UID is derived from the
- * game UUID so a re-render (re-sync) updates the same VEVENT rather than
- * creating a duplicate. Canceled games emit STATUS:CANCELLED so calendar
- * clients can sync the deletion.
+ * Pure mapping onto the shared {@see IcsBuilder} — "one ICS writer, two
+ * consumers": the builder owns the VCALENDAR envelope, VEVENT shape, UID
+ * family (game-{id}@roundup.games / campaign-{id}-session-{gameId}@… /
+ * event-{id}@…), folding and escaping; this class contributes only the
+ * feed-specific concerns — locale-aware text resolution and start-time
+ * ordering. Feed UIDs are the SAME family the iTIP mail attachments use,
+ * so a client holding an invitation and subscribed to the feed correlates
+ * both to one calendar event. (This intentionally changed the UID scheme
+ * from the pre-T02 raw game-UUID UIDs: already-subscribed clients see a
+ * one-time duplicate event per game — accepted pre-launch.)
  *
- * @see /markuspoerschke/ical v2.x — domain-entity + presentation-factory API.
+ * The former eluceo/ical rendering is retired from the read path; the
+ * composer dependency stays installed (dependency changes need approval).
  */
 class ICalFeedRenderer
 {
+    public function __construct(
+        private readonly IcsBuilder $builder,
+    ) {}
+
     /**
-     * Render the games into an iCalendar string.
+     * Render the occurrences into an iCalendar string.
      *
-     * @param  Collection<int, Game>  $games  Games already scoped to the feed owner.
-     * @param  string  $locale  The locale to resolve translatable fields to.
-     * @param  string  $prodId  Calendar product identifier (PRODID).
+     * @param  Collection<int, Game|Event>  $entities  already scoped to the feed owner; games must have owner + linkedLocation eager-loaded and events their organizer (the builder resolves both per entity).
+     * @param  string  $locale  the locale to resolve translatable fields to.
      */
-    public function render(Collection $games, string $locale, string $prodId): string
+    public function render(Collection $entities, string $locale): string
     {
-        $events = $games->map(fn (Game $game) => $this->buildEvent($game, $locale))->all();
+        $ordered = $entities
+            ->sortBy(fn (Game|Event $entity): CarbonInterface => $this->occurrenceStart($entity))
+            ->values();
 
-        $calendar = new Calendar($events);
-        $calendar->setProductIdentifier($prodId);
-
-        return (string) (new CalendarFactory)->createCalendar($calendar);
+        return $this->builder->publish(
+            $ordered,
+            fn (Game|Event $entity): array => $this->resolveText($entity, $locale),
+        );
     }
 
     /**
-     * Map a single Game to an iCal Event (VEVENT).
+     * The occurrence start used for cross-type ordering (games: scheduled
+     * instant; events: calendar day).
      */
-    private function buildEvent(Game $game, string $locale): Event
+    private function occurrenceStart(Game|Event $entity): CarbonInterface
     {
-        $uid = new UniqueIdentifier($game->id.'@roundup.games');
-
-        $event = new Event($uid);
-
-        // Translatable fields resolved to a single locale (fallback any → en
-        // is configured globally via Spatie Translatable::fallback).
-        $event->setSummary($this->resolveTranslation($game, 'name', $locale));
-        $event->setDescription($this->resolveDescription($game, $locale));
-
-        $this->applyOccurrence($event, $game);
-        $this->applyLocation($event, $game);
-        $this->applyUrl($event, $game);
-
-        // Canceled games emit STATUS:CANCELLED so calendar clients sync the
-        // deletion (per D123 / slice must-have). Scheduled/Completed → CONFIRMED.
-        if ($game->status === GameStatus::Canceled) {
-            $event->setStatus(EventStatus::CANCELLED());
-        } else {
-            $event->setStatus(EventStatus::CONFIRMED());
+        if ($entity instanceof Event) {
+            return $entity->start_date ?? now();
         }
 
-        return $event;
+        return $entity->date_time ?? now();
     }
 
     /**
-     * Resolve a Spatie-translatable field to a single locale string.
+     * Locale-aware text resolution per entity type.
+     *
+     * @return array{summary: string, description: string, url: string|null}
      */
-    private function resolveTranslation(Game $game, string $field, string $locale): string
+    private function resolveText(Game|Event $entity, string $locale): array
     {
-        $value = $game->getTranslation($field, $locale, false);
+        if ($entity instanceof Event) {
+            $name = $this->resolveTranslation($entity, 'name', $locale);
+
+            return [
+                'summary' => $name,
+                'description' => $this->resolveTranslation($entity, 'description', $locale),
+                'url' => $entity->slug !== null && $entity->slug !== ''
+                    ? route('events.detail', ['slug' => $entity->slug], absolute: true)
+                    : null,
+            ];
+        }
+
+        return [
+            'summary' => $this->resolveTranslation($entity, 'name', $locale),
+            'description' => $this->resolveDescription($entity, $locale),
+            'url' => route('games.detail', $entity, absolute: true),
+        ];
+    }
+
+    /**
+     * Resolve a Spatie-translatable field to a single locale string
+     * (fallback any → en is configured globally via
+     * Spatie Translatable::fallback).
+     */
+    private function resolveTranslation(Game|Event $entity, string $field, string $locale): string
+    {
+        $value = $entity->getTranslation($field, $locale, false);
 
         if (is_string($value) && $value !== '') {
             return $value;
         }
 
-        $fallback = $game->getTranslation($field, 'en');
+        $fallback = $entity->getTranslation($field, 'en');
 
         return is_string($fallback) ? $fallback : '';
     }
@@ -107,83 +120,5 @@ class ICalFeedRenderer
         }
 
         return $description;
-    }
-
-    /**
-     * Set the occurrence (DTSTART/DTEND) from date_time + expected_duration.
-     *
-     * When expected_duration is null, fall back to a SingleDay occurrence
-     * (all-day event). Otherwise DTEND = date_time + expected_duration hours.
-     */
-    private function applyOccurrence(Event $event, Game $game): void
-    {
-        if ($game->date_time === null) {
-            return;
-        }
-
-        $start = $this->carbonToDateTime($game->date_time);
-
-        if ($game->expected_duration > 0) {
-            $end = $this->carbonToDateTime($game->date_time->copy()->addHours($game->expected_duration));
-            $event->setOccurrence(new TimeSpan($start, $end));
-        } else {
-            // All-day fallback — construct the eluceo Date from the COMMUNITY
-            // calendar date (R089): the stored instant converts to the Berlin
-            // wall date so a 00:30 session still lands on the evening it
-            // belongs to, not the previous UTC day.
-            $event->setOccurrence(new SingleDay(
-                new Date(
-                    $game->date_time->copy()->setTimezone(community_timezone())->toDateTimeImmutable(),
-                ),
-            ));
-        }
-    }
-
-    /**
-     * Attach LOCATION + GEO when a linked Location with coordinates exists.
-     */
-    private function applyLocation(Event $event, Game $game): void
-    {
-        $location = $game->linkedLocation;
-
-        if ($location === null) {
-            return;
-        }
-
-        $addressParts = array_filter([
-            $location->address,
-            $location->city,
-        ], fn (?string $part): bool => $part !== null && $part !== '');
-        $addressString = implode(', ', $addressParts);
-
-        $icalLocation = new Location($addressString, $location->name ?? '');
-
-        if ($location->latitude !== null && $location->longitude !== null) {
-            $icalLocation = $icalLocation->withGeographicPosition(
-                new GeographicPosition((float) $location->latitude, (float) $location->longitude),
-            );
-        }
-
-        $event->setLocation($icalLocation);
-    }
-
-    /**
-     * Attach a deep link to the public game detail page.
-     */
-    private function applyUrl(Event $event, Game $game): void
-    {
-        $event->setUrl(new Uri(route('games.detail', $game, absolute: true)));
-    }
-
-    /**
-     * Convert a Laravel Carbon to an eluceo iCal DateTime.
-     *
-     * The stored value is a true UTC instant (R089) and the Carbon carries
-     * the UTC zone, so the apply-timezone flag renders DTSTART/DTEND as
-     * absolute UTC (...Z) — the correct instant in every calendar client.
-     */
-    private function carbonToDateTime(Carbon $carbon): DateTime
-    {
-        return new DateTime($carbon->copy()->utc()->toDateTimeImmutable(), true);
     }
 }

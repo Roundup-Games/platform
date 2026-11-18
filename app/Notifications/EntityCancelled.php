@@ -6,6 +6,7 @@ use App\Dto\PushPayload;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
+use App\Services\Discord\DiscordPalette;
 use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 
@@ -54,10 +55,21 @@ class EntityCancelled extends BaseNotification
             ? __('notifications.action_browse_campaigns')
             : __('notifications.action_browse_games');
 
-        $mail->action($browseAction, route("{$type}s.index", ['locale' => $locale]))
+        $mail->action($browseAction, $this->actionUrlWithMarker($notifiable, route("{$type}s.index", ['locale' => $locale])))
             ->line($this->unsubscribeLine($notifiable, "{$type}_cancelled"));
 
-        return $mail;
+        // iTIP METHOD:CANCEL (D287): the entity page stays reachable as
+        // the DESCRIPTION link while the calendar event itself is revoked.
+        $this->attachIcsCancellation(
+            $mail,
+            $this->entity,
+            $notifiable,
+            route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity]),
+        );
+
+        return $this->withPreheader($mail, "notifications.preheader_{$type}_cancelled", [
+            $type => $this->entity->name,
+        ]);
     }
 
     /**
@@ -107,7 +119,7 @@ class EntityCancelled extends BaseNotification
             __("notifications.subject_{$type}_cancelled", [
                 $type => $this->entity->name,
             ]),
-            route("{$type}s.show", ['locale' => $this->resolveLocale($notifiable), 'id' => $this->entity]),
+            $this->actionUrlWithMarker($notifiable, route("{$type}s.show", ['locale' => $this->resolveLocale($notifiable), 'id' => $this->entity])),
             "{$type}-cancelled-{$this->entity->id}",
         );
     }
@@ -126,5 +138,13 @@ class EntityCancelled extends BaseNotification
                 $type => $this->entity->name,
             ]),
         );
+    }
+
+    /**
+     * D280 semantic layer: cancellation red — the entity is cancelled; the DM must read as a status change at a glance.
+     */
+    protected function semanticColor(): int
+    {
+        return DiscordPalette::CANCELLATION;
     }
 }

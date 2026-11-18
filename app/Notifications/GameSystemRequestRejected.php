@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\User;
+use App\Services\Discord\DiscordPalette;
 use App\Services\Discord\DiscordWebhookPayload;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -69,7 +70,7 @@ class GameSystemRequestRejected extends BaseNotification
 
         $mail->line($this->unsubscribeLine($notifiable, 'game_system_request'));
 
-        return $mail;
+        return $this->withPreheader($mail, 'notifications.preheader_game_system_request_rejected');
     }
 
     /**
@@ -120,5 +121,13 @@ class GameSystemRequestRejected extends BaseNotification
     public function toDiscord(User $notifiable): ?DiscordWebhookPayload
     {
         return null;
+    }
+
+    /**
+     * D280 semantic layer: action-needed amber — the requester should review the rejection outcome (toDiscord is a null opt-out today; the mapping is declared so a future DM inherits it).
+     */
+    protected function semanticColor(): int
+    {
+        return DiscordPalette::ACTION_NEEDED;
     }
 }

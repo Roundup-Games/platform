@@ -13,8 +13,8 @@ return [
     */
 
     'reset' => 'Dein Passwort wurde zurückgesetzt.',
-    'sent' => 'Wir haben dir den Link zum Zurücksetzen deines Passworts per E-Mail geschickt.',
-    'throttled' => 'Bitte warte einen Moment, bevor du es erneut versuchst.',
+    'sent' => 'Wir haben Dir den Link zum Zurücksetzen Deines Passworts per E-Mail geschickt.',
+    'throttled' => 'Bitte warte einen Moment, bevor Du es erneut versuchst.',
     'token' => 'Dieser Link zum Zurücksetzen des Passworts ist ungültig.',
     'user' => 'Wir konnten keine Person mit dieser E-Mail-Adresse finden.',
 

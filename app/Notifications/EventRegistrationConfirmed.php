@@ -58,8 +58,7 @@ class EventRegistrationConfirmed extends BaseNotification
             ->line(__('events.content_you_re_all_set_for_event', [
                 'event' => $event->name ?? __('events.content_event'),
             ]))
-            ->line('**'.__('events.content_event_details').'**')
-            ->line('**'.__('events.content_event').':** '.$event->name);
+            ->line('**'.__('events.content_event_details').'**');
 
         $date = format_date($event->start_date);
         if ($event->end_date !== null && $event->start_date?->ne($event->end_date) === true) {
@@ -77,13 +76,21 @@ class EventRegistrationConfirmed extends BaseNotification
             ]));
         }
 
-        return $mail
-            ->action(__('events.action_view_event_details'), route('events.detail', [
-                'locale' => $locale,
-                'slug' => $event->slug,
-            ]))
+        $actionUrl = route('events.detail', [
+            'locale' => $locale,
+            'slug' => $event->slug,
+        ]);
+
+        $mail->action(__('events.action_view_event_details'), $this->actionUrlWithMarker($notifiable, $actionUrl))
             ->line(__('common.content_see_you_there'))
             ->line($this->unsubscribeLine($notifiable, 'event_registration'));
+
+        // iTIP METHOD:REQUEST (D287): the registration receipt carries the
+        // calendar invitation — events render as all-day VEVENTs (their
+        // start/end are date columns).
+        $this->attachIcsRequest($mail, $event, $notifiable, $actionUrl);
+
+        return $this->withPreheader($mail, 'notifications.preheader_event_registration_confirmed');
     }
 
     /**
@@ -125,7 +132,7 @@ class EventRegistrationConfirmed extends BaseNotification
             __('emails.field_event_registration_confirmed_name', [
                 'name' => $event->name ?? __('events.content_event'),
             ]),
-            route('events.detail', ['locale' => $this->resolveLocale($notifiable), 'slug' => $event->slug]),
+            $this->actionUrlWithMarker($notifiable, route('events.detail', ['locale' => $this->resolveLocale($notifiable), 'slug' => $event->slug])),
             "event-registration-{$event->id}",
         );
     }

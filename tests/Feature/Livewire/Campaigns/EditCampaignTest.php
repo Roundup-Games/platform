@@ -77,7 +77,7 @@ describe('Save Campaign Edit', function () {
             ->first();
 
         expect($log)->not->toBeNull();
-        expect($log->properties['changed_fields'])->toContain(__('campaigns.field_campaign_name'));
+        expect($log->properties['changed_fields'])->toContain('name');
     });
 
     it('sends notifications to approved participants', function () {
@@ -101,7 +101,7 @@ describe('Save Campaign Edit', function () {
         Notification::assertSentTo(
             $participant,
             EntityUpdated::class,
-            fn ($notification) => in_array(__('campaigns.field_campaign_name'), $notification->changedFields)
+            fn (EntityUpdated $notification) => in_array('name', $notification->changedColumns, true)
         );
     });
 });

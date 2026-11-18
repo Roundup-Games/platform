@@ -23,9 +23,6 @@ namespace App\Services\Discord;
  */
 class DiscordWebhookPayload
 {
-    /** Discord blurple accent — the single brand constant every embed uses. */
-    public const BLURPLE = 0x5865F2;
-
     /**
      * @param  array<int, array<string, mixed>>|null  $embeds
      * @param  array<int, array<string, mixed>>|null  $components

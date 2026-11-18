@@ -5,6 +5,7 @@ namespace App\Livewire\Notifications;
 use App\Dto\NotificationGroup;
 use App\Models\User;
 use App\Services\NotificationQueryService;
+use App\Traits\ResolvesNotificationSettingsLinks;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Notifications\DatabaseNotification;
@@ -34,6 +35,7 @@ use Livewire\WithPagination;
 #[Layout('layouts.app')]
 class NotificationsPage extends Component
 {
+    use ResolvesNotificationSettingsLinks;
     use WithPagination;
 
     /**

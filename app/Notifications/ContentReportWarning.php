@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\User;
 use App\Services\Discord\DiscordWebhookPayload;
+use App\Support\ModerationNoticeLabels;
 use Illuminate\Notifications\Messages\MailMessage;
 
 /**
@@ -20,17 +21,21 @@ class ContentReportWarning extends BaseNotification
 
     public function toMail(User $notifiable): MailMessage
     {
-        return (new MailMessage)
-            ->subject(__('notifications.subject_content_warning'))
+        $locale = $this->resolveLocale($notifiable);
+
+        $mail = (new MailMessage)
+            ->subject(__('notifications.subject_content_warning', [], $locale))
             ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_content_warning', [
-                'entityType' => $this->entityType,
+                'entityType' => ModerationNoticeLabels::entityType($this->entityType, $locale),
                 'entityName' => $this->entityName,
-            ]))
+            ], $locale))
             ->line(__('notifications.body_reason', [
-                'reason' => $this->reason,
-            ]))
-            ->line(__('notifications.body_content_warning_guidelines'));
+                'reason' => ModerationNoticeLabels::reason($this->reason, $locale),
+            ], $locale))
+            ->line(__('notifications.body_content_warning_guidelines', [], $locale));
+
+        return $this->withPreheader($mail, 'notifications.preheader_content_report_warning');
     }
 
     /**
@@ -42,7 +47,7 @@ class ContentReportWarning extends BaseNotification
             'type' => 'content_report_warning',
             'entity_type' => $this->entityType,
             'entity_name' => $this->entityName,
-            'reason' => $this->reason,
+            'reason' => ModerationNoticeLabels::reason($this->reason, $this->resolveLocale($notifiable)),
         ];
     }
 

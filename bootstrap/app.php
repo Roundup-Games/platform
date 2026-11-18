@@ -47,6 +47,15 @@ return Application::configure(basePath: dirname(__DIR__))
             // VerifyDiscordInteractionSignature middleware (Ed25519 over
             // timestamp + raw body). Mirrors the Paddle webhook precedent.
             'discord/interactions',
+            // RFC 8058 one-click unsubscribe POSTs (M081/S02/T01):
+            // mailbox-provider servers POST the signed List-Unsubscribe URL
+            // with no session and no CSRF token. Authenticity is enforced by
+            // the signed middleware (HMAC over path + query — the same proof
+            // the GET link relies on); tampered/unsigned POSTs abort 403 with
+            // zero writes before the controller runs. Patterns cover the
+            // locale-prefixed path for both unsubscribe routes.
+            '*/notifications/unsubscribe/*',
+            '*/notifications/unsubscribe-digest/*',
         ]);
 
         // First app-specific global: input scrubbing must precede every

@@ -40,7 +40,7 @@ class CharterAmended extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__($this->material ? 'notifications.subject_charter_amended_material' : 'notifications.subject_charter_amended_minor', [
                 'campaign' => $this->campaign->name,
             ]))
@@ -48,8 +48,12 @@ class CharterAmended extends BaseNotification
             ->line(__($this->material ? 'notifications.body_charter_amended_material' : 'notifications.body_charter_amended_minor', [
                 'campaign' => $this->campaign->name,
             ]))
-            ->action(__($this->material ? 'notifications.action_charter_review' : 'notifications.action_charter_view'), $this->charterUrl($this->resolveLocale($notifiable)))
+            ->action(__($this->material ? 'notifications.action_charter_review' : 'notifications.action_charter_view'), $this->actionUrlWithMarker($notifiable, $this->charterUrl($this->resolveLocale($notifiable))))
             ->line($this->unsubscribeLine($notifiable, 'charter_amended'));
+
+        return $this->withPreheader($mail, $this->material
+            ? 'notifications.preheader_charter_amended_material'
+            : 'notifications.preheader_charter_amended_minor');
     }
 
     /**
@@ -92,7 +96,7 @@ class CharterAmended extends BaseNotification
             __($this->material ? 'notifications.push_body_charter_amended_material' : 'notifications.push_body_charter_amended_minor', [
                 'campaign' => $this->campaign->name,
             ]),
-            $this->charterUrl($this->resolveLocale($notifiable)),
+            $this->actionUrlWithMarker($notifiable, $this->charterUrl($this->resolveLocale($notifiable))),
             "charter-amended-{$this->charter->uuid}-v{$this->version->version_number}",
         );
     }

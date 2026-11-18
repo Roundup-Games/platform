@@ -27,16 +27,32 @@ class SessionAddedToCampaign extends BaseNotification
         $locale = $this->resolveLocale($notifiable);
         $actionUrl = route('games.show', ['locale' => $locale, 'id' => $this->session]);
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('notifications.subject_session_added_to_campaign', [
                 'campaign' => $this->campaign->name,
-            ]))
+            ], $locale))
             ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_session_added_to_campaign', [
                 'campaign' => $this->campaign->name,
-            ]))
-            ->action(__('notifications.action_session_added_to_campaign'), $actionUrl)
+            ], $locale));
+
+        // The date is the news — put it in the body in the recipient's
+        // wall clock (R089), not behind the click the preheader teases.
+        if ($this->session->date_time !== null) {
+            $mail->line('**'.__('common.field_date_time', [], $locale).':** '
+                .format_date($this->session->date_time, 'datetime', $notifiable->timezone ?? community_timezone()));
+        }
+
+        $mail->action(__('notifications.action_session_added_to_campaign', [], $locale), $this->actionUrlWithMarker($notifiable, $actionUrl))
             ->line($this->unsubscribeLine($notifiable, 'session_added_to_campaign'));
+
+        // iTIP METHOD:REQUEST (D287): each campaign session addresses its
+        // own VEVENT (campaign-{id}-session-{gameId}@roundup.games), so the
+        // invitation lands on the session's calendar slot, not the
+        // campaign's.
+        $this->attachIcsRequest($mail, $this->session, $notifiable, $actionUrl);
+
+        return $this->withPreheader($mail, 'notifications.preheader_session_added_to_campaign');
     }
 
     /**

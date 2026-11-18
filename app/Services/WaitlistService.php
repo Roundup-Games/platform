@@ -622,7 +622,7 @@ class WaitlistService
 
             $notification = new WaitlistPromoted(
                 entity: $entity,
-                confirmationDeadline: $expiresAt->isoFormat('LLL'),
+                confirmationDeadline: $expiresAt,
             );
 
             $notificationService->send($user, $notification, NotificationCategory::WaitlistPromoted);

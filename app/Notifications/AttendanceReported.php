@@ -32,7 +32,7 @@ class AttendanceReported extends BaseNotification
         $date = format_date($this->game->date_time, 'date', $notifiable->timezone ?? community_timezone());
         $status = $this->report->status->label();
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('notifications.subject_attendance_reported', [
                 'game' => $this->game->name,
             ]))
@@ -42,11 +42,13 @@ class AttendanceReported extends BaseNotification
                 'date' => $date,
                 'status' => $status,
             ]))
-            ->action(__('notifications.action_open_dispute_report'), route('games.show', [
+            ->action(__('notifications.action_open_dispute_report'), $this->actionUrlWithMarker($notifiable, route('games.show', [
                 'locale' => $locale,
                 'id' => $this->game->id,
-            ]))
+            ])))
             ->line($this->unsubscribeLine($notifiable, 'attendance_reported'));
+
+        return $this->withPreheader($mail, 'notifications.preheader_attendance_reported');
     }
 
     /**
@@ -95,10 +97,10 @@ class AttendanceReported extends BaseNotification
                 'status' => $status,
                 'game' => $this->game->name,
             ]),
-            route('games.show', [
+            $this->actionUrlWithMarker($notifiable, route('games.show', [
                 'locale' => $this->resolveLocale($notifiable),
                 'id' => $this->game->id,
-            ]),
+            ])),
             "attendance-reported-{$this->report->id}",
         );
     }

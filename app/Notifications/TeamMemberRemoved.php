@@ -25,7 +25,7 @@ class TeamMemberRemoved extends BaseNotification
     {
         $locale = $this->resolveLocale($notifiable);
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('notifications.subject_team_member_removed', [
                 'team' => $this->team->name,
             ]))
@@ -33,8 +33,10 @@ class TeamMemberRemoved extends BaseNotification
             ->line(__('notifications.body_team_member_removed', [
                 'team' => $this->team->name,
             ]))
-            ->action(__('teams.action_browse_teams'), route('teams.browse', ['locale' => $locale]))
+            ->action(__('teams.action_browse_teams'), $this->actionUrlWithMarker($notifiable, route('teams.browse', ['locale' => $locale])))
             ->line($this->unsubscribeLine($notifiable, 'team_member_removed'));
+
+        return $this->withPreheader($mail, 'notifications.preheader_team_member_removed');
     }
 
     /**

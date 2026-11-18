@@ -262,6 +262,40 @@ CREATE TABLE public.cache_locks (
 
 
 --
+-- Name: calendar_lifecycle_counters; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.calendar_lifecycle_counters (
+    id bigint NOT NULL,
+    entity_type character varying(16) NOT NULL,
+    entity_id uuid NOT NULL,
+    uid character varying(255) NOT NULL,
+    sequence integer DEFAULT 0 NOT NULL,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: calendar_lifecycle_counters_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.calendar_lifecycle_counters_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: calendar_lifecycle_counters_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.calendar_lifecycle_counters_id_seq OWNED BY public.calendar_lifecycle_counters.id;
+
+
+--
 -- Name: campaign_applications; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -346,7 +380,7 @@ CREATE TABLE public.campaign_participants (
     confirmation_expires_at timestamp(0) without time zone,
     confirmation_attempts integer,
     created_at timestamp(0) without time zone,
-    CONSTRAINT campaign_participants_join_source_check CHECK (((join_source)::text = ANY ((ARRAY['friend_invite'::character varying, 'share_link'::character varying, 'application'::character varying, 'email_invite'::character varying, 'short_link'::character varying, 'discord'::character varying, 'mcp_agent'::character varying])::text[]))),
+    CONSTRAINT campaign_participants_join_source_check CHECK (((join_source)::text = ANY (ARRAY[('friend_invite'::character varying)::text, ('share_link'::character varying)::text, ('application'::character varying)::text, ('email_invite'::character varying)::text, ('short_link'::character varying)::text, ('discord'::character varying)::text, ('mcp_agent'::character varying)::text]))),
     CONSTRAINT campaign_participants_role_check CHECK (((role)::text = ANY (ARRAY[('owner'::character varying)::text, ('player'::character varying)::text, ('invited'::character varying)::text, ('applicant'::character varying)::text]))),
     CONSTRAINT campaign_participants_status_check CHECK (((status)::text = ANY (ARRAY[('approved'::character varying)::text, ('rejected'::character varying)::text, ('pending'::character varying)::text, ('waitlisted'::character varying)::text, ('benched'::character varying)::text, ('removed'::character varying)::text])))
 );
@@ -1751,7 +1785,7 @@ CREATE TABLE public.escalated_newsletter_deliveries (
     is_test boolean DEFAULT false NOT NULL,
     created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C",
-    CONSTRAINT escalated_newsletter_deliveries_status_check CHECK (((status)::text = ANY ((ARRAY['pending'::character varying, 'queued'::character varying, 'sent'::character varying, 'bounced'::character varying, 'complained'::character varying, 'suppressed'::character varying, 'failed'::character varying])::text[])))
+    CONSTRAINT escalated_newsletter_deliveries_status_check CHECK (((status)::text = ANY (ARRAY[('pending'::character varying)::text, ('queued'::character varying)::text, ('sent'::character varying)::text, ('bounced'::character varying)::text, ('complained'::character varying)::text, ('suppressed'::character varying)::text, ('failed'::character varying)::text])))
 );
 
 
@@ -1828,7 +1862,7 @@ CREATE TABLE public.escalated_newsletter_lists (
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
     tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C",
-    CONSTRAINT escalated_newsletter_lists_kind_check CHECK (((kind)::text = ANY ((ARRAY['static'::character varying, 'dynamic'::character varying])::text[])))
+    CONSTRAINT escalated_newsletter_lists_kind_check CHECK (((kind)::text = ANY (ARRAY[('static'::character varying)::text, ('dynamic'::character varying)::text])))
 );
 
 
@@ -1916,7 +1950,7 @@ CREATE TABLE public.escalated_newsletters (
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
     tenant_id character varying(128) DEFAULT ''::character varying NOT NULL COLLATE pg_catalog."C",
-    CONSTRAINT escalated_newsletters_status_check CHECK (((status)::text = ANY ((ARRAY['draft'::character varying, 'scheduled'::character varying, 'sending'::character varying, 'sent'::character varying, 'paused'::character varying, 'failed'::character varying])::text[])))
+    CONSTRAINT escalated_newsletters_status_check CHECK (((status)::text = ANY (ARRAY[('draft'::character varying)::text, ('scheduled'::character varying)::text, ('sending'::character varying)::text, ('sent'::character varying)::text, ('paused'::character varying)::text, ('failed'::character varying)::text])))
 );
 
 
@@ -3199,7 +3233,7 @@ CREATE TABLE public.game_participants (
     approved_at timestamp(0) without time zone,
     promoted_manually boolean DEFAULT false NOT NULL,
     CONSTRAINT game_participants_attendance_status_check CHECK (((attendance_status)::text = ANY (ARRAY[('attended'::character varying)::text, ('no_show'::character varying)::text, ('late_cancel'::character varying)::text, ('excused'::character varying)::text, ('cancelled_early'::character varying)::text]))),
-    CONSTRAINT game_participants_join_source_check CHECK (((join_source)::text = ANY ((ARRAY['friend_invite'::character varying, 'share_link'::character varying, 'application'::character varying, 'email_invite'::character varying, 'short_link'::character varying, 'discord'::character varying, 'mcp_agent'::character varying])::text[]))),
+    CONSTRAINT game_participants_join_source_check CHECK (((join_source)::text = ANY (ARRAY[('friend_invite'::character varying)::text, ('share_link'::character varying)::text, ('application'::character varying)::text, ('email_invite'::character varying)::text, ('short_link'::character varying)::text, ('discord'::character varying)::text, ('mcp_agent'::character varying)::text]))),
     CONSTRAINT game_participants_role_check CHECK (((role)::text = ANY (ARRAY[('owner'::character varying)::text, ('player'::character varying)::text, ('invited'::character varying)::text, ('applicant'::character varying)::text]))),
     CONSTRAINT game_participants_status_check CHECK (((status)::text = ANY (ARRAY[('approved'::character varying)::text, ('rejected'::character varying)::text, ('pending'::character varying)::text, ('waitlisted'::character varying)::text, ('benched'::character varying)::text, ('removed'::character varying)::text])))
 );
@@ -4502,6 +4536,13 @@ CREATE TABLE public.users (
 
 
 --
+-- Name: calendar_lifecycle_counters id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calendar_lifecycle_counters ALTER COLUMN id SET DEFAULT nextval('public.calendar_lifecycle_counters_id_seq'::regclass);
+
+
+--
 -- Name: customers id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -5113,6 +5154,22 @@ ALTER TABLE ONLY public.cache_locks
 
 ALTER TABLE ONLY public.cache
     ADD CONSTRAINT cache_pkey PRIMARY KEY (key);
+
+
+--
+-- Name: calendar_lifecycle_counters calendar_lifecycle_counters_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calendar_lifecycle_counters
+    ADD CONSTRAINT calendar_lifecycle_counters_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: calendar_lifecycle_counters calendar_lifecycle_counters_uid_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.calendar_lifecycle_counters
+    ADD CONSTRAINT calendar_lifecycle_counters_uid_unique UNIQUE (uid);
 
 
 --
@@ -10399,6 +10456,7 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 307	2026_11_10_221953_add_mcp_agent_to_join_source_check	15
 308	2026_11_10_224500_add_target_to_mcp_calls_table	15
 309	2026_11_14_125454_create_notification_engagement_counters_table	16
+310	2026_11_16_121322_create_calendar_lifecycle_counters_table	17
 \.
 
 
@@ -10406,7 +10464,7 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 309, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 310, true);
 
 
 --

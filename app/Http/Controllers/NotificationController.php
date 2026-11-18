@@ -5,21 +5,39 @@ namespace App\Http\Controllers;
 use App\Enums\NotificationCategory;
 use App\Models\User;
 use App\Services\NotificationEngagementCounters;
+use App\Services\Notifications\SignedReadMarker;
+use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
 use Throwable;
 
 class NotificationController extends Controller
 {
-    public function __construct(private readonly NotificationEngagementCounters $counters) {}
+    public function __construct(
+        private readonly NotificationEngagementCounters $counters,
+        private readonly NotificationService $notificationService,
+    ) {}
 
     /**
      * Handle a signed email unsubscribe link.
      * Sets the mail channel OFF for the given notification category.
+     *
+     * Two-step flow (M081 fifth-pass review, invite-optout precedent): GET
+     * renders a confirmation page and performs NO write — URL-sandboxing
+     * mail scanners (Microsoft SafeLinks, Proofpoint URL defense) server-
+     * side-GET every link in a mail, and a bare-GET write let them silently
+     * disable categories the user never touched. POST performs the write:
+     * the RFC 8058 one-click POST (no form fields) answers the bare 200
+     * mailbox-provider clients require, while the human confirmation form
+     * (carrying _from=link) gets the redirect-with-flash UX. The counter
+     * fires only when mail was actually ON (scanner replays and repeat
+     * clicks must not inflate the D284 funnel).
      */
-    public function unsubscribe(Request $request, string $locale, User $user, string $category): RedirectResponse
+    public function unsubscribe(Request $request, string $locale, User $user, string $category): Response|RedirectResponse|View
     {
         if (! $request->hasValidSignature()) {
             abort(403, __('notifications.unsubscribe_invalid_link'));
@@ -31,10 +49,20 @@ class NotificationController extends Controller
             abort(404, __('notifications.unsubscribe_unknown_category'));
         }
 
+        // Scanner defense: the confirmation step. The form POSTs back to the
+        // exact signed URL (fullUrl keeps the signature query intact).
+        if ($request->isMethod('get')) {
+            return view('pages.notification-unsubscribe', [
+                'unsubscribeTarget' => $categoryEnum->label(),
+                'actionUrl' => $request->fullUrl(),
+            ]);
+        }
+
         // notification_settings is cast to array in User model
         /** @var array<string, mixed> $settings */
         $settings = $user->notification_settings;
         $existingCategory = is_array($settings[$category] ?? null) ? $settings[$category] : [];
+        $wasMailEnabled = (bool) ($existingCategory['mail'] ?? true);
         // Unsubscribe means "stop emailing me about this category" — it must not
         // touch the in-app or push channels, which the user manages separately
         // in their settings page. Preserving all three keys also keeps the
@@ -47,7 +75,18 @@ class NotificationController extends Controller
 
         $user->update(['notification_settings' => $settings]);
 
-        $this->countUnsubscribe($category);
+        // Count the funnel only on an actual state change: the settings write
+        // is idempotent, so a scanner-fed POST replay or a double click must
+        // not write a second unsubscribed event for one human opt-out.
+        if ($wasMailEnabled) {
+            $this->countUnsubscribe($category);
+        }
+
+        // RFC 8058: a one-click client expects a plain 200 — no
+        // redirect, no body — before it will treat the opt-out as done.
+        if (! $request->filled('_from')) {
+            return response('', 200);
+        }
 
         if (Auth::check() && Auth::id() === $user->id) {
             return redirect()
@@ -67,16 +106,38 @@ class NotificationController extends Controller
      * The digest is controlled by the weekly_digest_enabled flag, not the
      * per-category channel matrix, so it gets its own signed route. A recurring
      * automated email must offer a no-login opt-out path (CAN-SPAM / GDPR).
+     *
+     * Same two-step scanner-safe shape as unsubscribe(): GET renders the
+     * confirmation page (no write), POST performs it — bare 200 for RFC
+     * 8058 one-click clients (no form fields), redirect-with-flash for the
+     * human confirmation form (_from=link). Counter fires only on an actual
+     * enabled→disabled transition.
      */
-    public function unsubscribeDigest(Request $request, string $locale, User $user): RedirectResponse
+    public function unsubscribeDigest(Request $request, string $locale, User $user): Response|RedirectResponse|View
     {
         if (! $request->hasValidSignature()) {
             abort(403, __('notifications.unsubscribe_invalid_link'));
         }
 
+        if ($request->isMethod('get')) {
+            return view('pages.notification-unsubscribe', [
+                'unsubscribeTarget' => __('notifications.heading_weekly_digest'),
+                'actionUrl' => $request->fullUrl(),
+            ]);
+        }
+
+        $wasEnabled = $user->weekly_digest_enabled;
+
         $user->update(['weekly_digest_enabled' => false]);
 
-        $this->countUnsubscribe('digest');
+        if ($wasEnabled) {
+            $this->countUnsubscribe('digest');
+        }
+
+        if (! $request->filled('_from')) {
+            // RFC 8058: bare 200 for one-click clients (see unsubscribe()).
+            return response('', 200);
+        }
 
         if (Auth::check() && Auth::id() === $user->id) {
             return redirect()
@@ -87,6 +148,52 @@ class NotificationController extends Controller
         return redirect()
             ->route('home', ['locale' => $locale])
             ->with('status', __('notifications.unsubscribe_digest_success'));
+    }
+
+    /**
+     * Handle a signed cross-channel read-marker landing (D288 item 1,
+     * M081/S08): mail CTA / push action URLs hit this before the real
+     * target, the sibling in-app notification is marked read via
+     * markReadByType (idempotent), then the user is redirected.
+     *
+     * Authorization is the signature, not the session: the marker is
+     * user-bound and unguessable, so a logged-in mismatch is harmless — the
+     * handler can only ever write rows of the {user} it names (the route
+     * model binding), never the authenticated viewer's. Invalid signature
+     * or an unsafe redirect target is a flat 404 — existence-neutral (the
+     * landing is a click-through, unlike the human-facing unsubscribe link
+     * that explains its 403).
+     */
+    public function readMarker(Request $request, string $locale, User $user): RedirectResponse
+    {
+        if (! $request->hasValidSignature()) {
+            abort(404);
+        }
+
+        $redirect = $request->query('redirect');
+
+        if (! is_string($redirect) || ! app(SignedReadMarker::class)->safeRedirect($redirect)) {
+            // Valid signature but an unsafe target: never redirect, never
+            // mark — a signed URL must not smuggle an open redirect.
+            abort(404);
+        }
+
+        $type = $request->query('type');
+        $entity = $request->query('entity');
+        $key = $request->query('key');
+
+        // Numeric entity ids arrive as query strings; markReadByType binds
+        // them against JSON payload values, so ints stay ints.
+        $entityId = is_numeric($entity) ? (int) $entity : (is_string($entity) && $entity !== '' ? $entity : null);
+
+        $this->notificationService->markReadByType(
+            $user,
+            is_string($type) ? $type : '',
+            $entityId,
+            is_string($key) && $key !== '' ? $key : null,
+        );
+
+        return redirect()->to($redirect);
     }
 
     /**

@@ -56,27 +56,6 @@ describe('Country standard', function () {
     });
 });
 
-describe('migration 2026_10_09_190000 country normalization', function () {
-    it('upgrades ISO-2 and mixed-case values, leaves unknowns untouched', function () {
-        // Raw inserts: factories would run the country mutator.
-        $rows = [
-            ['id' => (string) Str::uuid7(), 'name' => 'A', 'country' => 'DE', 'latitude' => 52.52, 'longitude' => 13.405],
-            ['id' => (string) Str::uuid7(), 'name' => 'B', 'country' => 'deu', 'latitude' => 52.52, 'longitude' => 13.405],
-            ['id' => (string) Str::uuid7(), 'name' => 'C', 'country' => 'XX', 'latitude' => 52.52, 'longitude' => 13.405],
-        ];
-        DB::table('locations')->insert($rows);
-
-        $migration = require database_path('migrations/2026_10_09_190000_normalize_country_codes.php');
-        $migration->up();
-
-        $byName = DB::table('locations')->whereIn('id', array_column($rows, 'id'))->get()->keyBy('name');
-
-        expect($byName['A']->country)->toBe('DEU')     // ISO-2 upgraded
-            ->and($byName['B']->country)->toBe('DEU')   // mixed case normalized
-            ->and($byName['C']->country)->toBe('XX');   // unknown left for review
-    });
-});
-
 describe('admin city registry combobox', function () {
     it('lists registry clusters as options and shows the linked hub on edit', function () {
         seedRoles();

@@ -191,6 +191,7 @@ $unitDirsContainerOnly = [
     'Unit/Helpers',
     'Unit/PostHog',
     'Unit/Notifications',
+    'Unit/Support',
 ];
 
 foreach ($unitDirsContainerOnly as $dir) {

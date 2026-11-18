@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\User;
 use App\Services\Discord\DiscordWebhookPayload;
+use App\Support\ModerationNoticeLabels;
 use Illuminate\Notifications\Messages\MailMessage;
 
 /**
@@ -27,33 +28,43 @@ class ContentRemoved extends BaseNotification
 
     public function toMail(User $notifiable): MailMessage
     {
+        $locale = $this->resolveLocale($notifiable);
+        $entityType = ModerationNoticeLabels::entityType($this->entityType, $locale);
+        $reason = ModerationNoticeLabels::reason($this->reason, $locale);
+
         // Scoped removals (cover image) use a subject/body that names the
         // specific artifact instead of claiming the whole entity was removed.
         if ($this->scope === 'cover_image') {
-            return (new MailMessage)
-                ->subject(__('notifications.subject_cover_removed'))
+            $mail = (new MailMessage)
+                ->subject(__('notifications.subject_cover_removed', [], $locale))
                 ->greeting($this->greetingLine($notifiable))
                 ->line(__('notifications.body_cover_removed', [
-                    'entityType' => $this->entityType,
+                    'entityType' => $entityType,
                     'entityName' => $this->entityName,
-                ]))
+                ], $locale))
                 ->line(__('notifications.body_reason', [
-                    'reason' => $this->reason,
-                ]))
-                ->line(__('notifications.body_content_removed_guidelines'));
+                    'reason' => $reason,
+                ], $locale))
+                ->line(__('notifications.body_content_removed_guidelines', [], $locale));
+
+            return $this->withPreheader($mail, 'notifications.preheader_cover_removed', [
+                'entityType' => $entityType,
+            ]);
         }
 
-        return (new MailMessage)
-            ->subject(__('notifications.subject_content_removed'))
+        $mail = (new MailMessage)
+            ->subject(__('notifications.subject_content_removed', [], $locale))
             ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_content_removed', [
-                'entityType' => $this->entityType,
+                'entityType' => $entityType,
                 'entityName' => $this->entityName,
-            ]))
+            ], $locale))
             ->line(__('notifications.body_reason', [
-                'reason' => $this->reason,
-            ]))
-            ->line(__('notifications.body_content_removed_guidelines'));
+                'reason' => $reason,
+            ], $locale))
+            ->line(__('notifications.body_content_removed_guidelines', [], $locale));
+
+        return $this->withPreheader($mail, 'notifications.preheader_content_removed');
     }
 
     /**
@@ -61,11 +72,13 @@ class ContentRemoved extends BaseNotification
      */
     public function toDatabase(User $notifiable): array
     {
+        $locale = $this->resolveLocale($notifiable);
+
         return [
             'type' => $this->scope === 'cover_image' ? 'cover_image_removed' : 'content_removed',
             'entity_type' => $this->entityType,
             'entity_name' => $this->entityName,
-            'reason' => $this->reason,
+            'reason' => ModerationNoticeLabels::reason($this->reason, $locale),
             'scope' => $this->scope,
         ];
     }

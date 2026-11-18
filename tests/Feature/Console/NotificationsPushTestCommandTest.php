@@ -63,7 +63,12 @@ function bindWebPushCapture(array &$captured): void
             return $webPush;
         }
     );
-    $webPush->shouldReceive('flush')->andReturn([]);
+    $webPush->shouldReceive('flush')->andReturnUsing(function (): \Generator {
+        // WebPush::flush() returns a Generator — an array return makes
+        // Mockery's return-type check throw, which PushChannel's flush-abort
+        // fallback would (correctly) treat as a failed batch and retry.
+        yield from [];
+    });
 
     app()->instance(WebPush::class, $webPush);
 }
@@ -184,7 +189,7 @@ it('delivers the real WaitlistPromoted payload to the named account subscription
     expect($payload['title'])->toBe(__('notifications.push_title_waitlist_promoted'))
         ->and($payload['body'])->toContain('Push Test Game')
         ->and($payload['icon'])->toBe(BaseNotification::PUSH_ICON)
-        ->and($payload['url'])->toContain('/dashboard/games/')
+        ->and(rawurldecode($payload['url']))->toContain('/dashboard/games/')
         ->and($payload['tag'])->toContain('waitlist-promoted-game-');
 
     // The real-notification path built its fixture entity.

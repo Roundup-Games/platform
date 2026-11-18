@@ -1,4 +1,7 @@
-@component('mail::message')
+@component('mail::message', ['preheader' => $preheader])
+{{-- Preheader passes through to the mail::message published override,
+    which renders it as the first row of the header slot — before the brand
+    header (see the welcome mailable for the same wiring). --}}
 # {{ __($entityType === 'game' ? 'emails.content_you_re_invited_to_a_game' : 'emails.content_you_re_invited_to_a_campaign') }} 🎲
 
 {{ $entityType === 'game'
@@ -7,7 +10,7 @@
 
 **{{ __('common.field_name') }}:** {{ $entityName }}
 @if($entityDateTime)
-**{{ __('common.field_date_time') }}:** {{ $entityDateTime }}
+**{{ __('common.field_date_time') }}:** {{ format_date($entityDateTime, 'datetime', community_timezone()) }}
 @endif
 @if($entityLocation)
 **{{ __('common.field_location') }}:** {{ $entityLocation }}
@@ -22,7 +25,7 @@
 @if($optoutUrl)
 ---
 
-<em style="color: #6b7280; font-size: 0.875rem;">{{ __('emails.content_dont_want_invitations') }}
+<em style="font-size: 0.875rem;">{{ __('emails.content_dont_want_invitations') }}
 <a href="{{ $optoutUrl }}">{{ __('emails.action_optout_invite_emails') }}</a></em>
 @endif
 

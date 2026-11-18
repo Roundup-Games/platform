@@ -1,25 +1,22 @@
-@component('mail::message')
-# {{ __('events.content_welcome_to_roundup_games', ['brand' => config('company.display_name')]) }} 🎲
+@component('mail::message', ['preheader' => $preheader])
+{{-- Preheader: hidden inbox-preview line. Mailables do NOT render through
+    the published notifications wrapper (that slot only executes for
+    notification MailMessages), so the preheader is passed directly to
+    mail::message — whose published override renders it as the first row
+    of the header slot, BEFORE the brand header (M081 sixth-pass review:
+    a body-slot div let clients concatenate the brand name ahead of the
+    crafted preview copy). The text part strips the markup at the mail
+    text layout, so no HTML leaks there. --}}
+
+# {{ __('events.content_welcome_to_roundup_games', ['brand' => config('company.display_name')]) }}
 
 {{ __('common.field_hey_name', ['name' => $user->name]) }}
 
-{{ __('events.content_thanks_for_joining_roundup_games', ['brand' => config('company.display_name')]) }}
+{{ __('notifications.content_welcome_intro', ['brand' => config('company.display_name')]) }}
 
-## {{ __('common.field_get_started') }}
-
-{{ __("common.content_here_s_what_you_can_do_next") }}
-
-- {{ __('profile.content_complete_your_profile_add_your') }}
-- {{ __('teams.content_find_or_create_a_team') }}
-- {{ __('events.content_browse_events_discover_upcoming_tournaments') }}
-- {{ __('games.content_start_a_campaign_organize_a') }}
-
-@component('mail::button', ['url' => config('app.url') . '/' . app()->getLocale() . '/dashboard'])
-{{ __('profile.action_go_to_your_dashboard') }}
+@component('mail::button', ['url' => $ctaUrl])
+{{ __('notifications.action_complete_your_profile') }}
 @endcomponent
 
-{{ __("emails.content_if_you_have_any_questions") }}
-
-{{ __('common.content_happy_gaming') }} 🎯
-{{ config('company.display_name') }}
+{{ __('notifications.content_welcome_outro') }}
 @endcomponent

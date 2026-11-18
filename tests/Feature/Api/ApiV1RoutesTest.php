@@ -82,7 +82,11 @@ describe('API v1 push endpoint auth:sanctum', function () {
 
         $response = $this->actingAs($user)->postJson('/api/v1/push/subscribe', [
             'endpoint' => 'https://fcm.googleapis.com/fcm/send/auth-test-001',
-            'keys' => ['p256h' => 'test-key', 'auth' => 'test-auth'],
+            'keys' => [
+                // RFC 8291 key fixtures (base64url; see PushSubscriptionController validation).
+                'p256h' => 'BBERERERERERERERERERERERERERERERERERERERERERIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI',
+                'auth' => 'q6urq6urq6urq6urq6urqw',
+            ],
         ]);
 
         $response->assertCreated();

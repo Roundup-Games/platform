@@ -131,29 +131,26 @@ class CampaignsPage extends Component
             $this->edit_visibility = 'protected';
         }
 
+        // Machine column names are the single source of truth: the activity
+        // log and EntityUpdated both consume them, and the notification
+        // resolves human labels per RECIPIENT locale (ChangedFieldLabels).
         $changes = [];
-        $changedLabels = [];
 
         if ($campaign->name !== $this->edit_name) {
             $changes['name'] = $this->edit_name;
-            $changedLabels[] = __('campaigns.field_campaign_name');
         }
         if (($campaign->description ?? '') !== $this->edit_description) {
             $changes['description'] = $this->edit_description !== '' ? $this->edit_description : null;
-            $changedLabels[] = __('common.field_description');
         }
         $newDuration = $this->edit_session_duration !== '' ? (float) $this->edit_session_duration : null;
         if ((float) ($campaign->session_duration ?? 0) !== (float) ($newDuration ?? 0)) {
             $changes['session_duration'] = $newDuration ?? 2;
-            $changedLabels[] = __('campaigns.field_duration');
         }
         if ($campaign->visibility?->value !== $this->edit_visibility) {
             $changes['visibility'] = $this->edit_visibility;
-            $changedLabels[] = __('common.content_visibility');
         }
         if ($campaign->location_id !== $this->edit_location_id) {
             $changes['location_id'] = $this->edit_location_id !== '' ? $this->edit_location_id : null;
-            $changedLabels[] = __('common.field_location');
         }
         if (($campaign->location_instructions ?? '') !== $this->edit_location_instructions) {
             $changes['location_instructions'] = $this->edit_location_instructions !== '' ? $this->edit_location_instructions : null;
@@ -172,40 +169,39 @@ class CampaignsPage extends Component
             ActivityType::CampaignUpdated,
             authenticatedUser(),
             $campaign,
-            ['changed_fields' => $changedLabels],
+            ['changed_fields' => array_keys($changes)],
         );
 
         Log::info('Campaign updated', [
             'campaign_id' => $campaign->id,
             'owner_id' => $campaign->owner_id,
-            'changed_fields' => $changedLabels,
+            'changed_fields' => array_keys($changes),
         ]);
 
-        // Notify participants (excluding owner)
-        if ($changedLabels !== []) {
-            try {
-                $participants = $campaign->participants()
-                    ->where('status', 'approved')
-                    ->where('user_id', '!=', $campaign->owner_id)
-                    ->with('user')
-                    ->get();
+        // Notify participants (excluding owner) — every change surfaces now,
+        // including arrival-instruction edits, which previously notified nobody.
+        try {
+            $participants = $campaign->participants()
+                ->where('status', 'approved')
+                ->where('user_id', '!=', $campaign->owner_id)
+                ->with('user')
+                ->get();
 
-                foreach ($participants as $participant) {
-                    if ($participant->user === null) {
-                        continue;
-                    }
-                    app(NotificationService::class)->send(
-                        $participant->user,
-                        new EntityUpdated($campaign, $changedLabels),
-                        NotificationCategory::CampaignUpdated,
-                    );
+            foreach ($participants as $participant) {
+                if ($participant->user === null) {
+                    continue;
                 }
-            } catch (\Throwable $e) {
-                Log::error('notification.campaign_updated_dispatch_failed', [
-                    'campaign_id' => $campaign->id,
-                    'error' => $e->getMessage(),
-                ]);
+                app(NotificationService::class)->send(
+                    $participant->user,
+                    new EntityUpdated($campaign, array_keys($changes)),
+                    NotificationCategory::CampaignUpdated,
+                );
             }
+        } catch (\Throwable $e) {
+            Log::error('notification.campaign_updated_dispatch_failed', [
+                'campaign_id' => $campaign->id,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         $this->cancelEdit();

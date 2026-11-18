@@ -34,7 +34,7 @@ return [
 
     'empty_city_index' => 'Noch sind keine Stadt-Hubs aktiv — sie erscheinen automatisch, sobald lokale Szenen öffentliche Aktivität und verifizierte Veranstaltungsorte aufbauen.',
 
-    'empty_city_index_cta' => 'Spiele in deiner Nähe entdecken',
+    'empty_city_index_cta' => 'Spiele in Deiner Nähe entdecken',
 
     'nav_cities' => 'Städte',
 

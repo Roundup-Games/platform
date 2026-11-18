@@ -1,7 +1,7 @@
 <?php
 return [
     'title_gm_workspace' => 'GM-Arbeitsbereich',
-    'description_your_gm_command_center' => 'Dein GM-Kontrollzentrum — verwalte Runden, verfolge Bewertungen und sieh deine Statistiken.',
+    'description_your_gm_command_center' => 'Dein GM-Kontrollzentrum — verwalte Runden, verfolge Bewertungen und sieh Deine Statistiken.',
     'heading_upcoming_sessions' => 'Anstehende Runden',
     'heading_review_summary' => 'Bewertungsübersicht',
     'heading_participant_stats' => 'Teilnehmerstatistiken',
@@ -17,11 +17,11 @@ return [
     'action_create_game_desc' => 'Plane eine neue Spielrunde.',
     'action_create_campaign_desc' => 'Starte eine neue Kampagnenreihe.',
     'action_manage_profile' => 'GM-Profil verwalten',
-    'action_manage_profile_desc' => 'Zeige und aktualisiere dein öffentliches GM-Profil.',
+    'action_manage_profile_desc' => 'Zeige und aktualisiere Dein öffentliches GM-Profil.',
     'action_start_charter' => 'Kampagnen-Charter starten',
     'action_start_charter_desc' => 'Erwartungen und Safety-Tools gemeinsam festhalten — von der ganzen Runde unterschreibbar.',
     'heading_charterless_campaigns' => 'Kampagnen-Charta starten',
-    'heading_attention' => 'Braucht deine Aufmerksamkeit',
+    'heading_attention' => 'Braucht Deine Aufmerksamkeit',
     'heading_digests_waiting' => '„Zuvor in der Kampagne“-Digests bereit zur Durchsicht',
     'heading_recap_due' => 'Fällige Recaps',
     'action_review_publish' => 'Prüfen & veröffentlichen',
@@ -46,5 +46,5 @@ return [
     'link_status_revoked' => 'Widerrufen',
     'link_status_cap_reached' => 'Limit erreicht',
     'link_action_revoke' => 'Widerrufen',
-    'link_confirm_revoke' => 'Bist du sicher, dass du diesen Link widerrufen möchtest? Er wird sofort nicht mehr funktionieren.',
+    'link_confirm_revoke' => 'Bist Du sicher, dass Du diesen Link widerrufen möchtest? Er wird sofort nicht mehr funktionieren.',
 ];

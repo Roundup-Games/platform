@@ -29,7 +29,7 @@ class PlayerBenched extends BaseNotification
         $actionUrl = $this->resolveEntityUrl($locale);
         $entityTypeLabel = $this->entityTypeLabel();
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('notifications.subject_player_benched', [
                 'entity' => $this->entity->name,
             ]))
@@ -37,8 +37,10 @@ class PlayerBenched extends BaseNotification
             ->line(__('notifications.body_player_benched', [
                 'entity' => $this->entity->name,
             ]))
-            ->action(__('notifications.action_view_entity_type', ['entity_type' => ucfirst($entityTypeLabel)]), $actionUrl)
+            ->action(__('notifications.action_view_entity_type', ['entity_type' => ucfirst($entityTypeLabel)]), $this->actionUrlWithMarker($notifiable, $actionUrl))
             ->line($this->unsubscribeLine($notifiable, 'bench_updates'));
+
+        return $this->withPreheader($mail, 'notifications.preheader_player_benched');
     }
 
     /**
@@ -78,7 +80,7 @@ class PlayerBenched extends BaseNotification
             __('notifications.subject_player_benched', [
                 'entity' => $this->entity->name,
             ]),
-            $this->resolveEntityUrl($this->resolveLocale($notifiable)),
+            $this->actionUrlWithMarker($notifiable, $this->resolveEntityUrl($this->resolveLocale($notifiable))),
             "player-benched-{$this->entityType}-{$this->entity->id}",
         );
     }

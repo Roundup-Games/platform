@@ -35,6 +35,11 @@ class CachePublicPages
         'membership',
         'onboarding.*',
         'gm.workspace',
+        // Per-user tokenized calendar feed (D123/D287): anonymous GET by
+        // design (calendar clients carry no session), authenticated only by
+        // the token in the URL — per-user content must never hit a shared
+        // edge cache even though the request looks "anonymous".
+        'ical.feed',
         // Any page that embeds a per-session CSRF token or renders an
         // auth form. Origin-level guarantee: even if an edge rule goes
         // rogue, these pages must never carry public cache headers — a

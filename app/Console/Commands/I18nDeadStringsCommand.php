@@ -148,6 +148,30 @@ class I18nDeadStringsCommand extends Command
             'notifications.push_body_session_reminder',
             'notifications.push_title_session_reminder_24h',
             'notifications.push_body_session_reminder_24h',
+            // BadgeAwardedNotification.php: preheaderKey() method ternary for
+            // award vs upgrade (M081/S01/T02), same shape as subjectKey()/bodyKey()
+            'notifications.preheader_badge_awarded',
+            'notifications.preheader_badge_upgraded',
+            // ModerationNoticeLabels.php: ENTITY_TYPE_KEYS/REASON_FALLBACK_KEY
+            // const maps resolved via __(self::…[$type], [], $locale) — the
+            // const indirection is invisible to the scanner, and these keys
+            // ARE the degradation path (unknown slug → localized fallback
+            // instead of the raw key leaking to moderated users). Includes
+            // field_reason_community_guidelines, the fallback all four
+            // Filament moderation actions use when ticket metadata carries
+            // no reason (M081 review: --prune would have deleted them).
+            'notifications.entity_type_profile',
+            'notifications.entity_type_content',
+            'notifications.entity_type_user',
+            'notifications.entity_type_game',
+            'notifications.entity_type_campaign',
+            'notifications.entity_type_team',
+            'notifications.field_reason_community_guidelines',
+            // DiscordRsvpMenuRenderer.php: $key ternary (cancelled vs
+            // completed terminal state) resolved via __($key, [], $locale) —
+            // variable indirection the ternary scanner can't follow.
+            'notifications.content_rsvp_game_cancelled',
+            'notifications.content_rsvp_game_completed',
             // ManagesParticipants.php: $messageKey ternary for waitlist vs bench
             'people.flash_email_invite_waitlisted',
             'people.flash_email_invite_benched',

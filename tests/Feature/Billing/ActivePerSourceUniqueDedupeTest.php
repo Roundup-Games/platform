@@ -6,16 +6,17 @@ use App\Models\User;
 use Illuminate\Database\QueryException;
 
 /**
- * The per-source partial unique index migration (R083 backstop):
- * the index creation must be preceded by a dedupe pass, because the
- * races the migration itself documents (lookup-then-write with no
- * prior constraint) could have left duplicate ACTIVE rows in any
- * environment that ran the pre-M069 writers — and `create unique
- * index` aborts on the first duplicate, mid-deploy.
+ * The per-source partial unique index (R083) — one active subscription per
+ * (user, plan, source) — now ships in the squashed schema baseline as
+ * local_subscriptions_one_active_per_source_unique.
  *
- * The migration object is driven directly (down() → duplicates →
- * up()) inside the test transaction: Postgres DDL is transactional,
- * so the index flip rolls back with the test.
+ * The original harness here drove the one-time migration object directly
+ * (down() → seed duplicates → up() → assert the dedupe pass); the migration
+ * file was squashed into the schema baseline (#28), so that rollout story
+ * has no subject left. The durable invariant is the constraint itself,
+ * asserted against the live schema: a second ACTIVE row on the same key is
+ * rejected structurally, while distinct sources and unlimited non-active
+ * history remain legal (the index is partial on status).
  */
 beforeEach(function () {
     MembershipType::updateOrCreate(
@@ -32,40 +33,29 @@ beforeEach(function () {
     );
 });
 
-it('dedupes pre-existing active duplicates and keeps the newest row active', function () {
+it('rejects a second active subscription on the same (user, plan, source)', function () {
     $user = User::factory()->create();
     $plan = MembershipType::where('metadata->gm_plan', true)->firstOrFail();
-    $migration = require database_path('migrations/2026_10_21_010000_add_active_per_source_unique_to_local_subscriptions.php');
 
-    // Simulate the pre-migration world: the constraint does not exist
-    // yet, so the documented lookup-then-write races could leave TWO
-    // active rows on the same (user, plan, source) key.
-    $migration->down();
-
-    $older = $user->localSubscriptions()->create([
+    $user->localSubscriptions()->create([
         'membership_type_id' => $plan->id,
         'status' => 'active',
-        'starts_at' => now()->subMonths(2),
-        'ends_at' => null,
-        'source' => LocalSubscriptionSource::SelfServe,
-    ]);
-    $newer = $user->localSubscriptions()->create([
-        'membership_type_id' => $plan->id,
-        'status' => 'active',
-        'starts_at' => now()->subMonth(),
+        'starts_at' => now(),
         'ends_at' => null,
         'source' => LocalSubscriptionSource::SelfServe,
     ]);
 
-    $migration->up();
-
-    expect($older->fresh()->status)->toBe('canceled')
-        ->and($older->fresh()->canceled_at)->not->toBeNull()
-        ->and($newer->fresh()->status)->toBe('active')
-        ->and($user->localSubscriptions()->active()->count())->toBe(1);
+    expect($user->localSubscriptions()->active()->count())->toBe(1)
+        ->and(fn () => $user->localSubscriptions()->create([
+            'membership_type_id' => $plan->id,
+            'status' => 'active',
+            'starts_at' => now(),
+            'ends_at' => null,
+            'source' => LocalSubscriptionSource::SelfServe,
+        ]))->toThrow(QueryException::class);
 });
 
-it('leaves distinct sources and inactive history untouched', function () {
+it('allows distinct sources to coexist and non-active history to repeat', function () {
     $user = User::factory()->create();
     $other = User::factory()->create();
     $plan = MembershipType::where('metadata->gm_plan', true)->firstOrFail();
@@ -82,7 +72,8 @@ it('leaves distinct sources and inactive history untouched', function () {
         'source' => LocalSubscriptionSource::Comp,
         'granted_by' => $other->id, 'reason' => 'ops comp',
     ]);
-    // …and so is unlimited canceled history (partial index).
+
+    // …and so is unlimited canceled history (the index is partial).
     $user->localSubscriptions()->create([
         'membership_type_id' => $plan->id, 'status' => 'canceled',
         'starts_at' => now()->subYear(), 'ends_at' => null,
@@ -90,38 +81,6 @@ it('leaves distinct sources and inactive history untouched', function () {
         'source' => LocalSubscriptionSource::SelfServe,
     ]);
 
-    $migration = require database_path('migrations/2026_10_21_010000_add_active_per_source_unique_to_local_subscriptions.php');
-    $migration->down();
-    $migration->up();
-
     expect($user->localSubscriptions()->active()->count())->toBe(2)
         ->and($user->localSubscriptions()->where('status', 'canceled')->count())->toBe(1);
-});
-
-it('enforces one active row per (user, plan, source) structurally after up()', function () {
-    $user = User::factory()->create();
-    $other = User::factory()->create();
-    $plan = MembershipType::where('metadata->gm_plan', true)->firstOrFail();
-
-    $user->localSubscriptions()->create([
-        'membership_type_id' => $plan->id, 'status' => 'active',
-        'starts_at' => now(), 'ends_at' => null,
-        'source' => LocalSubscriptionSource::SelfServe,
-    ]);
-
-    $migration = require database_path('migrations/2026_10_21_010000_add_active_per_source_unique_to_local_subscriptions.php');
-    $migration->down();
-    $migration->up();
-
-    try {
-        $user->localSubscriptions()->create([
-            'membership_type_id' => $plan->id, 'status' => 'active',
-            'starts_at' => now(), 'ends_at' => null,
-            'source' => LocalSubscriptionSource::SelfServe,
-        ]);
-
-        $this->fail('Expected the partial unique index to reject the duplicate active row.');
-    } catch (QueryException $e) {
-        expect($e->getCode())->toBe('23505');
-    }
 });

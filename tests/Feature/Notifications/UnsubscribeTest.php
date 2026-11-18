@@ -44,7 +44,20 @@ it('unsubscribes user from a notification category via signed URL', function () 
         'notification_settings' => NotificationCategory::defaultSettings(),
     ]);
 
-    $response = $this->actingAs($this->user)->get($url);
+    // Step 1 — GET renders the scanner-safe confirmation page and performs
+    // NO write and NO counter: URL-sandboxing mail scanners GET every link.
+    $confirm = $this->actingAs($this->user)->get($url);
+
+    $confirm->assertOk()
+        // Content-based: a pipeline middleware unwraps the View, so
+        // assertViewIs is unreliable here — assert the rendered copy.
+        ->assertSee(__('notifications.unsubscribe_confirm_content', ['category' => NotificationCategory::GameInvitation->label()], 'en'));
+    expect($this->user->fresh()->notification_settings[$category]['mail'])->toBeTrue()
+        ->and(unsubscribeCounterCount('game_invitation'))->toBe(0);
+
+    // Step 2 — the human confirmation POST (_from=link) performs the write
+    // and answers with the redirect UX.
+    $response = $this->actingAs($this->user)->post($url, ['_from' => 'link']);
 
     $response->assertRedirect(route('profile.show', ['locale' => 'en']));
     $response->assertSessionHas('status');
@@ -56,6 +69,60 @@ it('unsubscribes user from a notification category via signed URL', function () 
 
     // D284: the unsubscribe is counted once under its category on the mail channel.
     expect(unsubscribeCounterCount('game_invitation'))->toBe(1)
+        ->and(unsubscribeCounterCount('digest'))->toBe(0);
+});
+
+it('does not recount an unsubscribe when mail was already disabled', function () {
+    $category = 'game_invitation';
+    $url = URL::signedRoute('notifications.unsubscribe', [
+        'locale' => 'en',
+        'user' => $this->user->id,
+        'category' => $category,
+    ]);
+
+    $settings = NotificationCategory::defaultSettings();
+    $settings[$category]['mail'] = false;
+    $this->user->update(['notification_settings' => $settings]);
+
+    // Repeat opt-out (scanner replay, double click, one-click retry): the
+    // settings write stays idempotent and the D284 funnel counts ONE event.
+    $this->post($url);
+    $this->post($url);
+
+    expect($this->user->fresh()->notification_settings[$category]['mail'])->toBeFalse()
+        ->and(unsubscribeCounterCount($category))->toBe(0);
+});
+
+// M081/S02/T01: RFC 8058 one-click parity — the provider POST performs the
+// identical settings write and counter increment as the human confirmation
+// form, but answers the bare 200 mailbox-provider one-click clients require
+// instead of the browser redirect. Detailed POST behavior lives in
+// OneClickUnsubscribeTest; this case pins the two flows can never drift.
+it('unsubscribes a category via one-click POST with the same effects as GET', function () {
+    $category = 'game_invitation';
+    $url = URL::signedRoute('notifications.unsubscribe', [
+        'locale' => 'en',
+        'user' => $this->user->id,
+        'category' => $category,
+    ]);
+
+    $this->user->update([
+        'notification_settings' => NotificationCategory::defaultSettings(),
+    ]);
+
+    $response = $this->post($url);
+
+    // RFC 8058: bare 200 — no redirect, no body, no flash session.
+    $response->assertNoContent(200);
+    expect($response->headers->get('Location'))->toBeNull();
+
+    // Identical write to the GET path: mail off, in-app channel untouched.
+    $settings = $this->user->fresh()->notification_settings;
+    expect($settings[$category]['mail'])->toBeFalse()
+        ->and($settings[$category]['database'])->toBeTrue()
+        // Identical telemetry row: one-click opt-outs join link clicks in
+        // the delivered-vs-unsubscribed funnel (D284).
+        ->and(unsubscribeCounterCount('game_invitation'))->toBe(1)
         ->and(unsubscribeCounterCount('digest'))->toBe(0);
 });
 
@@ -71,7 +138,7 @@ it('preserves other category settings when unsubscribing', function () {
         'notification_settings' => NotificationCategory::defaultSettings(),
     ]);
 
-    $this->actingAs($this->user)->get($url);
+    $this->actingAs($this->user)->post($url, ['_from' => 'link']);
 
     $settings = $this->user->fresh()->notification_settings;
     // new_follower mail should be off
@@ -123,6 +190,40 @@ it('returns 404 for unknown category', function () {
     expect(NotificationEngagementCounter::count())->toBe(0);
 });
 
+it('answers a flat 403 for an unknown user id — no account-existence oracle', function () {
+    // Implicit User binding runs before the signed middleware, so a binding
+    // miss used to answer 404 while a known id with a bad signature answered
+    // 403 — distinguishing registered ids from unknown ones on a no-auth
+    // surface (M081 sixth-pass review). The missing() handler now aborts 403
+    // exactly like the signature rejection, keeping the tamper posture flat.
+    $url = url('/en/notifications/unsubscribe/'.Str::uuid().'/game_invitation');
+
+    $this->get($url)->assertForbidden();
+
+    // The digest route carries the same posture.
+    $digestUrl = url('/en/notifications/unsubscribe-digest/'.Str::uuid());
+
+    $this->get($digestUrl)->assertForbidden();
+});
+
+it('never lets expired or tampered signatures burn the rate limiter', function () {
+    // Middleware ordering is signed BEFORE throttle: an invalid signature
+    // must abort the pipeline before the limiter counts the request. Twelve
+    // consecutive tampered GETs (over the 10/min limit) all answer 403 — a
+    // single 429 would mean the limiter ran first and expired links
+    // lock the user out (M081 sixth-pass review pins the fifth-pass fix).
+    $url = URL::signedRoute('notifications.unsubscribe', [
+        'locale' => 'en',
+        'user' => $this->user->id,
+        'category' => 'game_invitation',
+    ]);
+    $tamperedUrl = str_replace('game_invitation', 'campaign_invitation', $url);
+
+    for ($i = 0; $i < 12; $i++) {
+        $this->get($tamperedUrl)->assertForbidden();
+    }
+});
+
 it('redirects to home for non-logged-in users', function () {
     $category = 'game_invitation';
     $url = URL::signedRoute('notifications.unsubscribe', [
@@ -135,7 +236,9 @@ it('redirects to home for non-logged-in users', function () {
         'notification_settings' => NotificationCategory::defaultSettings(),
     ]);
 
-    $response = $this->get($url);
+    // Guest clicking through the confirmation form (no login required —
+    // CAN-SPAM/GDPR path): the mail recipient is often not signed in.
+    $response = $this->post($url, ['_from' => 'link']);
 
     $response->assertRedirect(route('home', ['locale' => 'en']));
     $response->assertSessionHas('status');
@@ -162,7 +265,8 @@ it('generates valid unsubscribe URLs in notification emails', function () {
     expect($rendered)->toContain('signature');
 });
 
-// smoke: one-click weekly-digest opt-out (CAN-SPAM/GDPR)
+// smoke: one-click weekly-digest opt-out (CAN-SPAM/GDPR) — two-step like the
+// category flow: GET confirms, POST (_from=link) performs the write.
 it('unsubscribes a user from the weekly digest via signed URL', function () {
     $this->user->update(['weekly_digest_enabled' => true]);
 
@@ -171,7 +275,14 @@ it('unsubscribes a user from the weekly digest via signed URL', function () {
         'user' => $this->user->id,
     ]);
 
-    $response = $this->actingAs($this->user)->get($url);
+    // GET never writes — scanner-safe confirmation page.
+    $this->actingAs($this->user)->get($url)
+        ->assertOk()
+        ->assertSee(__('notifications.unsubscribe_confirm_action'));
+    expect($this->user->fresh()->weekly_digest_enabled)->toBeTrue()
+        ->and(unsubscribeCounterCount('digest'))->toBe(0);
+
+    $response = $this->actingAs($this->user)->post($url, ['_from' => 'link']);
 
     $response->assertRedirect(route('profile.show', ['locale' => 'en']));
     $response->assertSessionHas('status');
@@ -208,7 +319,7 @@ it('does not fail the unsubscribe when the engagement counter write fails', func
     // a counter failure is logged and swallowed — the redirect still happens
     // and the user is still unsubscribed.
     $this->actingAs($this->user)
-        ->get($url)
+        ->post($url, ['_from' => 'link'])
         ->assertRedirect(route('profile.show', ['locale' => 'en']));
 
     expect($this->user->fresh()->notification_settings['game_invitation']['mail'])->toBeFalse();
@@ -219,7 +330,7 @@ it('renders a translated digest unsubscribe link in the weekly digest email', fu
     // Mirror what the notification dispatcher does in production: set the
     // recipient's locale before rendering (direct toMail() calls don't).
     app()->setLocale('de');
-    $notification = new WeeklyDigest($germanUser->unreadNotifications);
+    $notification = WeeklyDigest::fromNotifications($germanUser->unreadNotifications);
 
     $mail = $notification->toMail($germanUser);
     $rendered = (string) $mail->render();
@@ -245,10 +356,34 @@ it('labels digest groups by the per-notification data.type discriminator', funct
         ['id' => Str::uuid(), 'type' => EntityInvitation::class, 'data' => ['type' => 'campaign_invitation']],
     ]);
 
-    $rendered = (string) (new WeeklyDigest($user->unreadNotifications))->toMail($user)->render();
+    $rendered = (string) (WeeklyDigest::fromNotifications($user->unreadNotifications))->toMail($user)->render();
 
     // Wording-agnostic per K004: resolve the digest label keys the renderer
     // itself resolves, instead of pinning the English literals.
     expect($rendered)->toContain(__('notifications.label_digest_game_invitation', [], 'en'))
         ->and($rendered)->toContain(__('notifications.label_digest_campaign_invitation', [], 'en'));
+});
+
+// SimpleMessage holds exactly ONE action slot — the digest's former second
+// ->action() (unsubscribe) silently overwrote the primary CTA, making
+// "Unsubscribe from the weekly digest" the only hero button on every
+// Monday mail (M081 fifth-pass review). The opt-out now rides as the small
+// footer link and the button belongs to the notifications index.
+it('keeps the notifications index as the digest primary CTA and the opt-out as a footer link', function () {
+    $user = User::factory()->create(['preferred_language' => 'en']);
+    app()->setLocale('en');
+
+    $rendered = (string) WeeklyDigest::fromNotifications($user->unreadNotifications)
+        ->toMail($user)
+        ->render();
+
+    // The hero button anchors the notifications index (the x-mail::button
+    // component renders the action URL as the anchor's href attribute).
+    expect($rendered)->toContain('<a href="'.route('notifications.index', ['locale' => 'en']).'"')
+        // The digest opt-out survives as the small muted footer link — the
+        // exact anchor shape WeeklyDigest::toMail builds for it.
+        ->and($rendered)->toContain('<small><a href="')
+        ->and($rendered)->toContain('unsubscribe-digest/'.$user->id);
+    // If the unsubscribe ever reclaimed the single action slot, the
+    // index anchor above would vanish — that is the discrimination.
 });

@@ -1,17 +1,22 @@
 <?php
 
 use App\Models\Campaign;
+use App\Models\CampaignJournalEntry;
 use App\Models\Game;
 use App\Models\GameSystem;
+use App\Models\Location;
 use App\Models\User;
 use App\Notifications\DebriefingAvailable;
+use App\Notifications\EntityInvitation;
 use App\Notifications\EntityUpdated;
 use App\Notifications\PlayerBenched;
 use App\Notifications\PromotedFromBench;
+use App\Notifications\RecapPosted;
 use App\Notifications\SeatDemoted;
 use App\Notifications\SessionAddedToCampaign;
 use App\Notifications\WaitlistPlaced;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Str;
 
 uses(DatabaseTransactions::class);
 
@@ -103,7 +108,11 @@ describe('WaitlistPlaced content', function () {
             ->and($push->tag)->toBe("waitlist-placed-game-{$game->id}")
             ->and($embed['title'])->toBe($push->title)
             ->and($embed['description'])->toBe($push->body)
-            ->and($embed['url'])->toBe($push->url);
+            // The Discord embed keeps the direct route; the push url is the
+            // signed read-marker wrapping it (D288 item 1) — same landing,
+            // different channel duties.
+            ->and($embed['url'])->toBe(route('games.show', ['locale' => 'en', 'id' => $game]))
+            ->and($push->url)->toContain('/notifications/read-marker/');
     });
 });
 
@@ -144,7 +153,8 @@ describe('PlayerBenched content', function () {
             ->and($push->tag)->toBe("player-benched-game-{$game->id}")
             ->and($embed['title'])->toBe($push->title)
             ->and($embed['description'])->toBe($push->body)
-            ->and($embed['url'])->toBe($push->url);
+            ->and($embed['url'])->toBe(route('games.show', ['locale' => 'en', 'id' => $game]))
+            ->and($push->url)->toContain('/notifications/read-marker/');
     });
 });
 
@@ -191,7 +201,8 @@ describe('PromotedFromBench content', function () {
             ->and($push->tag)->toBe("promoted-from-bench-campaign-{$campaign->id}")
             ->and($embed['title'])->toBe($push->title)
             ->and($embed['description'])->toBe($push->body)
-            ->and($embed['url'])->toBe($push->url);
+            ->and($embed['url'])->toBe(route('campaigns.show', ['locale' => 'en', 'id' => $campaign]))
+            ->and($push->url)->toContain('/notifications/read-marker/');
     });
 });
 
@@ -240,7 +251,8 @@ describe('DebriefingAvailable content', function () {
             ->and($push->tag)->toBe("debriefing-{$game->id}")
             ->and($embed['title'])->toBe($push->title)
             ->and($embed['description'])->toBe($push->body)
-            ->and($embed['url'])->toBe($push->url);
+            ->and($embed['url'])->toBe(route('games.show', ['locale' => 'en', 'id' => $game]))
+            ->and($push->url)->toContain('/notifications/read-marker/');
     });
 });
 
@@ -253,7 +265,7 @@ describe('EntityUpdated content', function () {
         $user = contentUser();
         $game = contentGame();
         $summary = __('common.field_location');
-        $notification = new EntityUpdated($game, [$summary]);
+        $notification = new EntityUpdated($game, ['location_id']);
 
         $mail = $notification->toMail($user);
         expect($mail->subject)
@@ -271,8 +283,8 @@ describe('EntityUpdated content', function () {
     it('composes a campaign mail whose subject fronts the campaign and scopes it with the change summary', function () {
         $user = contentUser();
         $campaign = contentCampaign();
-        $summary = __('campaigns.field_campaign_name');
-        $notification = new EntityUpdated($campaign, [$summary]);
+        $summary = __('common.field_name');
+        $notification = new EntityUpdated($campaign, ['name']);
 
         $mail = $notification->toMail($user);
         expect($mail->subject)
@@ -283,18 +295,41 @@ describe('EntityUpdated content', function () {
             ->and((string) $mail->render())->toContain(unsubscribePath($user, 'campaign_updated'));
     });
 
-    it('keeps the subject scope localized when rendered in German', function () {
-        app()->setLocale('de');
-        $user = contentUser();
+    it('renders the whole mail in the recipient locale, not the app session locale', function () {
+        app()->setLocale('en');
+        $user = User::factory()->create(['preferred_language' => 'de']);
         $game = contentGame();
         $summary = __('common.field_location', [], 'de');
 
-        $mail = (new EntityUpdated($game, [$summary]))->toMail($user);
+        $mail = (new EntityUpdated($game, ['location_id']))->toMail($user);
 
         expect($mail->subject)
             ->toBe(__('notifications.subject_game_updated', ['game' => $game->name, 'summary' => $summary], 'de'))
             ->and($mail->subject)->toStartWith($game->name)
             ->and($mail->subject)->toContain($summary);
+    });
+
+    it('names the new venue instead of the venue column when the venue moved', function () {
+        $user = contentUser();
+        $game = contentGame();
+        $venue = Location::factory()->create(['name' => 'Cafe Nord', 'city' => 'Berlin']);
+        $game->fill(['location_id' => $venue->id])->save();
+
+        $mail = (new EntityUpdated($game->fresh(), ['location_id']))->toMail($user);
+        $rendered = (string) $mail->render();
+
+        expect($rendered)->toContain(__('notifications.body_venue_now', ['venue' => 'Cafe Nord']))
+            ->and($rendered)->not->toContain('location_id');
+    });
+
+    it('never echoes an unmapped column name into the mail', function () {
+        $user = contentUser();
+        $game = contentGame();
+
+        $mail = (new EntityUpdated($game, ['some_future_column']))->toMail($user);
+
+        expect((string) $mail->render())->not->toContain('some_future_column')
+            ->and($mail->subject)->toContain(__('common.field_details'));
     });
 });
 
@@ -318,7 +353,8 @@ describe('SessionAddedToCampaign content', function () {
         expect($text)->toContain(str_replace('**', '', __('notifications.body_session_added_to_campaign', ['campaign' => $campaign->name])))
             ->and($rendered)->toContain(__('notifications.action_session_added_to_campaign'))
             ->and($rendered)->toContain(unsubscribePath($user, 'session_added_to_campaign'))
-            ->and($mail->actionUrl)->toBe(route('games.show', ['locale' => 'en', 'id' => $game]));
+            ->and($mail->actionUrl)->toContain('/notifications/read-marker/')
+            ->and(rawurldecode($mail->actionUrl))->toContain('/en/dashboard/games/'.$game->id);
     });
 });
 
@@ -345,5 +381,92 @@ describe('SeatDemoted content', function () {
         expect($mail->subject)->toBe(__('notifications.subject_seat_demoted', ['entity' => $game->name], 'de'))
             ->and($mail->subject)->not->toContain('abgegeben')
             ->and((string) $mail->render())->not->toContain('abgegeben');
+    });
+});
+
+// ══════════════════════════════════════════════════
+// EntityInvitation — subject fronts the game; body answers when/where
+// ══════════════════════════════════════════════════
+
+describe('EntityInvitation content', function () {
+    it('fronts the game in the subject and answers when and where in the body', function () {
+        $user = contentUser();
+        $inviter = User::factory()->create(['name' => 'Host Probe']);
+        $system = GameSystem::factory()->create();
+        $venue = Location::factory()->create(['name' => 'Cafe Mitte', 'city' => 'Berlin']);
+        $game = Game::factory()->create([
+            'game_system_id' => $system->id,
+            'campaign_id' => null,
+            'location_id' => $venue->id,
+        ]);
+
+        $mail = (new EntityInvitation($game, $inviter))->toMail($user);
+
+        expect($mail->subject)
+            ->toBe(__('notifications.subject_game_invitation', ['inviter' => $inviter->name, 'game' => $game->name]))
+            ->and($mail->subject)->toContain($game->name);
+
+        $text = strip_tags((string) $mail->render());
+        expect($text)->toContain(e(__('common.field_date_time')))
+            ->and($text)->toContain(format_date($game->date_time, 'datetime', $user->timezone ?? community_timezone()))
+            ->and($text)->toContain(e(__('common.field_location')))
+            ->and($text)->toContain('Cafe Mitte');
+    });
+
+    it('keeps campaign invitations date-free — a campaign has no single date', function () {
+        $user = contentUser();
+        $inviter = User::factory()->create(['name' => 'Host Probe']);
+        $campaign = contentCampaign();
+
+        $mail = (new EntityInvitation($campaign, $inviter))->toMail($user);
+
+        $text = strip_tags((string) $mail->render());
+        expect($mail->subject)
+            ->toBe(__('notifications.subject_campaign_invitation', ['inviter' => $inviter->name, 'campaign' => $campaign->name]))
+            ->and($text)->not->toContain(e(__('common.field_date_time')));
+    });
+});
+
+// ── SessionAddedToCampaign: the date is the news ──
+
+describe('SessionAddedToCampaign content', function () {
+    it('puts the session date in the body in the recipient\'s wall clock', function () {
+        $user = contentUser();
+        $game = contentGame();
+        $campaign = contentCampaign();
+
+        $text = strip_tags((string) (new SessionAddedToCampaign($game, $campaign))->toMail($user)->render());
+
+        expect($text)->toContain(e(__('common.field_date_time')))
+            ->and($text)->toContain(format_date($game->date_time, 'datetime', $user->timezone ?? community_timezone()));
+    });
+});
+
+// ── RecapPosted: quotes the recap, like BulletinPosted quotes the bulletin ──
+
+describe('RecapPosted content', function () {
+    it('quotes a snippet of the recap in the body', function () {
+        $user = contentUser();
+        $author = User::factory()->create(['name' => 'Host Probe']);
+        $system = GameSystem::factory()->create();
+        $campaign = contentCampaign();
+        $game = Game::factory()->create([
+            'game_system_id' => $system->id,
+            'campaign_id' => $campaign->id,
+        ]);
+        // The canonical session-recap fixture (factory state fills the
+        // NOT NULL columns the relation create would miss).
+        CampaignJournalEntry::factory()
+            ->forCampaignSession($game)
+            ->create([
+                'author_user_id' => $author->id,
+                'body' => 'The party finally confronted the baron and the dice were merciless.',
+            ]);
+
+        $text = strip_tags((string) (new RecapPosted($game->fresh(), $author))->toMail($user)->render());
+
+        expect($text)->toContain(__('notifications.body_recap_content', [
+            'content' => Str::limit('The party finally confronted the baron and the dice were merciless.', 100),
+        ]));
     });
 });

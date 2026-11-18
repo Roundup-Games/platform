@@ -6,10 +6,12 @@ use App\Models\PushSubscription;
 use App\Models\User;
 use App\Notifications\Channels\PushChannel;
 use App\Services\NotificationEngagementCounters;
+use App\Services\Notifications\PushDeliveryProfile;
 use Carbon\Carbon;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
 use Minishlink\WebPush\MessageSentReport;
+use Minishlink\WebPush\SubscriptionInterface;
 use Minishlink\WebPush\WebPush;
 use Psr\Http\Message\ResponseInterface;
 
@@ -44,6 +46,22 @@ describe('PushChannel', function () {
     afterEach(function () {
         Mockery::close();
     });
+
+    // Helper: a REAL on-curve P-256 public key (uncompressed point,
+    // base64url) — what a genuine browser subscription stores. The poison
+    // classification probe runs real Web Push crypto against the stored
+    // material, so tests distinguishing "key-material poison" from
+    // "transient/config failure" must use valid keys for the latter.
+    function validP256dhKey(): string
+    {
+        $key = openssl_pkey_new([
+            'curve_name' => 'prime256v1',
+            'private_key_type' => OPENSSL_KEYTYPE_EC,
+        ]);
+        $details = openssl_pkey_get_details($key);
+
+        return rtrim(strtr(base64_encode("\x04".$details['ec']['x'].$details['ec']['y']), '+/', '-_'), '=');
+    }
 
     // Helper: a real notification carrying a push payload, optionally with a
     // toDatabase() type (the counter's category source, M080/S03).
@@ -270,6 +288,175 @@ describe('PushChannel', function () {
             ->and(NotificationEngagementCounter::count())->toBe(0);
     });
 
+    // ── M081 review: a poison key aborting the batch flush must not starve
+    // the user's devices — WebPush::flush() prepares (encrypts) the whole
+    // batch up front, so one undecodable subscription key throws before ANY
+    // report is produced. The channel retries per subscription and prunes
+    // the culprit (it can never be delivered to by any future send either).
+
+    it('prunes a poison subscription when the batch flush aborts before any report', function () {
+        $user = User::factory()->create();
+        $poison = PushSubscription::factory()->create([
+            'user_id' => $user,
+            'endpoint' => 'https://push.example.com/poison',
+        ]);
+
+        Log::shouldReceive('warning')->zeroOrMoreTimes();
+
+        // Batch flush aborts (the prepare()/encryption path throws the
+        // poison-key class), then the isolated retry for the same single
+        // subscription throws it again.
+        $this->webPush->shouldReceive('queueNotification')->twice();
+        $this->webPush->shouldReceive('flush')->once()->andThrow(new InvalidArgumentException('Invalid data: only uncompressed keys are supported'));
+        $this->webPush->shouldReceive('flush')->once()->andThrow(new InvalidArgumentException('Invalid data: only uncompressed keys are supported'));
+
+        $this->channel->send($user, pushNotification(new PushPayload('Test', 'Body', '/icon.png', '/url'), 'waitlist_promoted'));
+
+        expect(PushSubscription::find($poison->id))->toBeNull('the poison subscription must be pruned')
+            ->and(pushCounterCount('waitlist_promoted', 'subscription_expired'))->toBe(1);
+    });
+
+    it('delivers to the healthy devices when one poison key aborts the batch', function () {
+        $user = User::factory()->create();
+        PushSubscription::factory()->count(2)->create(['user_id' => $user]);
+
+        $success = Mockery::mock(MessageSentReport::class);
+        $success->shouldReceive('isSuccess')->andReturn(true);
+        $success->shouldReceive('getEndpoint')->andReturn('https://push.example.com/ok');
+
+        Log::shouldReceive('warning')->zeroOrMoreTimes();
+        Log::shouldReceive('info')->zeroOrMoreTimes();
+
+        // Batch aborts; then the two isolated retries: one throws the
+        // poison-key class (pruned), one delivers (report consumed). Order
+        // between the two devices is irrelevant to the assertion.
+        $this->webPush->shouldReceive('queueNotification')->times(4);
+        $this->webPush->shouldReceive('flush')->once()->andThrow(new InvalidArgumentException('Invalid data: only uncompressed keys are supported'));
+        $this->webPush->shouldReceive('flush')->once()->andThrow(new InvalidArgumentException('Invalid data: only uncompressed keys are supported'));
+        $this->webPush->shouldReceive('flush')->once()->andReturn((function () use ($success) {
+            yield $success;
+        })());
+
+        $this->channel->send($user, pushNotification(new PushPayload('Test', 'Body', '/icon.png', '/url'), 'waitlist_promoted'));
+
+        expect(PushSubscription::where('user_id', $user->id)->count())->toBe(1, 'exactly the poison device is pruned')
+            ->and(pushCounterCount('waitlist_promoted', 'sent'))->toBe(1)
+            ->and(pushCounterCount('waitlist_promoted', 'subscription_expired'))->toBe(1);
+    });
+
+    it('keeps subscriptions when the isolated failure is not a key-material failure', function () {
+        $user = User::factory()->create();
+        // REAL on-curve key: the classification probe must pass it, so the
+        // RuntimeException is classified transient/config (VAPID) — pruning
+        // on it would delete the user's entire fleet on one bad deploy.
+        $sub = PushSubscription::factory()->create([
+            'user_id' => $user,
+            'p256h_key' => validP256dhKey(),
+        ]);
+
+        Log::shouldReceive('warning')->zeroOrMoreTimes();
+
+        // A config-level failure (e.g. VAPID) throws for EVERY subscription.
+        $this->webPush->shouldReceive('queueNotification')->twice();
+        $this->webPush->shouldReceive('flush')->once()->andThrow(new RuntimeException('VAPID key missing'));
+        $this->webPush->shouldReceive('flush')->once()->andThrow(new RuntimeException('VAPID key missing'));
+
+        $this->channel->send($user, pushNotification(new PushPayload('Test', 'Body', '/icon.png', '/url'), 'waitlist_promoted'));
+
+        expect(PushSubscription::find($sub->id))->not->toBeNull('non-key failures must not prune')
+            ->and(pushCounterCount('waitlist_promoted', 'subscription_expired'))->toBe(0)
+            // Counter parity with the batch path: an isolated non-poison
+            // failure still counts as a failed device send (D284) — it
+            // previously only logged, undercounting send_failed.
+            ->and(pushCounterCount('waitlist_promoted', 'send_failed'))->toBe(1);
+    });
+
+    it('prunes a poison subscription when the isolated failure is the TypeError key class', function () {
+        // Minishlink v11 throws TypeError for wrong-length keys (hex2bin
+        // returns false → strict-types Base64Url::encode) — previously the
+        // generic branch logged + KEPT the row, an immortal poison device
+        // that aborted every future batch (M081 fifth-pass review). The
+        // factory's random key is undecodable by construction, so the
+        // classification probe confirms permanent poison.
+        $user = User::factory()->create();
+        $poison = PushSubscription::factory()->create(['user_id' => $user]);
+
+        Log::shouldReceive('warning')->zeroOrMoreTimes();
+
+        $this->webPush->shouldReceive('queueNotification')->twice();
+        $this->webPush->shouldReceive('flush')->once()->andThrow(new TypeError('Base64Url::encode(): Argument #1 ($data) must be of type string'));
+        $this->webPush->shouldReceive('flush')->once()->andThrow(new TypeError('Base64Url::encode(): Argument #1 ($data) must be of type string'));
+
+        $this->channel->send($user, pushNotification(new PushPayload('Test', 'Body', '/icon.png', '/url'), 'waitlist_promoted'));
+
+        expect(PushSubscription::find($poison->id))->toBeNull('a TypeError-class poison row must be pruned')
+            ->and(pushCounterCount('waitlist_promoted', 'subscription_expired'))->toBe(1)
+            ->and(pushCounterCount('waitlist_promoted', 'send_failed'))->toBe(0);
+    });
+
+    it('prunes a poison subscription when the key is a well-shaped off-curve point', function () {
+        // 0x04 prefix + 64 bytes passes the intake length/prefix validation
+        // but the coordinates are not on the P-256 curve — Web Push's key
+        // agreement fails with RuntimeException ("Unable to compute the
+        // agreement key"), another class the old InvalidArgumentException-
+        // only prune missed.
+        $user = User::factory()->create();
+        $poison = PushSubscription::factory()->create([
+            'user_id' => $user,
+            'p256h_key' => rtrim(strtr(base64_encode("\x04".random_bytes(64)), '+/', '-_'), '='),
+        ]);
+
+        Log::shouldReceive('warning')->zeroOrMoreTimes();
+
+        $this->webPush->shouldReceive('queueNotification')->twice();
+        $this->webPush->shouldReceive('flush')->once()->andThrow(new RuntimeException('Unable to compute the agreement key'));
+        $this->webPush->shouldReceive('flush')->once()->andThrow(new RuntimeException('Unable to compute the agreement key'));
+
+        $this->channel->send($user, pushNotification(new PushPayload('Test', 'Body', '/icon.png', '/url'), 'waitlist_promoted'));
+
+        expect(PushSubscription::find($poison->id))->toBeNull('an off-curve poison row must be pruned')
+            ->and(pushCounterCount('waitlist_promoted', 'subscription_expired'))->toBe(1);
+    });
+
+    it('isolates a report-processing failure instead of re-sending to every device', function () {
+        // A transient failure INSIDE handleReport (here: the success log
+        // write) must not escape into the batch catch — that path re-queues
+        // the payload for ALL devices: duplicate pushes for the already-
+        // reported device and double-counted sent (M081 fifth-pass review).
+        $user = User::factory()->create();
+        PushSubscription::factory()->count(2)->create(['user_id' => $user]);
+
+        $ok = Mockery::mock(MessageSentReport::class);
+        $ok->shouldReceive('isSuccess')->andReturn(true);
+        $ok->shouldReceive('getEndpoint')->andReturn('https://push.example.com/ok');
+
+        // First push.sent log blows up (simulated log sink hiccup); later
+        // calls succeed — the SECOND report must still be processed.
+        $logCalls = 0;
+        Log::shouldReceive('info')->andReturnUsing(function () use (&$logCalls) {
+            if ($logCalls++ === 0) {
+                throw new RuntimeException('log sink hiccup');
+            }
+        });
+        Log::shouldReceive('warning')->zeroOrMoreTimes();
+
+        // ONE batch flush yields both reports. queueNotification is pinned
+        // to EXACTLY the two batch queues — a re-send through the isolated
+        // fallback would call it again and fail the test.
+        $this->webPush->shouldReceive('queueNotification')->twice();
+        $this->webPush->shouldReceive('flush')->once()->andReturn((function () use ($ok) {
+            yield $ok;
+            yield $ok;
+        })());
+
+        $this->channel->send($user, pushNotification(new PushPayload('Test', 'Body', '/icon.png', '/url'), 'waitlist_promoted'));
+
+        // The FIRST report failed mid-processing (before its counter), so it
+        // counts nothing — but the SECOND is still processed and counted.
+        expect(pushCounterCount('waitlist_promoted', 'sent'))->toBe(1, 'the second report is still processed despite the first throwing')
+            ->and(PushSubscription::where('user_id', $user->id)->count())->toBe(2, 'no cleanup side effects');
+    });
+
     // ── Counter attribution: the fallback category (M080/S03) ──
 
     it('falls back to the class basename category when toDatabase has no type', function () {
@@ -342,5 +529,71 @@ describe('PushChannel', function () {
         $channel->send($user, pushNotification(new PushPayload('Test', 'Body', '/icon.png', '/url'), 'waitlist_promoted'));
 
         expect(PushSubscription::find($expired->id))->toBeNull();
+    });
+
+    // ── M081/S05/T02: per-category urgency/TTL ride as WebPush options ──
+
+    it('passes high urgency and the short TTL for deadline-critical categories', function () {
+        $user = User::factory()->create();
+        PushSubscription::factory()->create(['user_id' => $user]);
+        PushSubscription::factory()->create(['user_id' => $user]);
+
+        $success = Mockery::mock(MessageSentReport::class);
+        $success->shouldReceive('isSuccess')->andReturn(true);
+        $success->shouldReceive('getEndpoint')->andReturn('https://push.example.com/ok');
+
+        Log::shouldReceive('info')->zeroOrMoreTimes();
+
+        // Every queued notification carries the deadline profile's options
+        // (RFC 8030 Urgency + TTL headers) — one options array per device.
+        $this->webPush->shouldReceive('queueNotification')
+            ->twice()
+            ->with(
+                Mockery::type(SubscriptionInterface::class),
+                Mockery::type('string'),
+                ['urgency' => PushDeliveryProfile::URGENCY_HIGH, 'TTL' => PushDeliveryProfile::HIGH_TTL_SECONDS],
+            );
+        $this->webPush->shouldReceive('flush')
+            ->once()
+            ->andReturn((function () use ($success) {
+                yield $success;
+                yield $success;
+            })());
+
+        $this->channel->send($user, pushNotification(new PushPayload('Test', 'Body', '/icon.png', '/url', 'tag1'), 'waitlist_promoted'));
+
+        // The options wiring must not disturb the M080 counter invariant:
+        // exactly one `sent` increment per device report (2 devices).
+        expect(pushCounterCount('waitlist_promoted', 'sent'))->toBe(2)
+            ->and(pushCounterCount('waitlist_promoted', 'send_failed'))->toBe(0)
+            ->and(pushCounterCount('waitlist_promoted', 'subscription_expired'))->toBe(0);
+    });
+
+    it('passes normal urgency and the 24h TTL for ambient categories', function () {
+        $user = User::factory()->create();
+        PushSubscription::factory()->create(['user_id' => $user]);
+
+        $success = Mockery::mock(MessageSentReport::class);
+        $success->shouldReceive('isSuccess')->andReturn(true);
+        $success->shouldReceive('getEndpoint')->andReturn('https://push.example.com/ok');
+
+        Log::shouldReceive('info')->zeroOrMoreTimes();
+
+        $this->webPush->shouldReceive('queueNotification')
+            ->once()
+            ->with(
+                Mockery::type(SubscriptionInterface::class),
+                Mockery::type('string'),
+                ['urgency' => PushDeliveryProfile::URGENCY_NORMAL, 'TTL' => PushDeliveryProfile::NORMAL_TTL_SECONDS],
+            );
+        $this->webPush->shouldReceive('flush')
+            ->once()
+            ->andReturn((function () use ($success) {
+                yield $success;
+            })());
+
+        $this->channel->send($user, pushNotification(new PushPayload('Test', 'Body', '/icon.png', '/url'), 'recap_posted'));
+
+        expect(pushCounterCount('recap_posted', 'sent'))->toBe(1);
     });
 });

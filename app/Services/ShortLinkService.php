@@ -22,6 +22,12 @@ class ShortLinkService
      *
      * Uses Str::random with a uniqueness check against the database.
      * Throws after 10 failed attempts (defensive — extremely unlikely).
+     *
+     * The code is a credential (share links gate content; ical tokens are
+     * the sole auth on a named user's full schedule), so no fragment is
+     * ever logged — not even a 3-char prefix (the ICalFeedController
+     * no-fragment policy; a 3-char prefix on a 36-char space still
+     * shrinks an attacker's remaining keyspace 62³-fold).
      */
     public function generateUniqueCode(int $length = 7): string
     {
@@ -33,7 +39,7 @@ class ShortLinkService
 
             if (! ShortLink::where('code', $code)->exists()) {
                 Log::debug('ShortLinkService: generated unique code', [
-                    'code_prefix' => substr($code, 0, 3).'…',
+                    'length' => $length,
                     'attempts' => $attempts,
                 ]);
 
@@ -93,13 +99,16 @@ class ShortLinkService
             return false;
         });
 
-        Log::info('ShortLinkService: created short link', [
+        Log::info('ShortLinkService: created short link', array_merge([
             'link_id' => $link->id,
-            'code_prefix' => substr($link->code, 0, 3).'…',
             'linkable_type' => get_class($linkable),
             'linkable_id' => $linkable->getKey(),
             'user_id' => $user?->id,
-        ]);
+        ], ($params['purpose'] ?? null) === 'ical' ? [] : [
+            // No code fragment for ical tokens: the code is the sole auth on a
+            // named user's full schedule (ICalFeedController no-fragment policy).
+            'code_prefix' => substr($link->code, 0, 3).'…',
+        ]));
 
         return $link;
     }
@@ -184,10 +193,11 @@ class ShortLinkService
         Cache::forget("short_link:{$link->code}");
         Cache::forget("short_link_id:{$link->id}");
 
-        Log::info('ShortLinkService: revoked short link', [
+        Log::info('ShortLinkService: revoked short link', array_merge([
             'link_id' => $link->id,
+        ], $link->purpose === 'ical' ? [] : [
             'code_prefix' => substr($link->code, 0, 3).'…',
-        ]);
+        ]));
     }
 
     /**

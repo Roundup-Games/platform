@@ -79,7 +79,11 @@
                     $push = $notificationSettings[$categoryValue]['push'] ?? false;
                     $discord = $notificationSettings[$categoryValue]['discord'] ?? false;
                 @endphp
-                <div class="flex items-center justify-between p-3 bg-surface-container-low rounded-lg gap-2 sm:gap-3">
+                {{-- Per-category preference row. id="category-{value}" anchors the
+                     notification-row manage shortcut (M081/S06): the fragment lands on the
+                     exact row governing that category. scroll-mt-20 clears the sticky
+                     app header when the browser jumps to the fragment. --}}
+                <div id="category-{{ $categoryValue }}" class="flex items-center justify-between p-3 bg-surface-container-low rounded-lg gap-2 sm:gap-3 scroll-mt-20">
                     <span class="text-sm font-medium text-on-surface min-w-0 truncate">{{ $categoryLabel }}</span>
                     <div class="flex items-center gap-3 shrink-0">
                         {{-- In-App toggle --}}

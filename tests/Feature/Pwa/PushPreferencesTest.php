@@ -17,8 +17,8 @@ describe('push subscription management', function () {
         $payload = [
             'endpoint' => 'https://fcm.googleapis.com/fcm/send/test-pref-sub-001',
             'keys' => [
-                'p256h' => base64_encode(random_bytes(65)),
-                'auth' => base64_encode(random_bytes(16)),
+                'p256h' => rtrim(strtr(base64_encode(hex2bin('04'.bin2hex(random_bytes(32)).bin2hex(random_bytes(32)))), '+/', '-_'), '='),
+                'auth' => rtrim(strtr(base64_encode(random_bytes(16)), '+/', '-_'), '='),
             ],
         ];
 

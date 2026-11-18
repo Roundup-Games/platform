@@ -6,6 +6,7 @@ use App\Dto\PushPayload;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
+use App\Services\Discord\DiscordPalette;
 use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 
@@ -21,7 +22,7 @@ class ConfirmationExpired extends BaseNotification
     {
         $locale = $this->resolveLocale($notifiable);
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('notifications.subject_confirmation_expired', [
                 'game' => $this->entity->name,
             ]))
@@ -29,8 +30,10 @@ class ConfirmationExpired extends BaseNotification
             ->line(__('notifications.body_confirmation_expired', [
                 'game' => $this->entity->name,
             ]))
-            ->action(__('notifications.action_view_game'), $this->getEntityRoute($locale))
+            ->action(__('notifications.action_view_game'), $this->actionUrlWithMarker($notifiable, $this->getEntityRoute($locale)))
             ->line($this->unsubscribeLine($notifiable, 'confirmation_expired'));
+
+        return $this->withPreheader($mail, 'notifications.preheader_confirmation_expired');
     }
 
     /**
@@ -56,7 +59,7 @@ class ConfirmationExpired extends BaseNotification
             __('notifications.push_body_confirmation_expired', [
                 'game' => $this->entity->name,
             ]),
-            $this->getEntityRoute($this->resolveLocale($notifiable)),
+            $this->actionUrlWithMarker($notifiable, $this->getEntityRoute($this->resolveLocale($notifiable))),
             "confirmation-expired-{$this->getEntityType()}-{$this->entity->id}",
         );
     }
@@ -73,5 +76,13 @@ class ConfirmationExpired extends BaseNotification
                 'game' => $this->entity->name,
             ]),
         );
+    }
+
+    /**
+     * D280 semantic layer: cancellation red — the confirmation window expired; the seat outcome changed adversely.
+     */
+    protected function semanticColor(): int
+    {
+        return DiscordPalette::CANCELLATION;
     }
 }

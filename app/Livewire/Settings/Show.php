@@ -168,7 +168,13 @@ class Show extends Component
             $service->revokeLink($existing);
         }
 
-        $code = $service->generateUniqueCode();
+        // 36-char token (CSPRNG via Str::random): the feed code is the SOLE
+        // authentication on GET /calendar/{code} (calendar clients carry no
+        // session) and exposes a named user's full commitment schedule —
+        // capability-URL guidance is ≥64 bits of entropy, and the 7-char
+        // ShortLink default (~41 bits) exists for human-typed share links,
+        // not bearer credentials (M081 fifth-pass review).
+        $code = $service->generateUniqueCode(36);
 
         $link = $service->createLink($user, $user, [
             'code' => $code,
@@ -181,7 +187,6 @@ class Show extends Component
         Log::info('ical_feed.token_generated', [
             'user_id' => $user->id,
             'link_id' => $link->id,
-            'code_prefix' => substr($link->code, 0, 3).'…',
         ]);
 
         session()->flash('calendar_feed_generated', __('settings.flash_calendar_feed_generated'));

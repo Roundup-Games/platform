@@ -34,7 +34,7 @@ class WaitlistPlaced extends BaseNotification
     {
         $locale = $this->resolveLocale($notifiable);
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('notifications.subject_waitlist_placed', [
                 'game' => $this->entity->name,
             ]))
@@ -42,8 +42,10 @@ class WaitlistPlaced extends BaseNotification
             ->line(__('notifications.body_waitlist_placed', [
                 'game' => $this->entity->name,
             ]))
-            ->action(__('notifications.action_view_'.$this->getEntityType()), $this->getEntityRoute($locale))
+            ->action(__('notifications.action_view_'.$this->getEntityType()), $this->actionUrlWithMarker($notifiable, $this->getEntityRoute($locale)))
             ->line($this->unsubscribeLine($notifiable, 'waitlist_placement'));
+
+        return $this->withPreheader($mail, 'notifications.preheader_waitlist_placed');
     }
 
     /**
@@ -69,7 +71,7 @@ class WaitlistPlaced extends BaseNotification
             __('notifications.push_body_waitlist_placed', [
                 'game' => $this->entity->name,
             ]),
-            $this->getEntityRoute($this->resolveLocale($notifiable)),
+            $this->actionUrlWithMarker($notifiable, $this->getEntityRoute($this->resolveLocale($notifiable))),
             "waitlist-placed-{$this->getEntityType()}-{$this->entity->id}",
         );
     }

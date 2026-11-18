@@ -6,6 +6,7 @@ use App\Dto\PushPayload;
 use App\Models\Event;
 use App\Models\EventAnnouncement;
 use App\Models\User;
+use App\Services\Discord\DiscordPalette;
 use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 
@@ -56,7 +57,7 @@ class EventAnnouncementPublished extends BaseNotification
         $locale = $this->resolveLocale($notifiable);
         $title = $this->resolveTitle($locale);
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('events.field_new_announcement_name', [
                 'name' => $this->event->name ?? __('events.content_event'),
             ]))
@@ -65,11 +66,13 @@ class EventAnnouncementPublished extends BaseNotification
                 'event' => $this->event->name ?? __('events.content_event'),
             ]))
             ->line('**'.__('events.content_announcement').':** '.$title)
-            ->action(__('events.action_view_event_details'), route('events.detail', [
+            ->action(__('events.action_view_event_details'), $this->actionUrlWithMarker($notifiable, route('events.detail', [
                 'locale' => $locale,
                 'slug' => $this->event->slug,
-            ]))
+            ])))
             ->line($this->unsubscribeLine($notifiable, 'event_registration'));
+
+        return $this->withPreheader($mail, 'notifications.preheader_event_announcement_published');
     }
 
     /**
@@ -118,7 +121,7 @@ class EventAnnouncementPublished extends BaseNotification
             __('events.field_new_announcement_name', [
                 'name' => $this->event->name ?? __('events.content_event'),
             ]),
-            route('events.detail', ['locale' => $this->resolveLocale($notifiable), 'slug' => $this->event->slug]),
+            $this->actionUrlWithMarker($notifiable, route('events.detail', ['locale' => $this->resolveLocale($notifiable), 'slug' => $this->event->slug])),
             "event-announcement-{$this->announcement->id}",
         );
     }
@@ -136,8 +139,9 @@ class EventAnnouncementPublished extends BaseNotification
             __('events.content_new_announcement_for_attendees', [
                 'event' => $this->event->name ?? __('events.content_event'),
             ])."\n\n**{$title}**",
-            // Discord green — a positive lifecycle outcome, overriding the blurple default.
-            0x57F287,
+            // Positive lifecycle outcome — the roundup brand green from the shared
+            // palette (D280), replacing the pre-palette Discord-brand green.
+            DiscordPalette::EMERALD,
         );
     }
 

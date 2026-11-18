@@ -568,17 +568,68 @@ Route::prefix('{locale}')
             ->where('emailHash', '[a-f0-9]{64}');
 
         // ── Notification Unsubscribe (signed URL, no auth required) ──
+        // Flat-403 posture (M081 sixth-pass review): implicit User binding
+        // runs before route middleware, so binding failure aborts 403 via
+        // missing() — identical to signature rejection. A 404/403 split
+        // distinguished registered user ids from unknown ones on this
+        // no-auth surface.
 
         Route::get('/notifications/unsubscribe/{user}/{category}', [NotificationController::class, 'unsubscribe'])
             ->name('notifications.unsubscribe')
-            ->middleware('signed');
+            ->middleware(['signed', 'throttle:10,1'])
+            ->missing(fn () => abort(403, __('notifications.unsubscribe_invalid_link')));
+
+        // RFC 8058 one-click POST (M081/S02/T01): mailbox providers POST the
+        // same signed URL the List-Unsubscribe header carries. Same
+        // signature/enum validation and same settings write as the GET link
+        // — the controller answers a bare 200 instead of a redirect. Unnamed
+        // (no signedRoute target) and CSRF-exempt in bootstrap/app.php: the
+        // HMAC signature over path + query is the authenticity proof, the
+        // same proof the GET link relies on. Throttle stacks AFTER signed
+        // so an expired signature 403s before burning the limiter (mirrors
+        // the invite-optout precedent).
+        Route::post('/notifications/unsubscribe/{user}/{category}', [NotificationController::class, 'unsubscribe'])
+            ->middleware(['signed', 'throttle:10,1'])
+            ->missing(fn () => abort(403, __('notifications.unsubscribe_invalid_link')));
 
         // One-click opt-out from the weekly digest email. The digest bypasses the
         // per-category channel system (it has no category), so it gets its own
         // signed route that flips weekly_digest_enabled instead.
         Route::get('/notifications/unsubscribe-digest/{user}', [NotificationController::class, 'unsubscribeDigest'])
             ->name('notifications.unsubscribe-digest')
-            ->middleware('signed');
+            ->middleware(['signed', 'throttle:10,1'])
+            ->missing(fn () => abort(403, __('notifications.unsubscribe_invalid_link')));
+
+        // RFC 8058 one-click POST for the digest route — see the category
+        // POST route above for the shared rationale.
+        Route::post('/notifications/unsubscribe-digest/{user}', [NotificationController::class, 'unsubscribeDigest'])
+            ->middleware(['signed', 'throttle:10,1'])
+            ->missing(fn () => abort(403, __('notifications.unsubscribe_invalid_link')));
+
+        // ── Cross-channel read marker (signed URL, no auth required) ──
+        // D288 item 1, M081/S08: mail CTAs and push action URLs land here
+        // first. The signed marker names (user, notification class, entity),
+        // so NotificationService::markReadByType clears the sibling in-app
+        // row idempotently, then the user is 302'd to the real target — the
+        // bell badge stays truthful after acting on ANY channel. The marker
+        // itself is the authorization (user-bound, unguessable HMAC) and can
+        // only ever mark rows of the user it names. No 'signed' middleware:
+        // the controller validates the signature itself and answers a flat
+        // 404 on failure — existence-neutral, unlike the unsubscribe 403
+        // whose human-facing link needs an explanation.
+        //
+        // Scanner/prefetch acceptance: URL-sandboxing mail scanners
+        // (SafeLinks & co.) that GET these marker URLs mark the sibling
+        // notification read before the human clicks. Accepted tradeoff — the
+        // harm is bounded to premature read-marking (no settings write, no
+        // counters fire), every mitigation is UA-sniffing heuristic noise,
+        // and the D288 premise (badge tells the truth after acting) survives
+        // for the human who actually clicks. Throttle keyed like the
+        // unsubscribe routes to bound replay of a leaked URL (the marker
+        // write is idempotent, the log noise is not).
+        Route::get('/notifications/read-marker/{user}', [NotificationController::class, 'readMarker'])
+            ->name('notifications.read_marker')
+            ->middleware('throttle:10,1');
 
         // ── Data Export Download (signed URL + auth) ──────
         // Signed URL expires after 7 days. Auth ensures only the data subject

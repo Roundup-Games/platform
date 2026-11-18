@@ -19,8 +19,13 @@ describe('POST /api/push/subscribe', function () {
         $payload = [
             'endpoint' => 'https://fcm.googleapis.com/fcm/send/test-endpoint-123',
             'keys' => [
-                'p256h' => 'test-p256h-key-value',
-                'auth' => 'test-auth-key-value',
+                // RFC 8291 key fixtures (base64url, unpadded): a real
+                // uncompressed P-256 point is 65 bytes starting with the
+                // 0x04 prefix; the auth secret is 16 bytes. The endpoint
+                // validates structure — one malformed key in the table
+                // aborts every batch flush for that user (M081 review).
+                'p256h' => 'BBERERERERERERERERERERERERERERERERERERERERERIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI',
+                'auth' => 'q6urq6urq6urq6urq6urqw',
             ],
         ];
 
@@ -44,8 +49,8 @@ describe('POST /api/push/subscribe', function () {
         $payload = [
             'endpoint' => 'https://fcm.googleapis.com/fcm/send/same-endpoint',
             'keys' => [
-                'p256h' => 'updated-p256h-key',
-                'auth' => 'updated-auth-key',
+                'p256h' => 'BBERERERERERERERERERERERERERERERERERERERERERIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI',
+                'auth' => 'q6urq6urq6urq6urq6urqw',
             ],
         ];
 
@@ -82,17 +87,49 @@ describe('POST /api/push/subscribe', function () {
             ->assertJsonValidationErrors(['endpoint']);
     });
 
+    // ── M081 review: structurally invalid key material is rejected at intake.
+    // One undecodable p256dh key in the subscriptions table aborts every
+    // batch flush for that user (WebPush encrypts the whole batch up front),
+    // so garbage keys must never be stored.
+
+    it('rejects a p256dh key that is not a 65-byte uncompressed P-256 point', function (string $key) {
+        $this->actingAs($this->user)
+            ->postJson('/api/v1/push/subscribe', [
+                'endpoint' => 'https://fcm.googleapis.com/fcm/send/bad-keys',
+                'keys' => ['p256h' => $key, 'auth' => 'q6urq6urq6urq6urq6urqw'],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['keys.p256h']);
+    })->with([
+        'not base64url at all' => 'not+a+base64url$key!!',
+        'decodes but wrong length (64 bytes)' => 'BBERERERERERERERERERERERERERERERERERERERERERIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIi',
+        'missing the 0x04 uncompressed prefix' => 'AgERERERERERERERERERERERERERERERERERERERERERIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI',
+    ]);
+
+    it('rejects an auth secret that is not base64url', function () {
+        $this->actingAs($this->user)
+            ->postJson('/api/v1/push/subscribe', [
+                'endpoint' => 'https://fcm.googleapis.com/fcm/send/bad-auth',
+                'keys' => [
+                    'p256h' => 'BBERERERERERERERERERERERERERERERERERERERERERIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI',
+                    'auth' => 'not+base64url!!',
+                ],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['keys.auth']);
+    });
+
     it('rate limits after 10 attempts', function () {
         for ($i = 0; $i < 10; $i++) {
             $this->actingAs($this->user)->postJson('/api/v1/push/subscribe', [
                 'endpoint' => "https://fcm.googleapis.com/fcm/send/ep-{$i}",
-                'keys' => ['p256h' => "key-{$i}", 'auth' => "auth-{$i}"],
+                'keys' => ['p256h' => 'BBERERERERERERERERERERERERERERERERERERERERERIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI', 'auth' => 'q6urq6urq6urq6urq6urqw'],
             ]);
         }
 
         $response = $this->actingAs($this->user)->postJson('/api/v1/push/subscribe', [
             'endpoint' => 'https://fcm.googleapis.com/fcm/send/ep-11',
-            'keys' => ['p256h' => 'key-11', 'auth' => 'auth-11'],
+            'keys' => ['p256h' => 'BBERERERERERERERERERERERERERERERERERERERERERIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI', 'auth' => 'q6urq6urq6urq6urq6urqw'],
         ]);
 
         $response->assertStatus(429);
@@ -103,7 +140,7 @@ describe('POST /api/push/subscribe', function () {
             ->withHeaders(['User-Agent' => 'TestBrowser/1.0'])
             ->postJson('/api/v1/push/subscribe', [
                 'endpoint' => 'https://fcm.googleapis.com/fcm/send/ua-test',
-                'keys' => ['p256h' => 'a', 'auth' => 'b'],
+                'keys' => ['p256h' => 'BBERERERERERERERERERERERERERERERERERERERERERIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI', 'auth' => 'q6urq6urq6urq6urq6urqw'],
             ]);
 
         $this->assertDatabaseHas('push_subscriptions', [
@@ -122,7 +159,7 @@ describe('POST /api/push/subscribe', function () {
         $this->actingAs($userA)
             ->postJson('/api/v1/push/subscribe', [
                 'endpoint' => $endpoint,
-                'keys' => ['p256h' => 'key-a', 'auth' => 'auth-a'],
+                'keys' => ['p256h' => 'BBERERERERERERERERERERERERERERERERERERERERERIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI', 'auth' => 'q6urq6urq6urq6urq6urqw'],
             ])
             ->assertCreated();
 
@@ -130,7 +167,7 @@ describe('POST /api/push/subscribe', function () {
         $this->actingAs($userB)
             ->postJson('/api/v1/push/subscribe', [
                 'endpoint' => $endpoint,
-                'keys' => ['p256h' => 'key-b', 'auth' => 'auth-b'],
+                'keys' => ['p256h' => 'BBERERERERERERERERERERERERERERERERERERERERERIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI', 'auth' => 'q6urq6urq6urq6urq6urqw'],
             ])
             ->assertCreated();
 
@@ -272,7 +309,7 @@ describe('first-party session-cookie auth (stateful SPA)', function () {
             ->withHeaders(['Origin' => rtrim(config('app.url'), '/')])
             ->postJson('/api/v1/push/subscribe', [
                 'endpoint' => 'https://fcm.googleapis.com/fcm/send/session-cookie-probe',
-                'keys' => ['p256h' => 'a', 'auth' => 'b'],
+                'keys' => ['p256h' => 'BBERERERERERERERERERERERERERERERERERERERERERIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI', 'auth' => 'q6urq6urq6urq6urq6urqw'],
             ])
             ->assertCreated();
 

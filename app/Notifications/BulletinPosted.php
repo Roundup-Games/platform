@@ -6,6 +6,7 @@ use App\Dto\PushPayload;
 use App\Models\Game;
 use App\Models\GameBulletin;
 use App\Models\User;
+use App\Services\Discord\DiscordPalette;
 use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Str;
@@ -30,7 +31,7 @@ class BulletinPosted extends BaseNotification
     {
         $locale = $this->resolveLocale($notifiable);
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('notifications.subject_bulletin_posted', [
                 'game' => $this->game->name,
             ]))
@@ -42,8 +43,12 @@ class BulletinPosted extends BaseNotification
             ->line(__('notifications.body_bulletin_content', [
                 'content' => Str::limit($this->bulletin->content, 100),
             ]))
-            ->action(__('notifications.action_view_game'), route('games.show', ['locale' => $locale, 'id' => $this->game]))
+            ->action(__('notifications.action_view_game'), $this->actionUrlWithMarker($notifiable, route('games.show', ['locale' => $locale, 'id' => $this->game])))
             ->line($this->unsubscribeLine($notifiable, 'session_content'));
+
+        return $this->withPreheader($mail, 'notifications.preheader_bulletin_posted', [
+            'host' => $this->host->name,
+        ]);
     }
 
     /**
@@ -85,7 +90,7 @@ class BulletinPosted extends BaseNotification
                 'host' => $this->host->name,
                 'game' => $this->game->name,
             ]),
-            route('games.show', ['locale' => $this->resolveLocale($notifiable), 'id' => $this->game]),
+            $this->actionUrlWithMarker($notifiable, route('games.show', ['locale' => $this->resolveLocale($notifiable), 'id' => $this->game])),
             "bulletin-{$this->bulletin->id}",
         );
     }
@@ -117,5 +122,13 @@ class BulletinPosted extends BaseNotification
                     'content' => Str::limit($this->bulletin->content, 280),
                 ]),
         );
+    }
+
+    /**
+     * D280 semantic layer: ambient grey — informational bulletin post, no recipient action required.
+     */
+    protected function semanticColor(): int
+    {
+        return DiscordPalette::AMBIENT;
     }
 }

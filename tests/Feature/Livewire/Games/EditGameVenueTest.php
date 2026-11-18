@@ -71,18 +71,11 @@ describe('Location change notification dedup', function () {
             ->set('edit_location_id', $newVenue->id)
             ->call('saveGameEdit');
 
-        // Verify notification has Location only once
+        // Verify the venue change reports exactly one Location-family column pair
         Notification::assertSentTo(
             $participant,
             EntityUpdated::class,
-            function (EntityUpdated $notification) {
-                $locationCount = count(array_filter(
-                    $notification->changedFields,
-                    fn (string $field) => $field === __('common.field_location'),
-                ));
-
-                return $locationCount === 1;
-            }
+            fn (EntityUpdated $notification) => $notification->changedColumns === ['location', 'location_id']
         );
     });
 
@@ -108,7 +101,7 @@ describe('Location change notification dedup', function () {
         Notification::assertSentTo(
             $participant,
             EntityUpdated::class,
-            fn (EntityUpdated $notification) => in_array(__('common.field_location'), $notification->changedFields)
+            fn (EntityUpdated $notification) => in_array('location', $notification->changedColumns, true)
         );
     });
 
@@ -141,11 +134,11 @@ describe('Location change notification dedup', function () {
         Notification::assertSentTo(
             $participant,
             EntityUpdated::class,
-            fn (EntityUpdated $notification) => in_array(__('common.field_location'), $notification->changedFields)
+            fn (EntityUpdated $notification) => in_array('location_id', $notification->changedColumns, true)
         );
     });
 
-    it('adds location_instructions to changes but not to changedLabels', function () {
+    it('notifies participants when arrival instructions change', function () {
         $game = createGameWithVenue($this->owner, $this->gameSystem);
 
         $participant = User::factory()->create();
@@ -163,10 +156,15 @@ describe('Location change notification dedup', function () {
             ->set('edit_location_instructions', 'Ring the bell twice')
             ->call('saveGameEdit');
 
-        // Instructions update is saved but does not trigger a notification label
+        // Instructions updates now surface to participants too — arrival
+        // details are exactly what someone needs before leaving the house.
         $freshGame = $game->fresh();
         expect($freshGame->location_instructions)->toBe('Ring the bell twice');
-        Notification::assertNotSentTo($participant, EntityUpdated::class);
+        Notification::assertSentTo(
+            $participant,
+            EntityUpdated::class,
+            fn (EntityUpdated $notification) => in_array('location_instructions', $notification->changedColumns, true)
+        );
     });
 });
 

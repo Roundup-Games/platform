@@ -89,7 +89,7 @@ return [
     // erfasst nur den eigenen Charakter des GMs — der Journal-Tab bleibt
     // die Fläche für alle Charaktere. Du-Form gemäß K001.
     'title_session_quick_updates' => 'Schnelle Journal-Updates',
-    'content_session_quick_updates_description' => 'Änderungen, die du hier erfasst, werden dieser Runde zugeordnet — dein nächster Rückblick nimmt sie automatisch auf.',
+    'content_session_quick_updates_description' => 'Änderungen, die Du hier erfasst, werden dieser Runde zugeordnet — Dein nächster Rückblick nimmt sie automatisch auf.',
     'label_session_goal_widget' => 'Ziel weiterbewegen',
     'label_session_goal' => 'Ziel',
     'label_session_choose_goal' => 'Ziel wählen',
@@ -97,7 +97,7 @@ return [
     'label_session_choose_status' => 'Status wählen',
     'action_session_save_goal_status' => 'Ziel-Status speichern',
     'label_session_state_widget' => 'Charakter-Zustand erfassen',
-    'hint_session_state_own_character' => 'Nur dein eigener Charakter — andere erfassst du im Journal-Tab der Kampagne.',
+    'hint_session_state_own_character' => 'Nur Dein eigener Charakter — andere erfassst Du im Journal-Tab der Kampagne.',
 
     // Previously-On-Kompositionstexte (M071/S04, Spec §3.1): die
     // Nur-Text-Abschnitte des Digests und die Publish-Guards. :session ist
@@ -116,7 +116,7 @@ return [
     // oberfläche für GMs im Journal-Tab — Entwurfsvorschau, One-Click-
     // Veröffentlichung, Mitglieder-Gate, Bestätigung. Du-Form gemäß K001.
     'title_previously_on_panel' => 'Zuvor in der Kampagne',
-    'content_previously_on_description' => 'Ein Rückblick deiner neuesten Journal-Ereignisse, zusammengestellt für die nächste Runde. Prüfe ihn, bevor du ihn mit deiner Gruppe teilst.',
+    'content_previously_on_description' => 'Ein Rückblick Deiner neuesten Journal-Ereignisse, zusammengestellt für die nächste Runde. Prüfe ihn, bevor Du ihn mit Deiner Gruppe teilst.',
     'action_publish_previously_on' => 'Rückblick veröffentlichen',
     'flash_previously_on_published' => 'Der Rückblick wurde auf der Runden-Pinnwand veröffentlicht.',
     'error_previously_on_not_available' => 'Der Rückblick ist derzeit nicht verfügbar.',
@@ -128,7 +128,7 @@ return [
     'content_previously_on_audience' => 'Wird an alle bestätigten Teilnehmenden dieser Runde zugestellt, auch an einmalige Gäste.',
     'content_previously_on_superseded' => 'Diese Runde wurde verschoben oder ihr Ort hat sich geändert, nachdem der Rückblick veröffentlicht wurde — der bisherige Eintrag auf der Runden-Pinnwand wurde zurückgezogen. Prüfe den aktualisierten Entwurf und veröffentliche ihn erneut.',
     'title_previously_on_gate' => '„Zuvor in der Kampagne“ ist eine Mitglieder-Funktion',
-    'content_previously_on_gate' => 'GM-Mitglieder erhalten vor jeder Runde automatisch einen Rückblick — Recap, Ziele und offene Fäden aus deinem Kampagnen-Journal. Sieh dir die Mitgliedschaft an, um ihn freizuschalten.',
+    'content_previously_on_gate' => 'GM-Mitglieder erhalten vor jeder Runde automatisch einen Rückblick — Recap, Ziele und offene Fäden aus Deinem Kampagnen-Journal. Sieh Dir die Mitgliedschaft an, um ihn freizuschalten.',
     'action_view_membership' => 'Mitgliedschaft ansehen',
 
     // Rekrutierungszusammenfassung (M071/S05, Spec §4): die Entwurfszeilen
@@ -139,7 +139,7 @@ return [
     'content_recruitment_sessions_played' => ':count gespielte Runden',
     'content_recruitment_tone_themes' => 'Tonfall & Themen: :themes',
     'error_recruitment_unauthorized' => 'Nur der GM der Kampagne kann die Rekrutierungszusammenfassung verwalten.',
-    'error_recruitment_checklist_incomplete' => 'Bestätige jede Spoiler-Sicherheitsprüfung, bevor du die Rekrutierungszusammenfassung anwendest.',
+    'error_recruitment_checklist_incomplete' => 'Bestätige jede Spoiler-Sicherheitsprüfung, bevor Du die Rekrutierungszusammenfassung anwendest.',
     'error_recruitment_draft_required' => 'Die Rekrutierungszusammenfassung darf nicht leer sein.',
     'error_recruitment_draft_too_long' => 'Die Rekrutierungszusammenfassung darf 10.000 Zeichen nicht überschreiten.',
 
@@ -159,7 +159,7 @@ return [
     'action_copy_public_link' => 'Öffentlichen Link kopieren',
     'heading_recruitment_composer' => 'Rekrutierungszusammenfassung',
     'section_recruitment_checklist' => 'Spoiler-Sicherheitsprüfung',
-    'section_recruitment_goals' => 'Ziele, die du teilen möchtest',
+    'section_recruitment_goals' => 'Ziele, die Du teilen möchtest',
     'section_recruitment_excerpts' => 'Recap-Auszüge',
     'label_recruitment_draft' => 'Dein „Bisher in der Kampagne“-Entwurf',
     'label_recruitment_excerpt' => 'Von der Runde am :session',
@@ -168,9 +168,9 @@ return [
     'confirmation_recruitment_visitor_preview' => 'Ich habe die Besucher-Vorschau geprüft — genau das sollen Fremde lesen.',
     'hint_recruitment_public' => 'Das wird öffentlich. Besucher, die über den Beitritt nachdenken, lesen diesen Text.',
     'hint_recruitment_open_seats' => 'Deine Kampagne ist öffentlich und hat freie Plätze — eine Zusammenfassung hilft beim Rekrutieren.',
-    'hint_recruitment_stale' => 'Seit der letzten Aktualisierung deiner Zusammenfassung wurden :count neue Runden gespielt.',
+    'hint_recruitment_stale' => 'Seit der letzten Aktualisierung Deiner Zusammenfassung wurden :count neue Runden gespielt.',
     'empty_recruitment_no_goals' => 'Noch keine aktiven Ziele.',
     'empty_recruitment_no_recaps' => 'Noch keine Recap-Einträge.',
-    'flash_recruitment_applied' => 'Der „Bisher in der Kampagne“-Block ist auf deiner Kampagnenseite live.',
-    'flash_recruitment_removed' => 'Der „Bisher in der Kampagne“-Block wurde von deiner Kampagnenseite entfernt.',
+    'flash_recruitment_applied' => 'Der „Bisher in der Kampagne“-Block ist auf Deiner Kampagnenseite live.',
+    'flash_recruitment_removed' => 'Der „Bisher in der Kampagne“-Block wurde von Deiner Kampagnenseite entfernt.',
 ];

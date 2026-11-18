@@ -418,6 +418,45 @@ class LangFileParser
                     }
                 }
 
+                // withPreheader($message, 'domain.key', [...]) — the BaseNotification
+                // mail-preheader helper (M081/S01/T02). The key literal is a plain
+                // argument resolved inside the helper via __($key, $replace), so the
+                // __() patterns above cannot see it. Call sites keep a uniform shape
+                // — first arg always a simple variable, key second — which makes the
+                // same literal / interpolated-prefix / ternary shapes statically
+                // scannable, mirroring the __() blocks above.
+                if (preg_match_all("/withPreheader\(\s*\$\w+,\s*'([a-z_-]+\.[a-z0-9_-]+)'/", $content, $matches) > 0) {
+                    foreach ($matches[1] as $key) {
+                        $this->addKeyReference($keys, $key, $relativePath);
+                    }
+                }
+
+                if (preg_match_all('/withPreheader\(\s*\$\w+,\s*"([a-z_-]+\.[a-z0-9_-]+)"/', $content, $matches) > 0) {
+                    foreach ($matches[1] as $key) {
+                        $this->addKeyReference($keys, $key, $relativePath);
+                    }
+                }
+
+                if (preg_match_all('/withPreheader\(\s*\$\w+,\s*"([a-z_-]+\.[a-z0-9_-]+_)\{\$/', $content, $matches) > 0) {
+                    foreach ($matches[1] as $prefix) {
+                        $dot = strpos($prefix, '.');
+                        if ($dot === false) {
+                            continue;
+                        }
+                        $domain = substr($prefix, 0, $dot);
+                        $keyPrefix = substr($prefix, $dot + 1);
+                        $keys[$domain]["__dynamic_prefix__:$keyPrefix"][] = $relativePath;
+                    }
+                }
+
+                // Ternary-constructed preheader keys: withPreheader($m, $cond ? 'domain.key_a' : 'domain.key_b')
+                if (preg_match_all("/withPreheader\(\s*\$\w+,\s*[^()]*\?\s*'([a-z_-]+\.[a-z0-9_-]+)'\s*:\s*'([a-z_-]+\.[a-z0-9_-]+)'/", $content, $matches) > 0) {
+                    for ($i = 0; $i < count($matches[1]); $i++) {
+                        $this->addKeyReference($keys, $matches[1][$i], $relativePath.' (ternary)');
+                        $this->addKeyReference($keys, $matches[2][$i], $relativePath.' (ternary)');
+                    }
+                }
+
                 // Ternary-constructed keys: __($cond ? 'domain.key_a' : 'domain.key_b')
                 // Both branches are statically known — register them as used.
                 if (preg_match_all("/__\([^)]*\?\s*'([a-z_-]+\.[a-z0-9_-]+)'\s*:\s*'([a-z_-]+\.[a-z0-9_-]+)'/", $content, $matches) > 0) {
@@ -515,7 +554,7 @@ class LangFileParser
             'type_', 'channel_', 'state_', 'group_',
             'section_', 'tab_', 'filter_',
             'tool_', 'gm_', 'activity_', 'category_', 'resolution_',
-            'push_', 'dashboard_', 'verb_', 'nearby_',
+            'push_', 'preheader_', 'dashboard_', 'verb_', 'nearby_',
             'request_', 'email_', 'validation_', 'guest_',
             'display_', 'ios_', 'nav_', 'install_',
             'offline_', 'report_', 'aria_', 'sort_',

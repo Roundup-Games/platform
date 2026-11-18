@@ -288,7 +288,7 @@ class NotificationsPushTestCommand extends Command
             NotificationCategory::GameInvitation => new EntityInvitation($this->fixtureGame(), $this->fixtureActor()),
             NotificationCategory::CampaignInvitation => new EntityInvitation($this->fixtureCampaign(), $this->fixtureActor()),
             NotificationCategory::SeatDemoted => new SeatDemoted($this->fixtureGame(), 'attendance'),
-            NotificationCategory::WaitlistPromoted => new WaitlistPromoted($this->fixtureGame(), Carbon::now()->addDays(2)->toDayDateTimeString()),
+            NotificationCategory::WaitlistPromoted => new WaitlistPromoted($this->fixtureGame(), Carbon::now()->addDays(2)),
             NotificationCategory::WaitlistPlacement => new WaitlistPlaced($this->fixtureGame()),
             NotificationCategory::BenchUpdates => new PlayerBenched($this->fixtureGame(), 'game'),
             NotificationCategory::AttendanceReported => new AttendanceReported($this->fixtureGame(), $this->fixtureAttendanceReport()),

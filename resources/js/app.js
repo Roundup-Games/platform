@@ -23,6 +23,11 @@ import { Livewire, Alpine } from '../../vendor/livewire/livewire/dist/livewire.e
 // Ensures the offline indicator is visible before Alpine bootstraps.
 // The Alpine component (offlineIndicator) takes over once initialized.
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize push subscription UI bindings — BEFORE the offline-indicator
+    // guard: push UI must initialize on every layout that renders it, and
+    // pages without the indicator (guest layout) must not silently skip it.
+    initPushSubscriptions();
+
     const indicator = document.querySelector('[x-data="offlineIndicator()"]');
     if (!indicator) return;
 
@@ -33,9 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
     applyState();
     window.addEventListener('offline', applyState);
     window.addEventListener('online', applyState);
-
-    // Initialize push subscription UI bindings
-    initPushSubscriptions();
 });
 
 // Alpine is provided by Livewire v3 (livewire/livewire) — no separate import needed.
@@ -70,6 +72,17 @@ document.addEventListener('alpine:init', () => {
             const hash = window.location.hash?.slice(1);
             if (hash && tabIdsOnPage().includes(hash)) {
                 this.activeTab = hash;
+            } else if (hash?.startsWith('category-')) {
+                // Per-category preference anchors (notification manage shortcut):
+                // the anchor lives inside the notifications panel, so the tab
+                // must be activated before the browser can jump to the row —
+                // display:none panels never scroll natively. The category hash
+                // stays in the URL (the $watch below only fires on later tab
+                // switches), so reloads and Livewire navigate both re-land.
+                this.activeTab = 'notifications';
+                this.$nextTick(() => {
+                    document.getElementById(hash)?.scrollIntoView({ block: 'center' });
+                });
             }
             this.$watch('activeTab', (val) => { window.location.hash = val; });
         },
@@ -115,6 +128,21 @@ document.addEventListener('livewire:init', () => {
 // Starts Livewire (and Alpine inside it) after every alpine:init/livewire:init
 // listener above has been registered.
 Livewire.start();
+
+// ── Push live-refresh channel (D288) ──────────────────────────────────────────
+// The service worker postMessages every open tab when a push arrives (sw.js
+// 'push' handler: { type: 'push-received', payload }). Re-dispatch it as a
+// Livewire event so components react without waiting for their poll cycle —
+// the notification bell's #[On('notification-received')] listener refreshes
+// the unread badge immediately. Livewire.dispatch from JS reaches every
+// active component on the page.
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data?.type === 'push-received') {
+            Livewire.dispatch('notification-received');
+        }
+    });
+}
 
 // ── Service Worker Registration ───────────────────────────────────────────────
 let swRegistration = null;

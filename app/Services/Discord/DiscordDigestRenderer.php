@@ -61,11 +61,11 @@ class DiscordDigestRenderer
 
     public const MAX_TITLE_CHARS = 256;
 
-    /** Roundup brand color (emerald) — matches {@see DiscordCardRenderer::COLOR_BRAND}. */
-    public const COLOR_BRAND = 0x2ECC71;
+    /** Roundup brand color (emerald) — canonical home: {@see DiscordPalette} (D280). */
+    public const COLOR_BRAND = DiscordPalette::EMERALD;
 
     /** Muted grey for the empty-state embed (no action to take). */
-    public const COLOR_EMPTY = 0x95A5A6;
+    public const COLOR_EMPTY = DiscordPalette::AMBIENT;
 
     /** Headroom reserved inside a field value for the truncation marker. */
     private const FIELD_VALUE_HEADROOM = 40;
@@ -365,7 +365,13 @@ class DiscordDigestRenderer
 
     private function gameName(Game $game): string
     {
-        return Str::limit(trim($game->name), 80);
+        // The name becomes a markdown link label below — strip the
+        // characters that would break `[label](url)` parsing so a crafted
+        // name cannot inject arbitrary embed markdown (pings stay
+        // structurally suppressed via allowed_mentions parse:[]).
+        $clean = str_replace(['[', ']', '(', ')', '\\', '`'], '', trim($game->name));
+
+        return Str::limit($clean, 80);
     }
 
     /**

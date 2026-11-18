@@ -107,10 +107,35 @@ function corpusNotificationDataset(): array
 function corpusUnsubscribeExclusions(): array
 {
     return [
-        'AccountSuspended' => 'One-off account-suspension system notice: the recipient is suspended and there is no category subscription to opt out of.',
-        'ContentRemoved' => 'Moderation takedown notice (admin to user): administrative one-off, not a category-subscription mail.',
-        'ContentReportWarning' => 'Moderation warning (user to admins): administrative one-off, not a category-subscription mail.',
+        'AccountSuspended' => 'One-off account-suspension system notice: no body unsubscribe line by design (administrative one-off); delivery is still governed by the moderation_notice preference row.',
+        'ContentRemoved' => 'Moderation takedown notice (admin to user): no body unsubscribe line by design (administrative one-off); delivery is still governed by the moderation_notice preference row.',
+        'ContentReportWarning' => 'Moderation warning (user to admins): no body unsubscribe line by design (admin-workflow one-off); delivery is still governed by the moderation_notice preference row.',
         'ReviewReported' => 'Acknowledgement of the recipient\'s own abuse report: admin-workflow mail, no category subscription involved.',
+    ];
+}
+
+/**
+ * Corpus classes whose rendered mail legitimately carries NO signed
+ * read-marker CTA (D288 item 1, M081/S08), each with a one-line reason.
+ *
+ * Two shapes of exception exist: WeeklyDigest is mail-only (its
+ * supportedChannels() has no database channel — no bell row to clear), and
+ * the one-off system/moderation notices whose toMail() deliberately has no
+ * ->action() CTA at all (nothing to wire). Every other corpus mail CTA must
+ * route through BaseNotification::actionUrlWithMarker() — a class gaining a
+ * CTA or losing the wrap fails the corpus loop below.
+ *
+ * @return array<string, string>
+ */
+function corpusReadMarkerExclusions(): array
+{
+    return [
+        'WeeklyDigest' => 'Mail-only by supportedChannels(): no database sibling row, so no marker to clear.',
+        'AccountSuspended' => 'One-off suspension notice; toMail() carries no action CTA.',
+        'ContentRemoved' => 'Moderation takedown notice; toMail() carries no action CTA.',
+        'ContentReportWarning' => 'Moderation warning to admins; toMail() carries no action CTA.',
+        'GameSystemRequestRejected' => 'Rejection notice; toMail() carries no action CTA.',
+        'ReviewReported' => 'Abuse-report acknowledgement; toMail() carries no action CTA.',
     ];
 }
 
@@ -139,12 +164,12 @@ function corpusUnsubscribeExclusions(): array
 function corpusTypeOnlyCategories(): array
 {
     return [
-        'account_suspended' => 'AccountSuspended: one-off suspension notice; no preference category to unsubscribe from.',
+        'account_suspended' => 'AccountSuspended: moderation_notice preference family (dispatched under NotificationCategory::ModerationNotice); no in-mail unsubscribe line (administrative one-off — see corpusUnsubscribeExclusions).',
         'badge_upgraded' => 'BadgeAwardedNotification (upgraded): distinct digest label from badge_awarded.',
         'bulletin_posted' => 'BulletinPosted: session_content preference family; distinct digest label.',
-        'content_removed' => 'ContentRemoved: moderation takedown; no unsubscribe surface (see corpusUnsubscribeExclusions).',
-        'cover_image_removed' => 'ContentRemoved (scope=cover_image): artifact-specific variant of content_removed.',
-        'content_report_warning' => 'ContentReportWarning: admin-workflow mail, no category subscription.',
+        'content_removed' => 'ContentRemoved: moderation_notice preference family (dispatched under ModerationNotice); no in-mail unsubscribe line (moderation takedown — see corpusUnsubscribeExclusions).',
+        'cover_image_removed' => 'ContentRemoved (scope=cover_image): artifact-specific variant of content_removed; moderation_notice family.',
+        'content_report_warning' => 'ContentReportWarning: moderation_notice preference family (dispatched under ModerationNotice); no in-mail unsubscribe line (admin-workflow mail).',
         'debriefing_available' => 'DebriefingAvailable: session_content preference family; distinct digest label.',
         'game_system_request_approved' => 'GameSystemRequestApproved: game_system_request preference family; distinct digest label.',
         'game_system_request_duplicate' => 'GameSystemRequestDuplicate: game_system_request preference family; distinct digest label.',
@@ -287,7 +312,7 @@ it('renders every defined channel with non-empty payloads in both en and de', fu
             'TeamMemberRemoved' => new $fqcn($fx->team ??= $this->createTeamWithCaptain()['team'], $fx->actor),
             'WaitlistExpiredRejected' => new $fqcn($fx->game, 2),
             'WaitlistPlaced' => new $fqcn($fx->game),
-            'WaitlistPromoted' => new $fqcn($fx->game, Carbon::now()->addDays(2)->toDayDateTimeString()),
+            'WaitlistPromoted' => new $fqcn($fx->game, Carbon::now()->addDays(2)),
             'WeeklyDigest' => (function () use ($fqcn, $fx) {
                 // A realistic digest payload: rows the dispatcher would group.
                 $fx->recipient->notifications()->createMany([
@@ -295,7 +320,7 @@ it('renders every defined channel with non-empty payloads in both en and de', fu
                     ['id' => Str::uuid(), 'type' => WaitlistPromoted::class, 'data' => ['type' => 'waitlist_promoted']],
                 ]);
 
-                return new $fqcn($fx->recipient->unreadNotifications);
+                return $fqcn::fromNotifications($fx->recipient->unreadNotifications);
             })(),
             default => throw new InvalidArgumentException("Unknown corpus class [{$class}]."),
         };
@@ -314,8 +339,39 @@ it('renders every defined channel with non-empty payloads in both en and de', fu
 
             test()->assertNotSame('', (string) $mail->subject, "[{$class}/{$locale}] mail subject is empty.");
 
+            // Preheader completeness pin (M081/S01/T02): every corpus class
+            // with a toMail() must attach localized inbox-preview copy via
+            // withPreheader() — a new class without one fails here, no
+            // exceptions list. Copy lives under notifications.preheader_* in
+            // both locales and must stay ≤ 90 chars rendered (inbox preview
+            // truncation budget).
+            $preheader = trim((string) ($mail->viewData['preheader'] ?? ''));
+            test()->assertNotSame('', $preheader, "[{$class}/{$locale}] mail preheader is empty — every toMail() must attach withPreheader().");
+            $preheaderLength = mb_strlen($preheader);
+            test()->assertLessThanOrEqual(90, $preheaderLength, "[{$class}/{$locale}] mail preheader is {$preheaderLength} chars — preview copy must stay ≤ 90.");
+
             $html = (string) $mail->render();
             test()->assertNotSame('', $html, "[{$class}/{$locale}] rendered mail HTML is empty.");
+
+            // The published notifications wrapper renders the preheader in
+            // the hidden preview slot at the very top of the body: it must
+            // appear escaped in the rendered HTML and BEFORE the greeting
+            // heading, or mail clients would show body text as the preview.
+            $preheaderPos = strpos($html, e($preheader));
+            test()->assertNotFalse($preheaderPos, "[{$class}/{$locale}] rendered mail does not contain the preheader text — wrapper preview-slot wiring broken.");
+            // …and BEFORE the brand header row (M081 sixth-pass review): the
+            // wrapper rides the preheader in the header slot precisely so the
+            // brand name cannot precede the crafted preview copy. A body-slot
+            // preheader let clients concatenate "Roundup" ahead of it (or
+            // preview only the brand), silently defeating per-class previews.
+            $brandHeaderPos = strpos($html, 'class="header"');
+            if ($preheaderPos !== false && $brandHeaderPos !== false) {
+                test()->assertLessThan($brandHeaderPos, $preheaderPos, "[{$class}/{$locale}] preheader must render before the brand header row (hidden inbox-preview slot).\n");
+            }
+            $greetingPos = strpos($html, '<h1');
+            if ($preheaderPos !== false && $greetingPos !== false) {
+                test()->assertLessThan($greetingPos, $preheaderPos, "[{$class}/{$locale}] preheader must render before the greeting heading (hidden inbox-preview slot).");
+            }
 
             // Excluded classes are listed in corpusUnsubscribeExclusions()
             // with a one-line justification — the exclusion-hygiene test
@@ -346,6 +402,26 @@ it('renders every defined channel with non-empty payloads in both en and de', fu
                     );
                 }
             }
+
+            // Cross-channel read-marker pin (D288 item 1, M081/S08): every
+            // corpus mail CTA (outside corpusReadMarkerExclusions()) must be
+            // a SIGNED read-marker URL — the marker is what keeps the bell
+            // badge truthful after a mail click. A bare route() URL here
+            // means a channel action escaped the actionUrlWithMarker wrap.
+            if (! array_key_exists($class, corpusReadMarkerExclusions())) {
+                preg_match_all('#href="([^"]*\/notifications\/read-marker/[^"]*)"#', $html, $markerMatches);
+                test()->assertNotEmpty(
+                    $markerMatches[1],
+                    "[{$class}/{$locale}] mail CTA is not a signed read-marker URL — wire it through actionUrlWithMarker() or classify the exception."
+                );
+                foreach ($markerMatches[1] as $markerHref) {
+                    test()->assertStringContainsString(
+                        'signature=',
+                        html_entity_decode($markerHref),
+                        "[{$class}/{$locale}] read-marker CTA carries no signature — an unsigned marker would never mark the sibling row read."
+                    );
+                }
+            }
         }
 
         // Database — gated for genuinely database-less classes. (WeeklyDigest
@@ -368,6 +444,25 @@ it('renders every defined channel with non-empty payloads in both en and de', fu
                 NotificationCategory::tryFrom($type) !== null || array_key_exists($type, corpusTypeOnlyCategories()),
                 "[{$class}/{$locale}] toDatabase type [{$type}] is neither a NotificationCategory case nor a conscious corpusTypeOnlyCategories() entry — classify it consciously or fix the literal."
             );
+
+            // Digest-label completeness pin (M081/S06 review): every emitted
+            // type feeds WeeklyDigest::shortType(), whose label lookup falls
+            // back to the English class basename for DE readers when a key is
+            // missing (shipped for content_removed/cover_image_removed). A
+            // new type without both locale keys fails here. WeeklyDigest
+            // itself is exempt: it is mail-only, so its 'digest' category
+            // identity feeds the engagement counters but can never appear as
+            // an unread row a digest would summarize.
+            if ($class !== 'WeeklyDigest') {
+                foreach (['en', 'de'] as $labelLocale) {
+                    $expected = "notifications.label_digest_{$type}";
+                    test()->assertNotSame(
+                        $expected,
+                        __($expected, [], $labelLocale),
+                        "[{$class}] digest label [{$expected}] is missing in [{$labelLocale}] — the digest row renders the English basename fallback."
+                    );
+                }
+            }
         }
 
         // Push — gated + null-tolerant: null is a deliberate opt-out (D130).
@@ -379,6 +474,42 @@ it('renders every defined channel with non-empty payloads in both en and de', fu
                 test()->assertNotSame('', $push->body, "[{$class}/{$locale}] push body is empty.");
                 test()->assertSame(BaseNotification::PUSH_ICON, $push->icon, "[{$class}/{$locale}] push icon lost the shared envelope wrap.");
                 test()->assertNotSame('', $push->url, "[{$class}/{$locale}] push url is empty.");
+
+                // Read-marker pin (D288 item 1): every push action URL must
+                // be a signed read-marker landing — tapping the push must
+                // clear the sibling in-app row. All push-capable corpus
+                // classes have a database sibling (only WeeklyDigest is
+                // mail-only, and it has no toPush()).
+                test()->assertStringContainsString(
+                    '/notifications/read-marker/',
+                    $push->url,
+                    "[{$class}/{$locale}] push url is not a read-marker landing — wire it through actionUrlWithMarker()."
+                );
+                test()->assertStringContainsString(
+                    'signature=',
+                    $push->url,
+                    "[{$class}/{$locale}] push read-marker carries no signature."
+                );
+
+                // Action buttons too (M081 sixth-pass review): a button URL
+                // that skips the marker leaves the sibling bell row unread
+                // after the user acts on the button — the same D288 breach a
+                // bare url would commit. WaitlistPromoted's Confirm-spot
+                // button is the current sole carrier; the pin keeps every
+                // future action honest.
+                foreach (($push->actions ?? []) as $actionIndex => $action) {
+                    $actionUrl = is_string($action['url'] ?? null) ? $action['url'] : '';
+                    test()->assertStringContainsString(
+                        '/notifications/read-marker/',
+                        $actionUrl,
+                        "[{$class}/{$locale}] push action[{$actionIndex}] url is not a read-marker landing — wire it through actionUrlWithMarker()."
+                    );
+                    test()->assertStringContainsString(
+                        'signature=',
+                        $actionUrl,
+                        "[{$class}/{$locale}] push action[{$actionIndex}] read-marker carries no signature."
+                    );
+                }
             }
         }
 
@@ -443,6 +574,21 @@ it('keeps the unsubscribe exclusion list honest', function () {
     }
 });
 
+it('keeps the read-marker exclusion list honest', function () {
+    foreach (corpusReadMarkerExclusions() as $class => $reason) {
+        test()->assertArrayHasKey(
+            $class,
+            corpusNotificationDataset(),
+            "Read-marker exclusion [{$class}] names a class outside the corpus registry — remove the stale entry."
+        );
+        test()->assertNotSame(
+            '',
+            trim($reason),
+            "Read-marker exclusion [{$class}] must carry a one-line justification."
+        );
+    }
+});
+
 it('keeps the type-only category list honest', function () {
     foreach (corpusTypeOnlyCategories() as $type => $reason) {
         test()->assertNull(
@@ -472,6 +618,17 @@ it('classifies the dynamic type variants the corpus fixtures cannot reach', func
             corpusTypeOnlyCategories(),
             "Dynamic type variant [{$type}] must be classified in corpusTypeOnlyCategories()."
         );
+
+        // Same digest-label completeness pin as the corpus loop — variants
+        // the fixtures cannot reach still render digest rows.
+        foreach (['en', 'de'] as $labelLocale) {
+            $expected = "notifications.label_digest_{$type}";
+            test()->assertNotSame(
+                $expected,
+                __($expected, [], $labelLocale),
+                "Digest label [{$expected}] is missing in [{$labelLocale}] for dynamic variant [{$type}]."
+            );
+        }
     }
 });
 
@@ -508,3 +665,28 @@ function corpusTicket(TestCase $test, User $requester): Ticket
         ],
     ]);
 }
+
+// ── Family-map coherence guard (M081 fifth-pass review) ───────────────────
+//
+// The enum's TYPE_ONLY_PREFERENCE_FAMILIES and the corpus annotations here
+// must describe the SAME reality: every type-only vocabulary entry that is
+// dispatched under a category (i.e. family-mapped in the enum) must be
+// documented in corpusTypeOnlyCategories() — and, since the moderation
+// cluster was family-mapped, the two sets are today identical. A new entry
+// on either side without the other is exactly the silent-drift defect class
+// this pass fixed (the moderation cluster was annotated "no preference
+// category" while dispatch really gated it through ModerationNotice).
+it('keeps the enum family map and the corpus type-only annotations in lockstep', function () {
+    $families = (new \ReflectionClass(NotificationCategory::class))
+        ->getConstant('TYPE_ONLY_PREFERENCE_FAMILIES');
+
+    // 'digest' is the one documented family-less exemption: it is governed
+    // by the separate weekly_digest_enabled flag, not a category preference
+    // row (see the enum map's docblock).
+    $annotated = array_filter(
+        array_keys(corpusTypeOnlyCategories()),
+        fn (string $type): bool => $type !== 'digest',
+    );
+
+    expect(array_keys($families))->toEqualCanonicalizing(array_values($annotated));
+});

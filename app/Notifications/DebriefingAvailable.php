@@ -24,7 +24,7 @@ class DebriefingAvailable extends BaseNotification
     {
         $locale = $this->resolveLocale($notifiable);
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('notifications.subject_debriefing_available', [
                 'game' => $this->game->name,
             ]))
@@ -32,8 +32,10 @@ class DebriefingAvailable extends BaseNotification
             ->line(__('notifications.body_debriefing_available', [
                 'game' => $this->game->name,
             ]))
-            ->action(__('games.action_submit_debriefing'), route('games.show', ['locale' => $locale, 'id' => $this->game]))
+            ->action(__('games.action_submit_debriefing'), $this->actionUrlWithMarker($notifiable, route('games.show', ['locale' => $locale, 'id' => $this->game])))
             ->line($this->unsubscribeLine($notifiable, 'session_content'));
+
+        return $this->withPreheader($mail, 'notifications.preheader_debriefing_available');
     }
 
     /**
@@ -73,7 +75,7 @@ class DebriefingAvailable extends BaseNotification
             __('notifications.subject_debriefing_available', [
                 'game' => $this->game->name,
             ]),
-            route('games.show', ['locale' => $this->resolveLocale($notifiable), 'id' => $this->game]),
+            $this->actionUrlWithMarker($notifiable, route('games.show', ['locale' => $this->resolveLocale($notifiable), 'id' => $this->game])),
             "debriefing-{$this->game->id}",
         );
     }

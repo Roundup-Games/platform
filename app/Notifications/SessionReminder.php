@@ -64,6 +64,12 @@ class SessionReminder extends BaseNotification
 
     /**
      * Get the push notification representation.
+     *
+     * Deadline-critical push (M081/S05, D286 rider): carries renotify + the
+     * stable per-(window, game) tag, so a re-sent reminder replaces the
+     * previous one and re-alerts on supporting clients instead of stacking
+     * silently; the timestamp is the session start — the event the reminder
+     * exists for (omitted when the game has no date_time).
      */
     public function toPush(User $notifiable): PushPayload
     {
@@ -72,8 +78,11 @@ class SessionReminder extends BaseNotification
         return $this->pushPayload(
             $copy['title'],
             $copy['body'],
-            route('games.show', ['locale' => $this->resolveLocale($notifiable), 'id' => $this->game]),
+            $this->actionUrlWithMarker($notifiable, route('games.show', ['locale' => $this->resolveLocale($notifiable), 'id' => $this->game])),
             "game-reminder-{$this->window}-{$this->game->id}",
+            timestamp: $this->game->date_time?->getTimestamp(),
+            badge: self::PUSH_BADGE,
+            renotify: true,
         );
     }
 

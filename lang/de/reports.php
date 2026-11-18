@@ -6,7 +6,7 @@ return [
     // ── Titles ─────────────────────────────────────────────────────
     'title_report_content' => ':type melden',
     // ── Content ────────────────────────────────────────────────────
-    'content_report_explanation' => 'Warum meldest du diesen Inhalt? Meldungen werden an unser Moderationsteam weitergeleitet.',
+    'content_report_explanation' => 'Warum meldest Du diesen Inhalt? Meldungen werden an unser Moderationsteam weitergeleitet.',
     // ── Entity type labels ─────────────────────────────────────────
     'entity_user' => 'Benutzer',
     // ── Report reasons ─────────────────────────────────────────────
@@ -24,7 +24,7 @@ return [
     'validation_description_max' => 'Die Beschreibung darf maximal 1000 Zeichen lang sein.',
     // ── Errors ─────────────────────────────────────────────────────
     'error_entity_not_found' => 'Der gemeldete Inhalt konnte nicht gefunden werden.',
-    'error_self_report' => 'Du kannst deinen eigenen Inhalt nicht melden.',
+    'error_self_report' => 'Du kannst Deinen eigenen Inhalt nicht melden.',
     'error_already_reported' => 'Du hast diesen Inhalt bereits gemeldet. Unser Team prüft ihn.',
     // ── Flash ──────────────────────────────────────────────────────
     'flash_report_submitted' => 'Vielen Dank. Deine Meldung wurde an unser Moderationsteam weitergeleitet.',

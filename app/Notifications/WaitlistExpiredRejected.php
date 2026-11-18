@@ -6,6 +6,7 @@ use App\Dto\PushPayload;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
+use App\Services\Discord\DiscordPalette;
 use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 
@@ -22,7 +23,7 @@ class WaitlistExpiredRejected extends BaseNotification
     {
         $locale = $this->resolveLocale($notifiable);
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('notifications.subject_waitlist_expired_rejected', [
                 'game' => $this->entity->name,
             ]))
@@ -31,8 +32,10 @@ class WaitlistExpiredRejected extends BaseNotification
                 'game' => $this->entity->name,
                 'attempts' => $this->confirmationAttempts,
             ]))
-            ->action(__('notifications.action_browse_games'), route('games.index', ['locale' => $locale]))
+            ->action(__('notifications.action_browse_games'), $this->actionUrlWithMarker($notifiable, route('games.index', ['locale' => $locale])))
             ->line($this->unsubscribeLine($notifiable, 'confirmation_expired'));
+
+        return $this->withPreheader($mail, 'notifications.preheader_waitlist_expired_rejected');
     }
 
     /**
@@ -59,9 +62,20 @@ class WaitlistExpiredRejected extends BaseNotification
             __('notifications.push_body_waitlist_expired_rejected', [
                 'game' => $this->entity->name,
             ]),
-            route('games.index', ['locale' => $this->resolveLocale($notifiable)]),
+            $this->actionUrlWithMarker($notifiable, route('games.index', ['locale' => $this->resolveLocale($notifiable)])),
             "waitlist-rejected-{$this->getEntityType()}-{$this->entity->id}",
         );
+    }
+
+    /**
+     * Expiry bucket (D280): the seat expired out from under the recipient —
+     * the same negative-outcome family as ConfirmationExpired, so the DM
+     * carries the palette red, not the brand emerald the no-bucket default
+     * would paint on it.
+     */
+    protected function semanticColor(): int
+    {
+        return DiscordPalette::CANCELLATION;
     }
 
     /**

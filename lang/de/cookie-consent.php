@@ -1,7 +1,7 @@
 <?php
 return [
     // Banner
-    'content_banner_message' => 'Wir verwenden Cookies, um deine Erfahrung zu verbessern und die Seitennutzung zu analysieren.',
+    'content_banner_message' => 'Wir verwenden Cookies, um Deine Erfahrung zu verbessern und die Seitennutzung zu analysieren.',
     'heading_banner_title' => 'Cookie-Einstellungen',
     // Buttons
     'action_reject_optional' => 'Optionale ablehnen',

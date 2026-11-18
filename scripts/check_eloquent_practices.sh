@@ -150,7 +150,13 @@ check_morph_map() {
     done
 
     if [ "${missing}" = "0" ]; then
-        if ls database/migrations/*migrate_morph_types_to_aliases.php >/dev/null 2>&1; then
+        # The alias data migration counts as present either as a live
+        # migration file or inside the squashed baseline's migrations
+        # ledger (database/schema/README.md: a re-squash via
+        # `php artisan schema:dump --prune` folds applied migrations
+        # into pgsql-schema.sql and deletes their files).
+        if ls database/migrations/*migrate_morph_types_to_aliases.php >/dev/null 2>&1 \
+            || grep -q "migrate_morph_types_to_aliases" database/schema/pgsql-schema.sql; then
             printf '  %b✅ %-9s%b %s\n' "${GRN}" "morphMap" "${RST}" "enforced, complete, alias data migration present"
         else
             printf '  %b❌ %-9s%b %s\n' "${RED}" "morphMap" "${RST}" "alias data migration (migrate_morph_types_to_aliases) missing - stored FQCNs would not resolve through the enforced map"

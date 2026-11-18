@@ -30,7 +30,7 @@ class ParticipantJoined extends BaseNotification
         $actionUrl = $this->resolveEntityUrl($locale);
         $entityTypeLabel = $this->entityTypeLabel();
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('notifications.subject_participant_joined', [
                 'participant' => $this->participant->name,
                 'entity' => $this->entity->name,
@@ -41,8 +41,10 @@ class ParticipantJoined extends BaseNotification
                 'entity_type' => $entityTypeLabel,
                 'entity' => $this->entity->name,
             ]))
-            ->action(__('notifications.action_view_entity_type', ['entity_type' => ucfirst($entityTypeLabel)]), $actionUrl)
+            ->action(__('notifications.action_view_entity_type', ['entity_type' => ucfirst($entityTypeLabel)]), $this->actionUrlWithMarker($notifiable, $actionUrl))
             ->line($this->unsubscribeLine($notifiable, 'participant_joined'));
+
+        return $this->withPreheader($mail, 'notifications.preheader_participant_joined');
     }
 
     /**

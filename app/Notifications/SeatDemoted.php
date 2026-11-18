@@ -37,8 +37,9 @@ class SeatDemoted extends BaseNotification
     public function toMail(User $notifiable): MailMessage
     {
         $locale = $this->resolveLocale($notifiable);
+        $url = $this->getEntityRoute($locale);
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('notifications.subject_seat_demoted', [
                 'entity' => $this->entity->name,
             ]))
@@ -47,8 +48,14 @@ class SeatDemoted extends BaseNotification
                 'entity' => $this->entity->name,
                 'reason' => $this->reason,
             ]))
-            ->action(__('notifications.action_view_'.$this->getEntityType()), $this->getEntityRoute($locale))
+            ->action(__('notifications.action_view_'.$this->getEntityType()), $this->actionUrlWithMarker($notifiable, $url))
             ->line($this->unsubscribeLine($notifiable, 'seat_demoted'));
+
+        // iTIP METHOD:CANCEL (D287): a revoked seat revokes the calendar
+        // event it came with — STATUS:CANCELLED with a SEQUENCE bump.
+        $this->attachIcsCancellation($mail, $this->entity, $notifiable, $url);
+
+        return $this->withPreheader($mail, 'notifications.preheader_seat_demoted');
     }
 
     /**
@@ -76,7 +83,7 @@ class SeatDemoted extends BaseNotification
                 'game' => $this->entity->name,
                 'reason' => $this->reason,
             ]),
-            $this->getEntityRoute($this->resolveLocale($notifiable)),
+            $this->actionUrlWithMarker($notifiable, $this->getEntityRoute($this->resolveLocale($notifiable))),
             "seat-demoted-{$this->getEntityType()}-{$this->entity->id}",
         );
     }

@@ -4,6 +4,41 @@ namespace App\Enums;
 
 enum NotificationCategory: string
 {
+    /**
+     * data.type values that are deliberately NOT enum cases, mapped to the
+     * preference family that governs them — the counter vocabulary (D284)
+     * translated into the settings vocabulary. Mirrors the "preference family"
+     * annotations in NotificationCorpusRenderTest::corpusTypeOnlyCategories().
+     *
+     * The moderation cluster (account_suspended, content_removed,
+     * cover_image_removed, content_report_warning) IS family-mapped: all
+     * four are dispatched through NotificationService::send() under
+     * NotificationCategory::ModerationNotice, so the user's moderation_notice
+     * preference row (mail ON by default) genuinely gates these mails —
+     * surfaces reading preferenceFamilyForType() must offer the settings
+     * shortcut for them, not silently omit it (M081 fifth-pass review;
+     * previously mis-documented as "no preference row to tune"). 'digest' is
+     * the one true family-less entry: the weekly digest is governed by the
+     * separate weekly_digest_enabled flag, not any category preference.
+     */
+    private const TYPE_ONLY_PREFERENCE_FAMILIES = [
+        'account_suspended' => self::ModerationNotice,
+        'badge_upgraded' => self::BadgeAwarded,
+        'bulletin_posted' => self::SessionContent,
+        'content_removed' => self::ModerationNotice,
+        'content_report_warning' => self::ModerationNotice,
+        'cover_image_removed' => self::ModerationNotice,
+        'debriefing_available' => self::SessionContent,
+        'game_system_request_approved' => self::GameSystemRequest,
+        'game_system_request_duplicate' => self::GameSystemRequest,
+        'game_system_request_rejected' => self::GameSystemRequest,
+        'player_benched' => self::BenchUpdates,
+        'promoted_from_bench' => self::BenchUpdates,
+        'recap_posted' => self::SessionContent,
+        'waitlist_expired_rejected' => self::ConfirmationExpired,
+        'waitlist_placed' => self::WaitlistPlacement,
+    ];
+
     // Social
     case NewFollower = 'new_follower';
 
@@ -196,6 +231,21 @@ enum NotificationCategory: string
         }
 
         return $result;
+    }
+
+    /**
+     * Resolve a stored data.type (the counter vocabulary) to the
+     * NotificationCategory whose preference row governs it.
+     *
+     * Enum values resolve to themselves; deliberate non-enum variants
+     * (TYPE_ONLY_PREFERENCE_FAMILIES) resolve to their family; anything
+     * else — administrative one-offs and unknown future types — resolves
+     * to null, so callers can omit the settings affordance entirely.
+     */
+    public static function preferenceFamilyForType(string $type): ?self
+    {
+        return self::tryFrom($type)
+            ?? self::TYPE_ONLY_PREFERENCE_FAMILIES[$type] ?? null;
     }
 
     /**

@@ -445,15 +445,42 @@ class NotificationQueryService
     /**
      * Extract the target entity name from a notification's data payload.
      *
+     * THE shared payload-name resolution: the in-app rows (bell dropdown +
+     * notifications page) resolve through here, and the weekly digest's
+     * entity-aware mail rows resolve through here too (M081/S06 follow-up)
+     * — payload name keys are heterogeneous ("{$type}_name" for the unified
+     * classes, per-class keys via TARGET_ENTITY_KEYS, game_system_name for
+     * the request family), so any surface that renders entity names from
+     * stored payloads must reuse this method or it silently diverges from
+     * the in-app display for exactly the classes whose keys differ.
+     *
+     * @param  string  $shortType  Notification class basename (class_basename of the stored type).
      * @param  array<string, mixed>  $data
      */
-    protected function extractEntityName(string $shortType, array $data): ?string
+    public function extractEntityName(string $shortType, array $data): ?string
     {
-        // Unified notification classes (EntityInvitation, etc.) use dynamic keys
+        // Unified notification classes (EntityInvitation, etc.) use dynamic keys.
+        // The name key derives from the ENTITY type ('game'/'campaign'), never
+        // from the wire type: the wire value is "{entity}_{verb}"
+        // (game_invitation, campaign_cancelled…), and "{$wireType}_name" is a
+        // key no payload has ever carried. Deriving from the wire type made the
+        // branch fall through to entity_name — which only
+        // Entity{Updated,Cancelled,Completed} store — so EntityInvitation
+        // names resolved to null and invitation rows lost their linked entity
+        // on every surface (bell rows, notifications page, digest mail).
         if ($shortType === 'EntityInvitation' || $shortType === 'EntityCompleted' || $shortType === 'EntityUpdated' || $shortType === 'EntityCancelled') {
-            $type = $data['type'] ?? $data['entity_type'] ?? null;
-            if (is_string($type)) {
-                $nameKey = "{$type}_name";
+            $entityType = $data['entity_type'] ?? null;
+
+            if (! is_string($entityType) && is_string($data['type'] ?? null)) {
+                // Strip the known verb suffix from the wire type to recover
+                // the entity type; future wire verbs must extend the suffix
+                // list consciously.
+                $stripped = preg_replace('/_(invitation|updated|cancelled|completed)$/', '', $data['type']);
+                $entityType = is_string($stripped) ? $stripped : null;
+            }
+
+            if (is_string($entityType) && $entityType !== '') {
+                $nameKey = "{$entityType}_name";
                 $val = $data[$nameKey] ?? $data['entity_name'] ?? null;
 
                 return is_string($val) ? $val : null;
@@ -462,6 +489,17 @@ class NotificationQueryService
 
         $mapping = self::TARGET_ENTITY_KEYS[$shortType] ?? null;
         if ($mapping === null) {
+            // Badge awards carry no entity_name/game_name/campaign_name — the
+            // badge display name lives under badge_name, and without this
+            // branch the bell row degraded to a verb-only line with no
+            // linked name (M081 review; the name is display-only, resolved
+            // per-recipient at send time by BadgeAwardedNotification).
+            if ($shortType === 'BadgeAwardedNotification') {
+                $val = $data['badge_name'] ?? null;
+
+                return is_string($val) && $val !== '' ? $val : null;
+            }
+
             // Game-system-request notifications store the requested system name
             // under game_system_name (approved/rejected) or existing_game_system_name
             // (duplicate). They have no entity_name/game_name/campaign_name key, so

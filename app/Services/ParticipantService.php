@@ -376,6 +376,7 @@ class ParticipantService
                     'locale' => app()->getLocale(),
                     'emailHash' => SuppressedInviteEmail::hashEmail($normalizedEmail),
                 ]),
+                entityLanguage: $entity->language ?? null,
             );
             Mail::to($normalizedEmail)->queue($mailable);
         } catch (\Throwable $e) {

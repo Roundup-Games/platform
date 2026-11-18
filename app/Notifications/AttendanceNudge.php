@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 use App\Models\Game;
 use App\Models\User;
+use App\Services\Discord\DiscordPalette;
 use App\Services\Discord\DiscordWebhookPayload;
 use Carbon\Carbon;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -40,7 +41,7 @@ class AttendanceNudge extends BaseNotification
         // the notifiable's wall clock — the calendar day differs across zones.
         $date = format_date($this->game->date_time, 'date', $notifiable->timezone ?? community_timezone());
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('notifications.subject_attendance_nudge', [
                 'game' => $this->game->name,
             ]))
@@ -50,11 +51,15 @@ class AttendanceNudge extends BaseNotification
                 'date' => $date,
                 'deadline' => $this->deadlineLabel($notifiable),
             ]))
-            ->action(__('notifications.action_view_game'), route('games.show', [
+            ->action(__('notifications.action_view_game'), $this->actionUrlWithMarker($notifiable, route('games.show', [
                 'locale' => $locale,
                 'id' => $this->game->id,
-            ]))
+            ])))
             ->line($this->unsubscribeLine($notifiable, 'attendance_nudge'));
+
+        return $this->withPreheader($mail, 'notifications.preheader_attendance_nudge', [
+            'game' => $this->game->name,
+        ]);
     }
 
     /**
@@ -100,10 +105,10 @@ class AttendanceNudge extends BaseNotification
                 'game' => $this->game->name,
                 'deadline' => $this->deadlineLabel($notifiable),
             ]),
-            route('games.show', [
+            $this->actionUrlWithMarker($notifiable, route('games.show', [
                 'locale' => $this->resolveLocale($notifiable),
                 'id' => $this->game->id,
-            ]),
+            ])),
             "attendance-nudge-{$this->game->id}",
         );
     }
@@ -124,5 +129,13 @@ class AttendanceNudge extends BaseNotification
                 'deadline' => $this->deadlineLabel($notifiable),
             ]),
         );
+    }
+
+    /**
+     * D280 semantic layer: action-needed amber — the recipient must confirm attendance before the deadline.
+     */
+    protected function semanticColor(): int
+    {
+        return DiscordPalette::ACTION_NEEDED;
     }
 }

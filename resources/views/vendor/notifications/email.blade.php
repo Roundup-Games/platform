@@ -15,7 +15,14 @@ foreach ($outroLines as $line) {
 }
 @endphp
 
-<x-mail::message>
+<x-mail::message :preheader="$preheader ?? null">
+{{-- Preheader: hidden inbox-preview text (T02 wires per-class copy through
+    MailMessage viewData; absent viewData renders nothing). It is passed to
+    the mail::message component, whose published override renders it as the
+    first row of the header slot — BEFORE the brand header (M081 sixth-pass
+    review: in the body slot, clients concatenated the brand name ahead of
+    the crafted preview copy). --}}
+
 {{-- Greeting --}}
 @if (! empty($greeting))
 # {{ $greeting }}
@@ -56,13 +63,13 @@ foreach ($outroLines as $line) {
 @if (! empty($salutation))
 {{ $salutation }}
 @else
-@lang('Regards,')<br>
+{{ __('notifications.email_regards') }}<br>
 {{ config('app.name') }}
 @endif
 
 {{-- Unsubscribe footer --}}
 @if ($unsubscribeLine)
-<div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #e4e4e7; text-align: center;">
+<div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #e8e2d4; text-align: center;">
 {{ $unsubscribeLine }}
 </div>
 @endif
@@ -70,13 +77,7 @@ foreach ($outroLines as $line) {
 {{-- Subcopy --}}
 @isset($actionText)
 <x-slot:subcopy>
-@lang(
-    "If you're having trouble clicking the \":actionText\" button, copy and paste the URL below\n".
-    'into your web browser:',
-    [
-        'actionText' => $actionText,
-    ]
-) <span class="break-all">[{{ $displayableActionUrl }}]({{ $actionUrl }})]</span>
+{{ __('notifications.email_trouble_clicking', ['actionText' => $actionText]) }} <span class="break-all">[{{ $displayableActionUrl }}]({{ $actionUrl }})</span>
 </x-slot:subcopy>
 @endisset
 </x-mail::message>

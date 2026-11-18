@@ -5,8 +5,10 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 use App\Models\Game;
 use App\Models\User;
+use App\Services\Discord\DiscordPalette;
 use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Str;
 
 class RecapPosted extends BaseNotification
 {
@@ -26,18 +28,30 @@ class RecapPosted extends BaseNotification
     {
         $locale = $this->resolveLocale($notifiable);
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('notifications.subject_recap_posted', [
                 'host' => $this->author->name,
                 'game' => $this->game->name,
-            ]))
+            ], $locale))
             ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_recap_posted', [
                 'host' => $this->author->name,
                 'game' => $this->game->name,
-            ]))
-            ->action(__('notifications.action_view_recap'), route('games.show', ['locale' => $locale, 'id' => $this->game]))
+            ], $locale));
+
+        // Quote the recap, like BulletinPosted quotes the bulletin — the
+        // mail should carry the flavor, not just announce that one exists.
+        $recapBody = $this->game->recapEntry?->body;
+        if (is_string($recapBody) && $recapBody !== '') {
+            $mail->line(__('notifications.body_recap_content', [
+                'content' => Str::limit($recapBody, 100),
+            ], $locale));
+        }
+
+        $mail->action(__('notifications.action_view_recap'), $this->actionUrlWithMarker($notifiable, route('games.show', ['locale' => $locale, 'id' => $this->game])))
             ->line($this->unsubscribeLine($notifiable, 'session_content'));
+
+        return $this->withPreheader($mail, 'notifications.preheader_recap_posted');
     }
 
     /**
@@ -78,7 +92,7 @@ class RecapPosted extends BaseNotification
                 'host' => $this->author->name,
                 'game' => $this->game->name,
             ]),
-            route('games.show', ['locale' => $this->resolveLocale($notifiable), 'id' => $this->game]),
+            $this->actionUrlWithMarker($notifiable, route('games.show', ['locale' => $this->resolveLocale($notifiable), 'id' => $this->game])),
             "recap-{$this->game->id}",
         );
     }
@@ -96,5 +110,13 @@ class RecapPosted extends BaseNotification
                 'game' => $this->game->name,
             ]),
         );
+    }
+
+    /**
+     * D280 semantic layer: ambient grey — informational recap post, no recipient action required.
+     */
+    protected function semanticColor(): int
+    {
+        return DiscordPalette::AMBIENT;
     }
 }

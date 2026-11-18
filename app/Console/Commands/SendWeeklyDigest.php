@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\EmailSuppression;
 use App\Models\User;
 use App\Notifications\WeeklyDigest;
 use Carbon\CarbonImmutable;
@@ -78,6 +79,20 @@ class SendWeeklyDigest extends Command
                         continue;
                     }
 
+                    // The digest bypasses NotificationService::send (it goes
+                    // straight to $user->notify), so the EmailSuppression gate
+                    // the service applies must be applied here too — a hard
+                    // bounce must stop the weekly mail, not re-trigger it every
+                    // Monday (M081 review; same gate SendWelcomeEmail applies).
+                    if (EmailSuppression::isSuppressed($user->email)) {
+                        $skippedCount++;
+                        Log::info('weekly_digest.skipped_suppressed', [
+                            'user_id' => $user->id,
+                        ]);
+
+                        continue;
+                    }
+
                     if ($dryRun) {
                         $this->line("  Would send digest to user {$user->id} ({$user->email}) — {$notifications->count()} items");
                         $skippedCount++;
@@ -85,7 +100,7 @@ class SendWeeklyDigest extends Command
                         continue;
                     }
 
-                    $user->notify(new WeeklyDigest($notifications));
+                    $user->notify(WeeklyDigest::fromNotifications($notifications));
                     $sentCount++;
 
                     Log::info('weekly_digest.sent', [

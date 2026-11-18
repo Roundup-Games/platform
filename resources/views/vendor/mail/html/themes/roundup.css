@@ -1,0 +1,353 @@
+/*
+|--------------------------------------------------------------------------
+| Roundup Games mail theme (M081/S01/T01, D279)
+|--------------------------------------------------------------------------
+|
+| One branded theme for EVERY markdown-rendered mail: MailMessage
+| notifications (notifications::email wrapper) and the app/Mail mailables
+| (resources/views/emails/*). The Markdown renderer inlines the rules below
+| into every rendered message; the published html layout additionally embeds
+| this file verbatim in a <style> block so the @media block (stripped by
+| CssToInlineStyles during inlining) and the :focus-visible rules (not
+| inlinable) survive into the final HTML.
+|
+| R103 EMAIL-SAFE CSS SUBSET — this file must conform, and the corpus lint
+| (MailClientCompatibilityTest) enforces it mechanically:
+|
+|   - Table-based layout only. The framework mail:: components own the
+|     wrapper tables; this theme never restructures them (no div-only
+|     rewrites, no display:flex/grid).
+|   - System font stack only. No @font-face, no @import, no remote webfonts
+|     (Gmail strips them, Outlook ignores them).
+|   - No CSS custom properties (var(--…)) — Outlook's Word engine cannot
+|     resolve them.
+|   - No position:fixed/absolute, no animations, no transitions.
+|   - Progressive enhancements ONLY with graceful degradation:
+|     LIGHT-LOCK (2026-11-16): the mail declares light-only
+|     (color-scheme metas = "light") and carries NO dark-mode media
+|     query. The former dark-mode block collided with client-side dark
+|     recoloring (Mailpit viewers saw near-white text over the inlined
+|     cream surfaces). Clients without media-query support were never
+|     at risk: the BASE rules carry a fully readable light-mode email:
+|     cream surface, dark text, amber accents. border-radius/box-shadow
+|     are decorative (Outlook renders square — acceptable).
+|   - The light-mode base must not use !important (nothing needs to
+|     override inline attributes anymore — there is no dark block).
+|
+| Brand tokens (D279, aligned with app design tokens):
+|   amber  #835500 · cream  #fbf9f1 · cream-deep (frame) #f3f0e6
+|   ink #1b1c17 · ink-soft #3d3a2e · muted #5c5641 · border #e8e2d4
+|   (the former dark-chrome tokens were retired with the 2026-11-16 light-lock)
+*/
+
+/* Base */
+
+body,
+body *:not(html):not(style):not(br):not(tr):not(code) {
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+    position: relative;
+}
+
+body {
+    -webkit-text-size-adjust: none;
+    background-color: #f3f0e6;
+    color: #3d3a2e;
+    height: 100%;
+    line-height: 1.4;
+    margin: 0;
+    padding: 0;
+    width: 100% !important;
+}
+
+p,
+ul,
+ol,
+blockquote {
+    line-height: 1.4;
+    text-align: start;
+}
+
+a {
+    color: #835500;
+    text-decoration: underline;
+}
+
+a img {
+    border: none;
+}
+
+/* Typography */
+
+h1 {
+    color: #1b1c17;
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 0;
+    text-align: start;
+}
+
+h2 {
+    color: #1b1c17;
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 0;
+    text-align: start;
+}
+
+h3 {
+    color: #1b1c17;
+    font-size: 14px;
+    font-weight: bold;
+    margin-top: 0;
+    text-align: left;
+}
+
+p {
+    font-size: 16px;
+    line-height: 1.5em;
+    margin-top: 0;
+    text-align: left;
+}
+
+p.sub {
+    font-size: 12px;
+}
+
+img {
+    max-width: 100%;
+}
+
+/* Accessibility: visible keyboard focus on interactive elements.
+   Pseudo-class rules cannot be inlined by the renderer and are delivered
+   through the layout <style> block instead. */
+
+a:focus-visible,
+.button:focus-visible {
+    outline: 2px solid #835500;
+    outline-offset: 2px;
+}
+
+/* Layout */
+
+.wrapper {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    background-color: #f3f0e6;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+.content {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+/* Header */
+
+.header {
+    padding: 25px 0;
+    text-align: center;
+}
+
+.header a {
+    color: #835500;
+    font-size: 19px;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+/* Logo */
+
+.logo {
+    height: 75px;
+    margin-top: 15px;
+    margin-bottom: 10px;
+    max-height: 75px;
+    width: 75px;
+}
+
+/* Body */
+
+.body {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    background-color: #f3f0e6;
+    border-bottom: 1px solid #f3f0e6;
+    border-top: 1px solid #f3f0e6;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+.inner-body {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 570px;
+    background-color: #fbf9f1;
+    border-color: #e8e2d4;
+    border-radius: 4px;
+    border-width: 1px;
+    box-shadow: 0 1px 3px 0 rgba(27, 28, 23, 0.08), 0 1px 2px -1px rgba(27, 28, 23, 0.08);
+    margin: 0 auto;
+    padding: 0;
+    width: 570px;
+}
+
+.inner-body a {
+    word-break: break-all;
+}
+
+/* Subcopy */
+
+.subcopy {
+    border-top: 1px solid #e8e2d4;
+    margin-top: 25px;
+    padding-top: 25px;
+}
+
+.subcopy p {
+    font-size: 14px;
+}
+
+/* Footer */
+
+.footer {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 570px;
+    margin: 0 auto;
+    padding: 0;
+    text-align: center;
+    width: 570px;
+}
+
+.footer p {
+    color: #5c5641;
+    font-size: 12px;
+    text-align: center;
+}
+
+.footer a {
+    color: #5c5641;
+    text-decoration: underline;
+}
+
+/* Tables */
+
+.table table {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    margin: 30px auto;
+    width: 100%;
+}
+
+.table th {
+    border-bottom: 1px solid #e8e2d4;
+    color: #1b1c17;
+    margin: 0;
+    padding-bottom: 8px;
+}
+
+.table td {
+    color: #3d3a2e;
+    font-size: 15px;
+    line-height: 18px;
+    margin: 0;
+    padding: 10px 0;
+}
+
+.content-cell {
+    max-width: 100vw;
+    padding: 32px;
+}
+
+/* Buttons */
+
+.action {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    margin: 30px auto;
+    padding: 0;
+    text-align: center;
+    width: 100%;
+    float: unset;
+}
+
+.button {
+    -webkit-text-size-adjust: none;
+    border-radius: 4px;
+    color: #fff;
+    display: inline-block;
+    overflow: hidden;
+    text-decoration: none;
+}
+
+.button-blue,
+.button-primary {
+    background-color: #835500;
+    border-bottom: 8px solid #835500;
+    border-left: 18px solid #835500;
+    border-right: 18px solid #835500;
+    border-top: 8px solid #835500;
+}
+
+.button-green,
+.button-success {
+    background-color: #15803d;
+    border-bottom: 8px solid #15803d;
+    border-left: 18px solid #15803d;
+    border-right: 18px solid #15803d;
+    border-top: 8px solid #15803d;
+}
+
+.button-red,
+.button-error {
+    background-color: #b91c1c;
+    border-bottom: 8px solid #b91c1c;
+    border-left: 18px solid #b91c1c;
+    border-right: 18px solid #b91c1c;
+    border-top: 8px solid #b91c1c;
+}
+
+/* Panels */
+
+.panel {
+    border-left: #835500 solid 4px;
+    margin: 21px 0;
+}
+
+.panel-content {
+    background-color: #f3f0e6;
+    color: #3d3a2e;
+    padding: 16px;
+}
+
+.panel-content p {
+    color: #3d3a2e;
+}
+
+.panel-item {
+    padding: 0;
+}
+
+.panel-item p:last-of-type {
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+/* Utilities */
+
+.break-all {
+    word-break: break-all;
+}

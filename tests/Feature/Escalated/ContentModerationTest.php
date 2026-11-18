@@ -440,7 +440,7 @@ it('ContentReportWarning notification has correct database payload', function ()
     expect($payload['type'])->toBe('content_report_warning');
     expect($payload['entity_type'])->toBe('game');
     expect($payload['entity_name'])->toBe('Test Game');
-    expect($payload['reason'])->toBe('harassment');
+    expect($payload['reason'])->toBe(__('reports.field_reason_harassment'));
 });
 
 it('ContentRemoved notification has correct database payload', function () {
@@ -451,7 +451,7 @@ it('ContentRemoved notification has correct database payload', function () {
     expect($payload['type'])->toBe('content_removed');
     expect($payload['entity_type'])->toBe('campaign');
     expect($payload['entity_name'])->toBe('Test Campaign');
-    expect($payload['reason'])->toBe('spam');
+    expect($payload['reason'])->toBe(__('reports.field_reason_spam'));
 });
 
 it('AccountSuspended notification has correct database payload', function () {
@@ -460,5 +460,5 @@ it('AccountSuspended notification has correct database payload', function () {
     $payload = $notification->toDatabase($user);
 
     expect($payload['type'])->toBe('account_suspended');
-    expect($payload['reason'])->toBe('inappropriate-content');
+    expect($payload['reason'])->toBe(__('reports.field_reason_inappropriate_content'));
 });

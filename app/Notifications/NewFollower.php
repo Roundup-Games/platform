@@ -21,12 +21,14 @@ class NewFollower extends BaseNotification
         $locale = $this->resolveLocale($notifiable);
         $actionUrl = route('profile.show-authenticated', ['locale' => $locale, 'user' => $this->follower]);
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('notifications.subject_new_follower', ['follower' => $this->follower->name]))
             ->greeting($this->greetingLine($notifiable))
             ->line(__('notifications.body_new_follower', ['follower' => $this->follower->name, 'brand' => is_string($b = config('company.display_name')) ? $b : '']))
-            ->action(__('notifications.action_new_follower'), $actionUrl)
+            ->action(__('notifications.action_new_follower'), $this->actionUrlWithMarker($notifiable, $actionUrl))
             ->line($this->unsubscribeLine($notifiable, 'new_follower'));
+
+        return $this->withPreheader($mail, 'notifications.preheader_new_follower');
     }
 
     /**
@@ -64,7 +66,7 @@ class NewFollower extends BaseNotification
             __('notifications.subject_new_follower', [
                 'follower' => $this->follower->name,
             ]),
-            route('profile.show-authenticated', ['locale' => $this->resolveLocale($notifiable), 'user' => $this->follower]),
+            $this->actionUrlWithMarker($notifiable, route('profile.show-authenticated', ['locale' => $this->resolveLocale($notifiable), 'user' => $this->follower])),
             "new-follower-{$this->follower->id}",
         );
     }

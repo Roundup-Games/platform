@@ -2,19 +2,19 @@
 return [
     // Account Support page
     'title_account_support' => 'Konto-Support',
-    'description_account_support' => 'Probleme mit deinem Konto? Sag uns Bescheid, wir helfen dir weiter.',
+    'description_account_support' => 'Probleme mit Deinem Konto? Sag uns Bescheid, wir helfen Dir weiter.',
     // Billing Support page
     'title_billing_support' => 'Rechnungssupport',
-    'description_billing_support' => 'Probleme mit einer Zahlung oder einem Abonnement? Sende ein Ticket und unser Rechnungsteam hilft dir.',
+    'description_billing_support' => 'Probleme mit einer Zahlung oder einem Abonnement? Sende ein Ticket und unser Rechnungsteam hilft Dir.',
     // Shared
-    'title_need_help' => 'Brauchst du Hilfe?',
+    'title_need_help' => 'Brauchst Du Hilfe?',
     'content_having_billing_issues' => 'Probleme mit einer Zahlung, Rückerstattung oder einem Abonnement?',
-    'content_contact_our_support_team' => 'Probleme mit deinem Konto? Unser Support-Team kann helfen.',
+    'content_contact_our_support_team' => 'Probleme mit Deinem Konto? Unser Support-Team kann helfen.',
     'content_billing_help' => 'Rechnungshilfe',
     'content_billing_team_responds' => 'Unser Rechnungsteam antwortet in der Regel innerhalb von 24 Stunden. Dringende Zahlungsprobleme werden vorrangig bearbeitet.',
-    'content_need_help_fast' => 'Brauchst du schnelle Hilfe?',
+    'content_need_help_fast' => 'Brauchst Du schnelle Hilfe?',
     'content_account_support_team_responds' => 'Unser Konto-Support-Team antwortet in der Regel innerhalb von 24 Stunden.',
-    'content_for_billing_issues_visit_billing' => 'Für Zahlungs- oder Abonnementprobleme besuche die Rechnungssupport-Seite in deinen Rechnungseinstellungen.',
+    'content_for_billing_issues_visit_billing' => 'Für Zahlungs- oder Abonnementprobleme besuche die Rechnungssupport-Seite in Deinen Rechnungseinstellungen.',
     // Contact form category
     'field_category' => 'Kategorie',
     'category_general' => 'Allgemeine Anfrage',
@@ -22,10 +22,10 @@ return [
     // Form fields
     'field_issue_type' => 'Problemtyp',
     // Placeholders
-    'placeholder_subject' => 'Beschreibe dein Problem kurz',
-    'placeholder_support_issue_description' => 'Bitte beschreibe dein Problem so detailliert wie möglich…',
+    'placeholder_subject' => 'Beschreibe Dein Problem kurz',
+    'placeholder_support_issue_description' => 'Bitte beschreibe Dein Problem so detailliert wie möglich…',
     'placeholder_billing_subject' => 'z.B. Zahlung fehlgeschlagen, Rückerstattung, Abonnement-Problem',
-    'placeholder_billing_description' => 'Bitte beschreibe dein Rechnungsproblem mit allen relevanten Transaktionsdetails…',
+    'placeholder_billing_description' => 'Bitte beschreibe Dein Rechnungsproblem mit allen relevanten Transaktionsdetails…',
     // Actions
     'action_submit_ticket' => 'Support-Ticket senden',
     'action_submit_billing_ticket' => 'Rechnungs-Ticket senden',
@@ -33,11 +33,11 @@ return [
     'action_back' => 'Zurück',
     'error_unavailable' => 'Der Support ist derzeit nicht verfügbar. Bitte versuche es später erneut.',
     // Flash messages
-    'flash_ticket_submitted' => 'Dein Support-Ticket wurde gesendet. Wir melden uns bald bei dir!',
+    'flash_ticket_submitted' => 'Dein Support-Ticket wurde gesendet. Wir melden uns bald bei Dir!',
     'flash_billing_ticket_submitted' => 'Dein Rechnungs-Ticket wurde gesendet. Unser Rechnungsteam prüft es in Kürze.',
     // Validation
-    'validation_subject_required' => 'Bitte gib einen Betreff für dein Ticket an.',
-    'validation_description_required' => 'Bitte beschreibe dein Problem.',
+    'validation_subject_required' => 'Bitte gib einen Betreff für Dein Ticket an.',
+    'validation_description_required' => 'Bitte beschreibe Dein Problem.',
     'validation_support_description_max' => 'Die Beschreibung muss kürzer als 5000 Zeichen sein.',
     'validation_issue_type_required' => 'Bitte wähle einen Problemtyp.',
     'validation_issue_type_invalid' => 'Der gewählte Problemtyp ist nicht gültig.',

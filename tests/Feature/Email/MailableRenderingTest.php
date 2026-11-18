@@ -1,11 +1,8 @@
 <?php
 
-use App\Mail\MembershipConfirmationEmail;
-use App\Mail\TeamInvitationEmail;
 use App\Mail\WelcomeEmail;
 use App\Models\Event;
 use App\Models\EventRegistration;
-use App\Models\Team;
 use App\Models\User;
 use App\Notifications\EventRegistrationConfirmed;
 
@@ -15,31 +12,11 @@ describe('WelcomeEmail', function () {
         $user = User::factory()->create(['name' => 'Alice']);
         $rendered = (new WelcomeEmail($user))->render();
 
-        expect($rendered)->toContain('Welcome to Roundup Games!');
-        expect($rendered)->toContain('Get Started');
-        expect($rendered)->toContain('/en/dashboard');
-    });
-});
-
-describe('MembershipConfirmationEmail', function () {
-    test('membership confirmation email includes plan details when provided', function () {
-        $user = User::factory()->create(['name' => 'Alice']);
-        $mailable = new MembershipConfirmationEmail($user, 'Premium', '$9.99/mo', 'June 1, 2026');
-
-        $rendered = $mailable->render();
-        expect($rendered)->toContain('Premium');
-        expect($rendered)->toContain('$9.99/mo');
-        expect($rendered)->toContain('June 1, 2026');
-    });
-
-    test('membership confirmation email renders with locale-prefixed URLs', function () {
-        app()->setLocale('en');
-        $user = User::factory()->create(['name' => 'Alice']);
-        $mailable = new MembershipConfirmationEmail($user, 'Premium', '$9.99/mo', 'June 1, 2026');
-        $rendered = $mailable->render();
-
-        expect($rendered)->toContain('Membership Confirmed!');
-        expect($rendered)->toContain('/en/billing');
+        expect($rendered)
+            ->toContain(e(__('events.content_welcome_to_roundup_games', ['brand' => config('company.display_name')], 'en')))
+            ->toContain(e(__('common.field_hey_name', ['name' => 'Alice'], 'en')))
+            ->toContain(e(__('notifications.action_complete_your_profile', [], 'en')))
+            ->toContain('/en/onboarding');
     });
 });
 
@@ -66,32 +43,10 @@ describe('EventRegistrationConfirmed notification', function () {
         $rendered = $message->render()->toHtml();
         expect($rendered)->toContain('Summer Open');
         expect($rendered)->toContain('Convention Center');
-        expect($rendered)->toContain('/en/events/');
+        // Since M081/S08 the CTA is wrapped in the signed read-marker, so the
+        // event path travels URL-encoded inside the redirect param.
+        expect($rendered)->toContain('/notifications/read-marker/');
+        expect($rendered)->toContain('redirect=%2Fen%2Fevents%2F');
         expect($rendered)->toContain('notifications/unsubscribe');
-    });
-});
-
-describe('TeamInvitationEmail', function () {
-    test('team invitation email subject includes inviter and team names', function () {
-        $inviter = User::factory()->create(['name' => 'Sarah']);
-        $team = Team::factory()->create(['name' => 'Board Game Kings']);
-
-        $mailable = new TeamInvitationEmail($team, $inviter, 'invitee@example.com', 'https://example.com/accept');
-
-        expect($mailable->envelope()->subject)->toContain('Sarah');
-        expect($mailable->envelope()->subject)->toContain('Board Game Kings');
-    });
-
-    test('team invitation email renders with correct content', function () {
-        app()->setLocale('en');
-        $inviter = User::factory()->create(['name' => 'Sarah']);
-        $team = Team::factory()->create(['name' => 'Board Game Kings']);
-
-        $rendered = (new TeamInvitationEmail($team, $inviter, 'invitee@example.com', 'https://example.com/accept'))->render();
-
-        expect($rendered)->toContain("You're Invited to Join a Team!");
-        expect($rendered)->toContain('Sarah');
-        expect($rendered)->toContain('Board Game Kings');
-        expect($rendered)->toContain('Accept Invitation');
     });
 });

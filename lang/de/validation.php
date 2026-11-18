@@ -178,7 +178,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Attributspezifische Regel-Overrides. Der Spielsystem-Picker übermittelt
-    | ein Array von UUIDs; ein UUID-Fehler bedeutet dort „deine Auswahl ist
+    | ein Array von UUIDs; ein UUID-Fehler bedeutet dort „Deine Auswahl ist
     | unbrauchbar“ und nicht „lerne, was eine UUID ist“.
     |
     */
@@ -266,7 +266,7 @@ return [
         'content.boundaries.veils_categories.*' => 'Kategorien',
         'content.boundaries.lines_text' => 'In unseren eigenen Worten',
         'content.boundaries.veils_text' => 'In unseren eigenen Worten',
-        'content.boundaries.intro_note' => 'Einleitung für deine Spieler',
+        'content.boundaries.intro_note' => 'Einleitung für Deine Spieler',
 
         'content.safety.tools' => 'Genutzte Tools',
         'content.safety.tools.*' => 'Genutzte Tools',

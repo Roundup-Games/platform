@@ -147,8 +147,8 @@ describe('Mail channel rendering', function () {
         $mail = (new GameSystemRequestApproved($ticket, $gameSystem))->toMail($user);
 
         expect($mail->subject)->toContain('Catan')
-            ->and($mail->actionUrl)->toContain('/games/create')
-            ->and($mail->actionUrl)->toContain('game_system_id='.$gameSystem->id)
+            ->and(rawurldecode($mail->actionUrl))->toContain('/games/create')
+            ->and(rawurldecode($mail->actionUrl))->toContain('game_system_id='.$gameSystem->id)
             ->and($mail->actionText)->toBe('Create Game');
     });
 
@@ -192,7 +192,7 @@ describe('Mail channel rendering', function () {
         $mail = (new GameSystemRequestDuplicate($ticket, $existingSystem))->toMail($user);
 
         expect($mail->subject)->toBe(__('notifications.subject_game_system_request_duplicate', ['name' => 'Catan']))
-            ->and($mail->actionUrl)->toContain('/game-systems/catan')
+            ->and(rawurldecode($mail->actionUrl))->toContain('/game-systems/catan')
             ->and($mail->actionText)->toBe('View Game System');
     });
 });

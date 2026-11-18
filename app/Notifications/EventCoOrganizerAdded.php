@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 use App\Models\Event;
 use App\Models\User;
+use App\Services\Discord\DiscordPalette;
 use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 
@@ -46,7 +47,7 @@ class EventCoOrganizerAdded extends BaseNotification
     {
         $locale = $this->resolveLocale($notifiable);
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('events.content_you_ve_been_added_as_co_organizer_of_event', [
                 'event' => $this->eventName(),
             ]))
@@ -54,8 +55,10 @@ class EventCoOrganizerAdded extends BaseNotification
             ->line(__('events.content_you_ve_been_added_as_co_organizer_of_event', [
                 'event' => '**'.$this->eventName().'**',
             ]))
-            ->action(__('events.action_manage_event'), $this->manageUrl($locale))
+            ->action(__('events.action_manage_event'), $this->actionUrlWithMarker($notifiable, $this->manageUrl($locale)))
             ->line($this->unsubscribeLine($notifiable, 'event_registration'));
+
+        return $this->withPreheader($mail, 'notifications.preheader_event_co_organizer_added');
     }
 
     /**
@@ -95,7 +98,7 @@ class EventCoOrganizerAdded extends BaseNotification
             __('events.content_you_ve_been_added_as_co_organizer_of_event', [
                 'event' => $this->eventName(),
             ]),
-            $this->manageUrl($this->resolveLocale($notifiable)),
+            $this->actionUrlWithMarker($notifiable, $this->manageUrl($this->resolveLocale($notifiable))),
             "event-co-organizer-{$this->event->id}",
         );
     }
@@ -111,8 +114,9 @@ class EventCoOrganizerAdded extends BaseNotification
             __('events.content_you_ve_been_added_as_co_organizer_of_event', [
                 'event' => $this->eventName(),
             ]),
-            // Discord green — a positive lifecycle outcome, overriding the blurple default.
-            0x57F287,
+            // Positive lifecycle outcome — the roundup brand green from the shared
+            // palette (D280), replacing the pre-palette Discord-brand green.
+            DiscordPalette::EMERALD,
         );
     }
 

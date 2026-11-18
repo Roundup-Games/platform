@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Notifications\Channels\TaggedMailChannel;
 use App\Notifications\WaitlistPromoted;
 use App\Services\NotificationService;
+use Carbon\Carbon;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
@@ -61,7 +62,7 @@ it('stamps the project tag on notification mail next to the category metadata he
 
     app(NotificationService::class)->send(
         $user,
-        new WaitlistPromoted($game, 'Friday, 18:00'),
+        new WaitlistPromoted($game, Carbon::parse('next friday 18:00')),
         NotificationCategory::WaitlistPromoted,
     );
 

@@ -6,11 +6,13 @@ This directory contains the squashed schema baseline for the platform.
 
 `pgsql-schema.sql` is a `pg_dump --schema-only` snapshot of the complete
 database structure (tables, indexes, constraints, triggers, sequences) plus
-the `migrations` ledger rows marking all 199 original migrations as applied.
+the `migrations` ledger rows marking every squashed migration as applied
+(310 rows as of the 2026-11-16 re-squash).
 
 On a **fresh install**, `php artisan migrate` detects an empty migrations
 table and loads this file via `psql` before running any migration files. This
-reconstructs the full schema in one step instead of replaying 199 migrations.
+reconstructs the full schema in one step instead of replaying hundreds of
+migrations.
 
 On **existing environments** (production, any DB that already has migrations
 recorded), the schema dump is never consulted — `migrate` runs only new
@@ -49,6 +51,18 @@ php artisan schema:dump --prune
 `--prune` deletes the now-squashed migration files from `database/migrations/`
 and regenerates `pgsql-schema.sql` (it appends the `migrations` ledger
 automatically — do not stitch it by hand).
+
+**Pre-prune deployment check (mandatory).** `--prune` deletes EVERY
+migration file, including ones deployed environments have not run yet —
+and existing databases never load the dump, so an undeployed migration's
+schema change becomes unreachable for them (seen 2026-11-16: the squash
+removed M080's `notification_engagement_counters` migration while
+production was still on a pre-M080 build, and the never-committed
+`calendar_lifecycle_counters` migration existed only in the dump). Before
+pruning, confirm the deployed ledger covers every migration file about to
+be deleted; for any that are NOT yet deployed, restore the file under its
+ORIGINAL name with a `Schema::hasTable()` guard (ledger row + file name in
+lockstep: fresh installs skip it, existing environments run it once).
 
 Afterwards you MUST run two normalization steps. `pg_dump` 17+ emits
 artifacts that break a **clean load on the `postgres:16` CI/deploy target**

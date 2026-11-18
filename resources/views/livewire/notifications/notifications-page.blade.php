@@ -31,6 +31,13 @@
         {{-- Notification Groups --}}
         <div class="space-y-3">
             @forelse($notifications as $group)
+                {{-- Block form (not inline @php(...)): Blade pairs first-@php with
+                     first-@endphp during raw-php extraction, and the expanded-items
+                     section below has its own @php/@endphp block an inline form
+                     would mis-pair with. --}}
+                @php
+                    $settingsLink = $this->categorySettingsLink($group);
+                @endphp
                 <div class="bg-surface-container-lowest rounded-xl shadow-ambient overflow-hidden {{ ! $group->isRead ? 'border-l-4 border-primary' : '' }}" wire:key="group-{{ $group->groupKey }}-{{ $group->latest->id }}">
                     <div class="flex items-start gap-4 p-4">
                         {{-- Unread indicator --}}
@@ -63,6 +70,21 @@
                                     >
                                         {{ __('notifications.action_mark_read') }}
                                     </button>
+                                @endif
+
+                                {{-- Per-category settings shortcut (M081/S06): deep-link to
+                                     the preference row governing this group's category; omitted
+                                     when the stored type has no preference family. --}}
+                                @if($settingsLink !== null)
+                                    <a
+                                        href="{{ $settingsLink['url'] }}"
+                                        wire:navigate
+                                        class="inline-flex items-center gap-1 text-xs font-medium text-on-surface-variant/70 hover:text-primary transition-colors"
+                                        aria-label="{{ __('notifications.aria_manage_category_settings', ['category' => $settingsLink['label']]) }}"
+                                    >
+                                        <span class="material-symbols-outlined text-sm" aria-hidden="true">tune</span>
+                                        {{ __('notifications.action_manage_category') }}
+                                    </a>
                                 @endif
                             </div>
                         </div>

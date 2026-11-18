@@ -586,7 +586,7 @@ describe('Unsubscribe links in registrant mail', function () {
         $rendered = $message->render()->toHtml();
         expect($rendered)
             ->toContain('Winter Gala')
-            ->toContain('/en/events/'.$event->slug)
+            ->toContain('redirect=%2Fen%2Fevents%2F'.$event->slug)
             ->toContain('/notifications/unsubscribe/'.$user->id.'/event_registration')
             ->toContain('signature=');
     });
@@ -616,7 +616,7 @@ describe('Unsubscribe links in registrant mail', function () {
         expect($rendered)
             ->toContain('Autumn Con')
             ->toContain('Doors moved')
-            ->toContain('/en/events/'.$event->slug)
+            ->toContain('redirect=%2Fen%2Fevents%2F'.$event->slug)
             ->toContain('/notifications/unsubscribe/'.$user->id.'/event_registration')
             ->toContain('signature=');
     });

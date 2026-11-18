@@ -34,7 +34,7 @@ class CharterPublished extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('notifications.subject_charter_published', [
                 'campaign' => $this->campaign->name,
             ]))
@@ -42,8 +42,10 @@ class CharterPublished extends BaseNotification
             ->line(__('notifications.body_charter_published', [
                 'campaign' => $this->campaign->name,
             ]))
-            ->action(__('notifications.action_charter_sign'), $this->charterUrl($this->resolveLocale($notifiable)))
+            ->action(__('notifications.action_charter_sign'), $this->actionUrlWithMarker($notifiable, $this->charterUrl($this->resolveLocale($notifiable))))
             ->line($this->unsubscribeLine($notifiable, 'charter_published'));
+
+        return $this->withPreheader($mail, 'notifications.preheader_charter_published');
     }
 
     /**
@@ -84,7 +86,7 @@ class CharterPublished extends BaseNotification
             __('notifications.push_body_charter_published', [
                 'campaign' => $this->campaign->name,
             ]),
-            $this->charterUrl($this->resolveLocale($notifiable)),
+            $this->actionUrlWithMarker($notifiable, $this->charterUrl($this->resolveLocale($notifiable))),
             "charter-published-{$this->charter->uuid}",
         );
     }

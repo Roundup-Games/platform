@@ -28,7 +28,7 @@ class ApplicationRejected extends BaseNotification
     {
         $locale = $this->resolveLocale($notifiable);
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('notifications.subject_application_rejected', [
                 'entity' => $this->entity->name,
             ]))
@@ -36,8 +36,10 @@ class ApplicationRejected extends BaseNotification
             ->line(__('notifications.body_application_rejected', [
                 'entity' => $this->entity->name,
             ]))
-            ->action(__('notifications.action_browse_games'), route('games.index', ['locale' => $locale]))
+            ->action(__('notifications.action_browse_games'), $this->actionUrlWithMarker($notifiable, route('games.index', ['locale' => $locale])))
             ->line($this->unsubscribeLine($notifiable, 'application_rejected'));
+
+        return $this->withPreheader($mail, 'notifications.preheader_application_rejected');
     }
 
     /**

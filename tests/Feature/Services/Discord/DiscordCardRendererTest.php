@@ -171,6 +171,92 @@ class DiscordCardRendererTest extends TestCase
     }
 
     #[Test]
+    public function card_footer_links_a_google_template_add_to_calendar_button()
+    {
+        // Zero-OAuth calendar tier (D287): the third button is a LINK to the
+        // Google Calendar template URL, mirroring the game page affordance.
+        $venue = $this->makeVenue(['name' => 'Café Berlin']);
+        $game = $this->makeGame(['expected_duration' => 3.0], venue: $venue);
+
+        $card = $this->renderer->render($game, new DiscordCardContext(approvedCount: 3, appUrl: 'https://roundup.test'));
+        $buttons = $card->components[0]['components'];
+
+        $this->assertCount(3, $buttons);
+
+        $calendar = $buttons[2];
+        $this->assertSame(5, $calendar['style']); // LINK
+        // Label via key resolution — the card is locale-aware via context.
+        $this->assertSame(__('discord.content_card_button_add_calendar'), $calendar['label']);
+        $this->assertStringContainsString('https://calendar.google.com/calendar/render', $calendar['url']);
+        $this->assertStringContainsString('action=TEMPLATE', $calendar['url']);
+        // Template dates are UTC basic format for the stored instant
+        // (2026-08-15 19:00 UTC + 3h duration) — same instant the ICS
+        // attachments and the feed would emit. http_build_query encodes the
+        // dates separator (%2F), which Google accepts fine.
+        $this->assertStringContainsString('dates=20260815T190000Z%2F20260815T220000Z', $calendar['url']);
+        $this->assertStringContainsString('text=Catan+Night', $calendar['url']);
+        // The details deep link is the same roundup game URL as the "view"
+        // button, so Google's prefilled description leads back to roundup.
+        $this->assertStringContainsString('details=https%3A%2F%2Froundup.test%2Fgames%2F'.self::GAME_ID, $calendar['url']);
+        // Venue NAME only (privacy matrix) — present, address never.
+        $this->assertStringContainsString('location=', $calendar['url']);
+    }
+
+    #[Test]
+    public function a_duration_zero_game_falls_back_to_a_one_hour_calendar_slot()
+    {
+        // The template URL requires an end; a duration-0 ("unknown") game
+        // gets a 1h slot instead of an unusable zero-length link.
+        $game = $this->makeGame(['expected_duration' => 0]);
+
+        $card = $this->renderer->render($game, new DiscordCardContext(appUrl: 'https://roundup.test'));
+        $url = $card->components[0]['components'][2]['url'];
+
+        $this->assertStringContainsString('dates=20260815T190000Z%2F20260815T200000Z', $url);
+    }
+
+    #[Test]
+    public function an_undated_game_gets_no_calendar_button()
+    {
+        $game = $this->makeGame(['date_time' => null]);
+
+        $card = $this->renderer->render($game, new DiscordCardContext(appUrl: 'https://roundup.test'));
+        $buttons = $card->components[0]['components'];
+
+        $this->assertCount(2, $buttons);
+        foreach ($buttons as $button) {
+            $this->assertStringNotContainsString('calendar.google.com', $button['url'] ?? '');
+        }
+    }
+
+    #[Test]
+    public function the_calendar_button_url_is_capped_at_discords_512_character_limit()
+    {
+        // Discord rejects link-button urls over 512 characters with a 400
+        // that fails the whole card publish. Worst case: a 255-char
+        // multibyte game name plus a 255-char venue name — every byte
+        // percent-encodes to three characters, so the uncapped URL would
+        // run >3000 bytes (M081 review).
+        $venue = $this->makeVenue(['name' => str_repeat('ü', 255)]);
+        $game = $this->makeGame(['name' => ['en' => str_repeat('ü', 255)]], venue: $venue);
+
+        $card = $this->renderer->render($game, new DiscordCardContext(appUrl: 'https://roundup.test'));
+        $url = $card->components[0]['components'][2]['url'];
+
+        $this->assertLessThanOrEqual(512, strlen($url));
+        // The load-bearing params survive the cap; the venue name is the
+        // first thing shed, the title tail the second.
+        $this->assertStringContainsString('action=TEMPLATE', $url);
+        $this->assertStringContainsString('dates=20260815T190000Z', $url);
+        $this->assertStringContainsString('details=https%3A%2F%2Froundup.test%2Fgames%2F'.self::GAME_ID, $url);
+        $this->assertStringNotContainsString('location=', $url);
+        // The title is trimmed to fit (13 ü survive the byte budget), never
+        // dropped entirely — the prefilled event still carries a name.
+        $this->assertGreaterThanOrEqual(1, substr_count($url, '%C3%BC'));
+        $this->assertLessThanOrEqual(13, substr_count($url, '%C3%BC'));
+    }
+
+    #[Test]
     public function embed_structure_is_valid_discord_embed_shape()
     {
         $game = $this->makeGame();

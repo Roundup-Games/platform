@@ -44,8 +44,10 @@ class PushLocaleTest extends TestCase
 
         $payload = (new SessionReminder($game))->toPush($notifiable);
 
-        // route('games.show') generates /{locale}/dashboard/games/{id}
-        $this->assertStringContainsString('/en/dashboard/games/', $payload->url);
+        // route('games.show') generates /{locale}/dashboard/games/{id}; the
+        // push url is the signed read-marker wrapping that localized path
+        // (it rides URL-encoded in the redirect param), so decode first.
+        $this->assertStringContainsString('/en/dashboard/games/', rawurldecode($payload->url));
     }
 
     // -- GameInvitation ----------------------------------------------------
@@ -58,7 +60,7 @@ class PushLocaleTest extends TestCase
 
         $payload = (new EntityInvitation($game, $inviter))->toPush($notifiable);
 
-        $this->assertStringContainsString('/en/dashboard/games/', $payload->url);
+        $this->assertStringContainsString('/en/dashboard/games/', rawurldecode($payload->url));
     }
 
     // -- German locale variant --------------------------------------------
@@ -72,7 +74,7 @@ class PushLocaleTest extends TestCase
 
         $payload = (new EntityInvitation($game, $inviter))->toPush($notifiable);
 
-        $this->assertStringContainsString('/de/dashboard/games/', $payload->url);
+        $this->assertStringContainsString('/de/dashboard/games/', rawurldecode($payload->url));
     }
 
     // ── preferred_language on notifiable ────────────────
@@ -86,8 +88,9 @@ class PushLocaleTest extends TestCase
 
         $mail = (new EntityInvitation($game, $inviter))->toMail($notifiable);
 
-        // The action URL in the mail should use the notifiable's preferred language
-        $this->assertStringContainsString('/de/dashboard/games/', $mail->actionUrl);
+        // The action URL in the mail should use the notifiable's preferred
+        // language (wrapped in the signed read-marker's redirect param)
+        $this->assertStringContainsString('/de/dashboard/games/', rawurldecode($mail->actionUrl));
     }
 
     public function test_game_invitation_to_database_uses_notifiable_preferred_language(): void

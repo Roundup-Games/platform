@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Jobs;
 
+use App\Enums\DiscordLeaveOutcome;
 use App\Enums\GameStatus;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
@@ -120,7 +121,8 @@ class ProcessDiscordLeaveTest extends TestCase
 
         $this->runJob($game->id, $owner->id);
 
-        $this->assertStringContainsString('hosting', $captured['content']);
+        // Key resolution, not literal pins (K004).
+        $this->assertSame(__('notifications.content_rsvp_outcome_owner_cannot_leave', [], 'en'), $captured['content']);
         // No departure: owner is still Approved.
         $this->assertSame(1, GameParticipant::where('game_id', $game->id)->count());
     }
@@ -141,7 +143,8 @@ class ProcessDiscordLeaveTest extends TestCase
 
         $this->runJob($game->id, $stranger->id);
 
-        $this->assertStringContainsString('not on the roster', $captured['content']);
+        // Key resolution, not literal pins (K004).
+        $this->assertSame(__('notifications.content_rsvp_outcome_not_a_participant', [], 'en'), $captured['content']);
     }
 
     #[Test]
@@ -186,12 +189,92 @@ class ProcessDiscordLeaveTest extends TestCase
         $this->assertSame(ParticipantStatus::Rejected, $participant->status);
     }
 
+    // ── Localized confirmations (MEM1741) ───────────────────────────────
+
+    #[Test]
+    public function confirmation_copy_localizes_to_the_clickers_interaction_locale(): void
+    {
+        // A German-locale clicker must receive the German confirmation — the
+        // controller plumbs the interaction payload's locale into the job, and
+        // the job renders DiscordLeaveOutcome copy from the lang keys in it.
+        [$owner, $game, $leaver, $participant] = $this->gameWithApprovedParticipant();
+        $captured = $this->runJobCapturingOriginal($game->id, $leaver->id, 'de');
+
+        $this->assertSame(
+            __('notifications.content_rsvp_outcome_left', [], 'de'),
+            $captured['content'],
+            'The @original confirmation must render in the job-carried locale.'
+        );
+    }
+
+    #[Test]
+    public function confirmation_copy_defaults_to_english_without_a_locale(): void
+    {
+        // Backward compatibility: jobs constructed without a locale (the
+        // pre-MEM1741 dispatch signature — and payloads serialized before the
+        // field existed) still resolve to the English copy.
+        [$owner, $game, $leaver, $participant] = $this->gameWithApprovedParticipant();
+        $captured = $this->runJobCapturingOriginal($game->id, $leaver->id);
+
+        $this->assertSame(__('notifications.content_rsvp_outcome_left', [], 'en'), $captured['content']);
+    }
+
+    #[Test]
+    public function every_outcome_confirmation_resolves_from_its_lang_key_in_both_locales(): void
+    {
+        // Key-resolution matrix (K004: never pin literal copy): every
+        // DiscordLeaveOutcome case must resolve its confirmation from the
+        // matching notifications.content_rsvp_outcome_* key in EN and DE, and
+        // the DE rendering must be a real translation — a missing DE key would
+        // fall back to the identical EN copy and fail the not-same assertion.
+        foreach (DiscordLeaveOutcome::cases() as $outcome) {
+            $key = "notifications.content_rsvp_outcome_{$outcome->value}";
+
+            foreach (['en', 'de'] as $locale) {
+                $this->assertSame(__($key, [], $locale), $outcome->confirmationContent($locale));
+            }
+
+            $this->assertNotSame(
+                $outcome->confirmationContent('en'),
+                $outcome->confirmationContent('de'),
+                "Outcome {$outcome->value} must have a real DE translation."
+            );
+        }
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────
 
-    private function runJob(string $gameId, string $userId): void
+    private function runJob(string $gameId, string $userId, string $locale = 'en'): void
     {
-        (new ProcessDiscordLeave($gameId, $userId, self::GUILD_ID_SNOWFLAKE, self::INTERACTION_TOKEN))
+        (new ProcessDiscordLeave($gameId, $userId, self::GUILD_ID_SNOWFLAKE, self::INTERACTION_TOKEN, $locale))
             ->handle(app(DiscordWebhookClient::class), app(DiscordPublisher::class));
+    }
+
+    /**
+     * Run the job and return the decoded @original PATCH body.
+     *
+     * @return array{content?: string, flags?: int}
+     */
+    private function runJobCapturingOriginal(string $gameId, string $userId, string $locale = 'en'): array
+    {
+        $captured = [];
+        Http::fake(function (Request $r) use (&$captured) {
+            if (str_contains($r->url(), '@original')) {
+                $captured = json_decode($r->body(), true);
+            }
+
+            return Http::response(['id' => 'orig'], 200);
+        });
+
+        if ($locale === 'en') {
+            // Construct without the locale argument — the default path.
+            (new ProcessDiscordLeave($gameId, $userId, self::GUILD_ID_SNOWFLAKE, self::INTERACTION_TOKEN))
+                ->handle(app(DiscordWebhookClient::class), app(DiscordPublisher::class));
+        } else {
+            $this->runJob($gameId, $userId, $locale);
+        }
+
+        return $captured;
     }
 
     private function gameWithApprovedParticipant(): array

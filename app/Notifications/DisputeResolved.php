@@ -39,15 +39,19 @@ class DisputeResolved extends BaseNotification
             ? __('notifications.body_dispute_resolved_favor', ['game' => $this->game->name, 'date' => $date])
             : __('notifications.body_dispute_upheld', ['game' => $this->game->name, 'date' => $date]);
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject($subject)
             ->greeting($this->greetingLine($notifiable))
             ->line($body)
-            ->action(__('notifications.action_view_game'), route('games.show', [
+            ->action(__('notifications.action_view_game'), $this->actionUrlWithMarker($notifiable, route('games.show', [
                 'locale' => $locale,
                 'id' => $this->game->id,
-            ]))
+            ])))
             ->line($this->unsubscribeLine($notifiable, 'dispute_resolved'));
+
+        return $this->withPreheader($mail, $resolved
+            ? 'notifications.preheader_dispute_resolved_favor'
+            : 'notifications.preheader_dispute_upheld');
     }
 
     /**
@@ -92,10 +96,10 @@ class DisputeResolved extends BaseNotification
         return $this->pushPayload(
             $copy['title'],
             $copy['body'],
-            route('games.show', [
+            $this->actionUrlWithMarker($notifiable, route('games.show', [
                 'locale' => $this->resolveLocale($notifiable),
                 'id' => $this->game->id,
-            ]),
+            ])),
             "dispute-resolved-{$this->game->id}",
         );
     }

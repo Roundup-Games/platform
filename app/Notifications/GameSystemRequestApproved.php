@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\GameSystem;
 use App\Models\User;
+use App\Services\Discord\DiscordPalette;
 use App\Services\Discord\DiscordWebhookPayload;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -27,7 +28,7 @@ class GameSystemRequestApproved extends BaseNotification
         $locale = $this->resolveLocale($notifiable);
         $createGameUrl = route('games.create', ['locale' => $locale]).'?game_system_id='.$this->gameSystem->id;
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('notifications.subject_game_system_request_approved', [
                 'name' => $this->gameSystem->name,
             ]))
@@ -35,8 +36,10 @@ class GameSystemRequestApproved extends BaseNotification
             ->line(__('notifications.body_game_system_request_approved', [
                 'name' => $this->gameSystem->name,
             ]))
-            ->action(__('notifications.action_create_game'), $createGameUrl)
+            ->action(__('notifications.action_create_game'), $this->actionUrlWithMarker($notifiable, $createGameUrl))
             ->line($this->unsubscribeLine($notifiable, 'game_system_request'));
+
+        return $this->withPreheader($mail, 'notifications.preheader_game_system_request_approved');
     }
 
     /**
@@ -78,5 +81,13 @@ class GameSystemRequestApproved extends BaseNotification
     public function toDiscord(User $notifiable): ?DiscordWebhookPayload
     {
         return null;
+    }
+
+    /**
+     * D280 semantic layer: action-needed amber — the requester should review the approved outcome (toDiscord is a null opt-out today; the mapping is declared so a future DM inherits it).
+     */
+    protected function semanticColor(): int
+    {
+        return DiscordPalette::ACTION_NEEDED;
     }
 }

@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Models\User;
+use App\Services\Discord\DiscordPalette;
 use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 
@@ -27,7 +28,7 @@ class EntityCompleted extends BaseNotification
         $locale = $this->resolveLocale($notifiable);
         $type = $this->getEntityType();
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__("notifications.subject_{$type}_completed", [
                 $type => $this->entity->name,
             ]))
@@ -35,8 +36,12 @@ class EntityCompleted extends BaseNotification
             ->line(__("notifications.body_{$type}_completed", [
                 $type => $this->entity->name,
             ]))
-            ->action(__("notifications.action_view_{$type}"), route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity]))
+            ->action(__("notifications.action_view_{$type}"), $this->actionUrlWithMarker($notifiable, route("{$type}s.show", ['locale' => $locale, 'id' => $this->entity])))
             ->line($this->unsubscribeLine($notifiable, "{$type}_completed"));
+
+        return $this->withPreheader($mail, "notifications.preheader_{$type}_completed", [
+            $type => $this->entity->name,
+        ]);
     }
 
     /**
@@ -73,5 +78,13 @@ class EntityCompleted extends BaseNotification
     public function toDiscord(User $notifiable): ?DiscordWebhookPayload
     {
         return null;
+    }
+
+    /**
+     * D280 semantic layer: ambient grey — completed entity, informational only. toDiscord() is a null opt-out (D130) today; the mapping is declared so a future DM inherits the right color.
+     */
+    protected function semanticColor(): int
+    {
+        return DiscordPalette::AMBIENT;
     }
 }

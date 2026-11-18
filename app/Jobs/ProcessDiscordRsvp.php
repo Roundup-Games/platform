@@ -7,6 +7,7 @@ use App\Enums\DiscordRsvpOutcome;
 use App\Enums\GameStatus;
 use App\Enums\JoinSource;
 use App\Enums\ParticipantStatus;
+use App\Enums\Visibility;
 use App\Exceptions\SignupCutoffReached;
 use App\Http\Controllers\DiscordInteractionController;
 use App\Models\Game;
@@ -101,12 +102,19 @@ class ProcessDiscordRsvp implements ShouldQueue
      *                                    to build the @original PATCH
      *                                    URL (/webhooks/{appId}/{token}).
      *                                    Valid 15 min from the interaction.
+     * @param  string|null  $locale  the clicker's interaction locale (MEM1741)
+     *                               — renders the @original confirmation in
+     *                               the clicker's language. Defaults to 'en';
+     *                               nullable (with a null-coalesced read) so
+     *                               payloads serialized before this field
+     *                               existed still resolve to English.
      */
     public function __construct(
         public string $gameId,
         public string $userId,
         public string $guildId,
         public string $interactionToken,
+        public ?string $locale = 'en',
     ) {}
 
     /**
@@ -300,6 +308,28 @@ class ProcessDiscordRsvp implements ShouldQueue
             // backstop, capacity re-check post-lock, OverflowRouter routing,
             // approved_at stamping, the reactivation reset base, and the
             // source-attributed participant.joined log.
+            //
+            // Screening gate — mirrors EntityJoinGate::canJoinViaDiscord():
+            // a direct Discord join is PUBLIC-only. JoinIntent::join() on a
+            // non-public game falls through to the application branch and
+            // writes Approved, bypassing the owner's Pending(Applicant)
+            // screening. Placed after the already-on-roster / host-removed
+            // idempotency guards (a legitimate participant of a later-
+            // downgraded game still gets their AlreadyOnRoster confirmation)
+            // and directly before the write it protects: a stale card
+            // (unpublish is best-effort — a Discord outage leaves it live)
+            // or a click racing the downgrade must not bypass host review
+            // (M081 fifth-pass review).
+            if ($locked->visibility !== Visibility::Public) {
+                Log::info('discord_rsvp.refused', [
+                    'game_id' => $locked->id,
+                    'user_id' => $user->id,
+                    'reason' => 'not_public',
+                ]);
+
+                return DiscordRsvpOutcome::Refused;
+            }
+
             $participant = app(ParticipantLifecycle::class)->createOrReactivate(
                 JoinIntent::join($locked, $user, JoinSource::Discord),
             );
@@ -367,7 +397,7 @@ class ProcessDiscordRsvp implements ShouldQueue
         }
 
         $payload = new DiscordWebhookPayload(
-            content: $outcome->confirmationContent(),
+            content: $outcome->confirmationContent($this->locale ?? 'en'),
             flags: self::FLAG_EPHEMERAL,
         );
 

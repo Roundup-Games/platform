@@ -232,7 +232,17 @@ describe('display strings', function () {
         $groups = $this->service->getGroupedForUser($this->user);
         $group = $groups->first();
 
+        // displayString keeps the actor-verb pattern every actor row uses
+        // (the plain-text a11y twin never embeds the entity for actor rows).
         expect($group->displayString)->toBe('Dana invited you to a game');
+
+        // The RENDERED row carries the linked entity: the unified-class name
+        // key (game_name/campaign_name) resolves through the entity type, so
+        // the bell row names and links the game (regression pin — deriving
+        // the key from the wire type lost the entity entirely, leaving the
+        // row with no navigation target at all).
+        expect($group->displayHtml)->toContain('>Test Game</a>');
+        expect($group->displayHtml)->toContain($group->actionUrl);
     });
 
     it('handles participant joined with entity context', function () {

@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\User;
 use App\Services\Discord\DiscordWebhookPayload;
+use App\Support\ModerationNoticeLabels;
 use Illuminate\Notifications\Messages\MailMessage;
 
 /**
@@ -18,14 +19,18 @@ class AccountSuspended extends BaseNotification
 
     public function toMail(User $notifiable): MailMessage
     {
-        return (new MailMessage)
-            ->subject(__('notifications.subject_account_suspended'))
+        $locale = $this->resolveLocale($notifiable);
+
+        $mail = (new MailMessage)
+            ->subject(__('notifications.subject_account_suspended', [], $locale))
             ->greeting($this->greetingLine($notifiable))
-            ->line(__('notifications.body_account_suspended'))
+            ->line(__('notifications.body_account_suspended', [], $locale))
             ->line(__('notifications.body_reason', [
-                'reason' => $this->reason,
-            ]))
-            ->line(__('notifications.body_account_suspended_contact'));
+                'reason' => ModerationNoticeLabels::reason($this->reason, $locale),
+            ], $locale))
+            ->line(__('notifications.body_account_suspended_contact', [], $locale));
+
+        return $this->withPreheader($mail, 'notifications.preheader_account_suspended');
     }
 
     /**
@@ -35,7 +40,7 @@ class AccountSuspended extends BaseNotification
     {
         return [
             'type' => 'account_suspended',
-            'reason' => $this->reason,
+            'reason' => ModerationNoticeLabels::reason($this->reason, $this->resolveLocale($notifiable)),
         ];
     }
 

@@ -266,6 +266,52 @@ class ProcessDiscordRsvpTest extends TestCase
     }
 
     #[Test]
+    public function non_public_game_is_refused_without_bypassing_owner_screening(): void
+    {
+        // A stale card on a downgraded game must not write Approved past the
+        // owner's Pending(Applicant) screening — mirrors EntityJoinGate::
+        // canJoinViaDiscord's public-only rule (M081 fifth-pass review). The
+        // card should be gone after the downgrade, but unpublish is
+        // best-effort: a Discord outage leaves it live in the channel.
+        [$owner, $game, $clicker] = $this->joinableGame();
+        $game->update(['visibility' => 'protected']);
+        Http::fake($this->okOriginalOnly());
+
+        $this->runJob($game->id, $clicker->id);
+
+        $this->assertDatabaseMissing('game_participants', [
+            'game_id' => $game->id,
+            'user_id' => $clicker->id,
+            'join_source' => JoinSource::Discord->value,
+        ]);
+    }
+
+    #[Test]
+    public function existing_participant_of_a_later_protected_game_still_gets_the_already_confirmation(): void
+    {
+        // The gate sits AFTER the already-on-roster idempotency guard: a
+        // legitimate participant of a later-downgraded game keeps their
+        // friendly confirmation instead of a refusal — the gate protects the
+        // WRITE, not the idempotent read.
+        [$owner, $game, $clicker] = $this->joinableGame();
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => $clicker->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+        $game->update(['visibility' => 'protected']);
+
+        $patch = $this->runJobCapturingOriginal($game->id, $clicker->id, 'en');
+
+        $this->assertSame(1, GameParticipant::query()
+            ->where('game_id', $game->id)
+            ->where('user_id', $clicker->id)
+            ->count(), 'Idempotent re-click must not duplicate the row.');
+        $this->assertArrayHasKey('content', $patch, 'The already-on-roster confirmation is still delivered.');
+    }
+
+    #[Test]
     public function missing_game_resolves_deferred_interaction_as_refused(): void
     {
         $clicker = User::factory()->create();
@@ -440,6 +486,67 @@ class ProcessDiscordRsvpTest extends TestCase
             ->once();
     }
 
+    // ── Localized confirmations (MEM1741) ─────────────────────────────────
+
+    #[Test]
+    public function confirmation_copy_localizes_to_the_clickers_interaction_locale(): void
+    {
+        // A German-locale clicker must receive the German confirmation — the
+        // controller plumbs the interaction payload's locale into the job, and
+        // the job renders DiscordRsvpOutcome copy from the lang keys in it.
+        [$owner, $game, $clicker] = $this->joinableGame();
+        $captured = $this->runJobCapturingOriginal($game->id, $clicker->id, 'de');
+
+        $this->assertSame(
+            __('notifications.content_rsvp_outcome_approved', [], 'de'),
+            $captured['content'],
+            'The @original confirmation must render in the job-carried locale.'
+        );
+    }
+
+    #[Test]
+    public function confirmation_copy_defaults_to_english_without_a_locale(): void
+    {
+        // Backward compatibility: jobs constructed without a locale (the
+        // pre-MEM1741 dispatch signature — and payloads serialized before the
+        // field existed) still resolve to the English copy.
+        [$owner, $game, $clicker] = $this->joinableGame();
+        $sent = [];
+        Http::fake($this->recordingOk($sent));
+
+        (new ProcessDiscordRsvp($game->id, $clicker->id, self::GUILD_ID_SNOWFLAKE, self::INTERACTION_TOKEN))
+            ->handle(app(DiscordWebhookClient::class), app(DiscordPublisher::class));
+
+        $original = collect($sent)->first(fn (Request $r) => str_contains($r->url(), 'messages/@original'));
+        $body = json_decode((string) $original->body(), true);
+
+        $this->assertSame(__('notifications.content_rsvp_outcome_approved', [], 'en'), $body['content']);
+    }
+
+    #[Test]
+    public function every_outcome_confirmation_resolves_from_its_lang_key_in_both_locales(): void
+    {
+        // Key-resolution matrix (K004: never pin literal copy): every
+        // DiscordRsvpOutcome case must resolve its confirmation from the
+        // matching notifications.content_rsvp_outcome_* key in EN and DE,
+        // and the DE rendering must be a real translation — a missing DE key
+        // would fall back to the identical EN copy and fail the not-same
+        // assertion (i18n:check guards the files; this guards the enum map).
+        foreach (DiscordRsvpOutcome::cases() as $outcome) {
+            $key = "notifications.content_rsvp_outcome_{$outcome->value}";
+
+            foreach (['en', 'de'] as $locale) {
+                $this->assertSame(__($key, [], $locale), $outcome->confirmationContent($locale));
+            }
+
+            $this->assertNotSame(
+                $outcome->confirmationContent('en'),
+                $outcome->confirmationContent('de'),
+                "Outcome {$outcome->value} must have a real DE translation."
+            );
+        }
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────
 
     /**
@@ -462,10 +569,31 @@ class ProcessDiscordRsvpTest extends TestCase
     /**
      * Run the job synchronously with the container-resolved dependencies.
      */
-    private function runJob(string $gameId, string $userId): void
+    private function runJob(string $gameId, string $userId, string $locale = 'en'): void
     {
-        (new ProcessDiscordRsvp($gameId, $userId, self::GUILD_ID_SNOWFLAKE, self::INTERACTION_TOKEN))
+        (new ProcessDiscordRsvp($gameId, $userId, self::GUILD_ID_SNOWFLAKE, self::INTERACTION_TOKEN, $locale))
             ->handle(app(DiscordWebhookClient::class), app(DiscordPublisher::class));
+    }
+
+    /**
+     * Run the job and return the decoded @original PATCH body.
+     *
+     * @return array{content?: string, flags?: int}
+     */
+    private function runJobCapturingOriginal(string $gameId, string $userId, string $locale): array
+    {
+        $captured = [];
+        Http::fake(function (Request $r) use (&$captured) {
+            if (str_contains($r->url(), '@original')) {
+                $captured = json_decode($r->body(), true);
+            }
+
+            return Http::response(['id' => 'orig'], 200);
+        });
+
+        $this->runJob($gameId, $userId, $locale);
+
+        return $captured;
     }
 
     /**

@@ -414,4 +414,8 @@ return [
     'action_remove_cover_image' => 'Remove cover image',
     'label_bgg_rank' => 'Rank #:rank',
     'label_ttrpg' => 'TTRPG',
+    // Calendar tier (D287): one-click Google-template add on the game page
+    'action_add_to_calendar' => 'Add to calendar',
+    'content_add_to_calendar_hint' => 'Save this session to your calendar',
+    'action_calendar_feed_settings' => 'Subscribe to all your sessions',
 ];

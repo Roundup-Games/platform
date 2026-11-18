@@ -508,7 +508,7 @@ class DiscordBotInstallService
                     embed: [
                         'title' => 'roundup is live in this server',
                         'description' => $message,
-                        'color' => DiscordWebhookPayload::BLURPLE,
+                        'color' => DiscordPalette::EMERALD,
                     ],
                     components: [],
                 ),

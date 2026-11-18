@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Dto\PushPayload;
 use App\Models\Game;
 use App\Models\User;
+use App\Services\Discord\DiscordPalette;
 use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Notifications\Messages\MailMessage;
 
@@ -20,7 +21,7 @@ class BelowMinPlayersWarning extends BaseNotification
     {
         $locale = $this->resolveLocale($notifiable);
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('notifications.subject_below_min_players', [
                 'game' => $this->game->name,
             ]))
@@ -30,8 +31,12 @@ class BelowMinPlayersWarning extends BaseNotification
                 'current' => $this->currentCount,
                 'min' => $this->minPlayers,
             ]))
-            ->action(__('notifications.action_view_game', ['game' => $this->game->name]), route('games.show', ['locale' => $locale, 'id' => $this->game]))
+            ->action(__('notifications.action_view_game', ['game' => $this->game->name]), $this->actionUrlWithMarker($notifiable, route('games.show', ['locale' => $locale, 'id' => $this->game])))
             ->line($this->unsubscribeLine($notifiable, 'below_min_players'));
+
+        return $this->withPreheader($mail, 'notifications.preheader_below_min_players', [
+            'game' => $this->game->name,
+        ]);
     }
 
     /**
@@ -66,7 +71,7 @@ class BelowMinPlayersWarning extends BaseNotification
                 'current' => $this->currentCount,
                 'min' => $this->minPlayers,
             ]),
-            route('games.show', ['locale' => $this->resolveLocale($notifiable), 'id' => $this->game]),
+            $this->actionUrlWithMarker($notifiable, route('games.show', ['locale' => $this->resolveLocale($notifiable), 'id' => $this->game])),
             "below-min-players-{$this->game->id}",
         );
     }
@@ -85,5 +90,13 @@ class BelowMinPlayersWarning extends BaseNotification
                 'min' => $this->minPlayers,
             ]),
         );
+    }
+
+    /**
+     * D280 semantic layer: action-needed amber — the host must act (fill seats or decide).
+     */
+    protected function semanticColor(): int
+    {
+        return DiscordPalette::ACTION_NEEDED;
     }
 }

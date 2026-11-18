@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\PushSubscription;
+use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -21,8 +22,36 @@ class PushSubscriptionController extends Controller
     {
         $request->validate([
             'endpoint' => 'required|string|url|max:500',
-            'keys.p256h' => 'required|string|max:255',
-            'keys.auth' => 'required|string|max:255',
+            // Key-material validation (M081 review): a structurally invalid
+            // p256dh key must never reach the subscriptions table — WebPush
+            // encrypts the whole batch at flush time, so one undecodable key
+            // throws for every queued device (see PushChannel::flushIsolated)
+            // and permanently blocks that user's push. RFC 8291 keys are
+            // base64url; an uncompressed P-256 point is exactly 65 bytes
+            // starting with the 0x04 prefix. The auth secret only needs to
+            // decode — its length is not pinned by the spec usage here.
+            'keys.p256h' => [
+                'required',
+                'string',
+                'max:255',
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    $decoded = is_string($value) ? self::decodeBase64Url($value) : null;
+
+                    if ($decoded === null || strlen($decoded) !== 65 || $decoded[0] !== "\x04") {
+                        $fail('The p256dh key must be a base64url-encoded 65-byte uncompressed P-256 public key.');
+                    }
+                },
+            ],
+            'keys.auth' => [
+                'required',
+                'string',
+                'max:255',
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    if (! is_string($value) || self::decodeBase64Url($value) === null) {
+                        $fail('The auth secret must be base64url-encoded.');
+                    }
+                },
+            ],
         ]);
 
         // Rate limit: 10 subscriptions per minute per user
@@ -63,6 +92,21 @@ class PushSubscriptionController extends Controller
         return response()->json([
             'id' => $subscription->id,
         ], $subscription->wasRecentlyCreated ? 201 : 200);
+    }
+
+    /**
+     * Decode a base64url value (RFC 4648 §5, optional padding) with strict
+     * validation. Returns null when the value contains anything outside the
+     * base64url alphabet.
+     */
+    private static function decodeBase64Url(string $value): ?string
+    {
+        $base64 = strtr($value, '-_', '+/');
+        $base64 = str_pad($base64, (int) ceil(strlen($base64) / 4) * 4, '=', STR_PAD_RIGHT);
+
+        $decoded = base64_decode($base64, true);
+
+        return $decoded === false ? null : $decoded;
     }
 
     /**

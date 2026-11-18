@@ -12,6 +12,7 @@ use App\Services\PostHogAnalytics;
 use App\Services\TimezoneCaptureService;
 use App\Support\DiscordJoinIntent;
 use App\Support\FirstTouch;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
@@ -304,6 +305,16 @@ class OAuthController
             'user_id' => $user->id,
             'provider_user_id' => $providerUserId,
         ]);
+
+        // Fire the same Registered event the email-signup path dispatches
+        // (RegisteredUserController::store): the welcome mail
+        // (SendWelcomeEmail) and the MustVerifyEmail verification
+        // notification both hang off it. Deliberately placed AFTER the
+        // signup-race/slug-race retry blocks above resolve — a raced
+        // duplicate exits via linkProviderAndLogin before ever reaching
+        // here, so the event fires exactly once per genuinely new user
+        // (the OAuth-path welcome-mail test pins this dispatch).
+        event(new Registered($user));
 
         // Match pending email invitations to the newly registered user — the
         // same logic the email-registration flow uses, so OAuth signups land on

@@ -41,7 +41,7 @@
 
         /* Footer */
         .footer { background-color: #fbf9f1; padding: 24px 40px; border-radius: 0 0 8px 8px; text-align: center; border-top: 1px solid #e8e2d4; }
-        .footer p { font-family: Inter, -apple-system, 'Helvetica Neue', Arial, sans-serif; color: #8a846e; font-size: 12px; line-height: 1.5; margin: 0 0 8px; }
+        .footer p { font-family: Inter, -apple-system, 'Helvetica Neue', Arial, sans-serif; color: #5c5641; font-size: 12px; line-height: 1.5; margin: 0 0 8px; }
         .footer a { color: #835500; text-decoration: underline; }
 
         /* Responsive */

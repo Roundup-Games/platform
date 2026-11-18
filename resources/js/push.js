@@ -251,6 +251,18 @@ export function initPushSubscriptions() {
             .then((reg) => reg.pushManager.getSubscription())
             .then((sub) => {
                 updateUIState(sub ? 'subscribed' : 'default');
+
+                // Opportunistic self-heal (M081 review): a local subscription
+                // with NO server row (endpoint rotated and pruned server-side,
+                // a transient push-service 410, a restored browser profile)
+                // otherwise strands the user silently — the UI keeps saying
+                // "subscribed" while the server can reach nothing. Re-POSTing
+                // the existing subscription is an idempotent upsert on
+                // (endpoint, user); fire-and-forget, one POST per page load at
+                // most, rate-limited server-side.
+                if (sub) {
+                    syncSubscription(sub).catch(() => {});
+                }
             })
             .catch(() => updateUIState('default'));
     }

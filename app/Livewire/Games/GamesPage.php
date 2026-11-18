@@ -138,25 +138,23 @@ class GamesPage extends Component
             $this->edit_visibility = 'protected';
         }
 
+        // Machine column names are the single source of truth: the activity
+        // log and EntityUpdated both consume them, and the notification
+        // resolves human labels per RECIPIENT locale (ChangedFieldLabels).
         $changes = [];
-        $changedLabels = [];
 
         if ($game->name !== $this->edit_name) {
             $changes['name'] = $this->edit_name;
-            $changedLabels[] = __('common.field_name');
         }
         if (($game->description ?? '') !== $this->edit_description) {
             $changes['description'] = $this->edit_description !== '' ? $this->edit_description : null;
-            $changedLabels[] = __('common.field_description');
         }
         $newDuration = $this->edit_expected_duration !== '' ? (float) $this->edit_expected_duration : null;
         if ((float) ($game->expected_duration ?? 0) !== (float) ($newDuration ?? 0)) {
             $changes['expected_duration'] = $newDuration ?? 2;
-            $changedLabels[] = __('common.content_duration_hours');
         }
         if ($game->visibility?->value !== $this->edit_visibility) {
             $changes['visibility'] = $this->edit_visibility;
-            $changedLabels[] = __('common.content_visibility');
         }
         $oldLocation = $game->location['details'] ?? '';
         if ($oldLocation !== $this->edit_location_details) {
@@ -164,10 +162,6 @@ class GamesPage extends Component
         }
         if ($game->location_id !== $this->edit_location_id) {
             $changes['location_id'] = $this->edit_location_id !== '' ? $this->edit_location_id : null;
-            $changedLabels[] = __('common.field_location');
-        } elseif ($oldLocation !== $this->edit_location_details) {
-            // Location details changed but location_id stayed the same
-            $changedLabels[] = __('common.field_location');
         }
         if (($game->location_instructions ?? '') !== $this->edit_location_instructions) {
             $changes['location_instructions'] = $this->edit_location_instructions !== '' ? $this->edit_location_instructions : null;
@@ -186,40 +180,39 @@ class GamesPage extends Component
             ActivityType::GameUpdated,
             authenticatedUser(),
             $game,
-            ['changed_fields' => $changedLabels],
+            ['changed_fields' => array_keys($changes)],
         );
 
         Log::info('Game updated', [
             'game_id' => $game->id,
             'owner_id' => $game->owner_id,
-            'changed_fields' => $changedLabels,
+            'changed_fields' => array_keys($changes),
         ]);
 
-        // Notify participants (excluding owner)
-        if ($changedLabels !== []) {
-            try {
-                $participants = $game->participants()
-                    ->where('status', 'approved')
-                    ->where('user_id', '!=', $game->owner_id)
-                    ->with('user')
-                    ->get();
+        // Notify participants (excluding owner) — every change surfaces now,
+        // including arrival-instruction edits, which previously notified nobody.
+        try {
+            $participants = $game->participants()
+                ->where('status', 'approved')
+                ->where('user_id', '!=', $game->owner_id)
+                ->with('user')
+                ->get();
 
-                foreach ($participants as $participant) {
-                    if ($participant->user === null) {
-                        continue;
-                    }
-                    app(NotificationService::class)->send(
-                        $participant->user,
-                        new EntityUpdated($game, $changedLabels),
-                        NotificationCategory::GameUpdated,
-                    );
+            foreach ($participants as $participant) {
+                if ($participant->user === null) {
+                    continue;
                 }
-            } catch (\Throwable $e) {
-                Log::error('notification.game_updated_dispatch_failed', [
-                    'game_id' => $game->id,
-                    'error' => $e->getMessage(),
-                ]);
+                app(NotificationService::class)->send(
+                    $participant->user,
+                    new EntityUpdated($game, array_keys($changes)),
+                    NotificationCategory::GameUpdated,
+                );
             }
+        } catch (\Throwable $e) {
+            Log::error('notification.game_updated_dispatch_failed', [
+                'game_id' => $game->id,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         $this->cancelEdit();

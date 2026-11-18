@@ -12,7 +12,6 @@ use App\Models\Location;
 use App\Models\Review;
 use App\Models\SessionZeroConfirmation;
 use App\Models\SessionZeroSurvey;
-use App\Models\ShortLink;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\UserRelationship;
@@ -127,37 +126,5 @@ describe('enforced morph map (D170)', function () {
         )[0]->n;
 
         expect($implicitCasts)->toBe(0);
-    });
-
-    it('freezes the alias data migration in lockstep with the enforced map', function () {
-        $migration = require database_path('migrations/2026_10_09_140000_migrate_morph_types_to_aliases.php');
-
-        $frozenAliases = (new ReflectionClass($migration))->getConstant('ALIASES');
-
-        // A map edit without a matching migration tweak silently leaves
-        // stored FQCNs unconverted — the exact data split D170 cures.
-        expect($frozenAliases)->toEqualCanonicalizing(Relation::morphMap());
-    });
-
-    it('converts stored FQCN morph types to aliases and back', function () {
-        $user = User::factory()->create();
-        $game = Game::factory()->create(['owner_id' => $user->id]);
-        $link = ShortLink::factory()->create([
-            'linkable_type' => Game::class,
-            'linkable_id' => $game->id,
-        ]);
-
-        // Legacy shape: FQCN where the enforced map expects the alias.
-        expect($link->linkable_type)->toBe(Game::class);
-
-        $migration = require database_path('migrations/2026_10_09_140000_migrate_morph_types_to_aliases.php');
-        $migration->up();
-
-        expect($link->fresh()->linkable_type)->toBe('game')
-            ->and($link->fresh()->linkable)->toBeInstanceOf(Game::class);
-
-        $migration->down();
-
-        expect($link->fresh()->linkable_type)->toBe(Game::class);
     });
 });

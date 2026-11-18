@@ -52,20 +52,15 @@ enum DiscordRsvpOutcome: string
 
     /**
      * The ephemeral confirmation copy PATCHed to the interaction's @original
-     * response. Short, value-framed, and matches the slice's confirmation
-     * vocabulary ('You're in' / 'Waitlisted' / 'On the bench' /
-     * 'You're already on the roster'). Hardcoded English to match T02's
-     * unlinked-deep-link copy precedent (localization is a follow-up — the job
-     * does not carry the interaction locale).
+     * response, resolved from the `notifications.content_rsvp_outcome_*` lang
+     * keys in the clicker's locale (MEM1741 — the job carries the interaction
+     * locale the controller resolved from the interaction payload). A null
+     * $locale renders in the app locale. Copy canon per docs/GLOSSARY.md:
+     * British 'cancelled' in EN values; DE uses Runde, nachrücken,
+     * Ersatzbank, du-form.
      */
-    public function confirmationContent(): string
+    public function confirmationContent(?string $locale = null): string
     {
-        return match ($this) {
-            self::Approved => "You're in! Your seat is saved. See you at the game. ✅",
-            self::Waitlisted => "You're on the waitlist — we'll bump you up here the moment a seat opens.",
-            self::Benched => "You're on the bench for this one — hang tight, we'll promote you if a seat frees up.",
-            self::AlreadyOnRoster => "You're already on the roster for this game. 🎲",
-            self::Refused => "This RSVP couldn't be processed — the game may be full, canceled, or no longer accepting joins.",
-        };
+        return __("notifications.content_rsvp_outcome_{$this->value}", [], $locale);
     }
 }

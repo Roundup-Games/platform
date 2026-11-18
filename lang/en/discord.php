@@ -123,5 +123,6 @@ return [
     'content_card_cross_value_generic' => '**:count** attending from beyond this server — the roundup community reaches across servers',
     'content_card_button_my_seat' => '🎟️ My seat',
     'content_card_button_view' => 'View on roundup',
+    'content_card_button_add_calendar' => 'Add to calendar',
 
 ];

@@ -137,10 +137,10 @@ class DiscordInteractionController extends Controller
         return match ($action) {
             self::ACTION_MENU => $this->handleMenuRequest($gameId, $user, $guildId, $locale),
             self::ACTION_JOIN => $this->handleDeferredAction(
-                $gameId, $user, $guildId, $this->interactionToken($request), ProcessDiscordRsvp::class, 'join_dispatched'
+                $gameId, $user, $guildId, $this->interactionToken($request), ProcessDiscordRsvp::class, 'join_dispatched', $locale
             ),
             self::ACTION_LEAVE => $this->handleDeferredAction(
-                $gameId, $user, $guildId, $this->interactionToken($request), ProcessDiscordLeave::class, 'leave_dispatched'
+                $gameId, $user, $guildId, $this->interactionToken($request), ProcessDiscordLeave::class, 'leave_dispatched', $locale
             ),
             default => $this->ephemeralMessage(
                 __('notifications.error_rsvp_unprocessable', [], $locale)
@@ -263,6 +263,9 @@ class DiscordInteractionController extends Controller
      *
      * @param  class-string  $jobClass  ProcessDiscordRsvp::class or ProcessDiscordLeave::class
      * @param  string  $logKey  'join_dispatched' or 'leave_dispatched'
+     * @param  string  $locale  the clicker's interaction locale — carried into
+     *                          the job so the deferred confirmation renders in
+     *                          the clicker's language (MEM1741)
      */
     private function handleDeferredAction(
         string $gameId,
@@ -271,6 +274,7 @@ class DiscordInteractionController extends Controller
         string $interactionToken,
         string $jobClass,
         string $logKey,
+        string $locale,
     ): JsonResponse {
         if (! $user instanceof User) {
             Log::info('discord_interaction.unlinked_deep_link', [
@@ -286,6 +290,7 @@ class DiscordInteractionController extends Controller
             $user->id,
             $guildId,
             $interactionToken,
+            $locale,
         );
 
         Log::info("discord_interaction.{$logKey}", [
@@ -296,7 +301,16 @@ class DiscordInteractionController extends Controller
 
         // Discord requires HTTP 200 for ALL interaction responses (a 202
         // causes the @original webhook to never be created → PATCH 404s).
-        return response()->json(['type' => self::TYPE_DEFERRED], 200);
+        // EPHEMERAL must be declared HERE, on the deferred ack: ephemerality
+        // is fixed when the source message is created ("Bot is thinking…"),
+        // and a later PATCH @original cannot add the flag — the edit API
+        // silently ignores unsupported flag changes. Omitting it made every
+        // Join/Leave confirmation a permanent PUBLIC guild message instead
+        // of a private-to-clicker one (M081 fifth-pass review).
+        return response()->json([
+            'type' => self::TYPE_DEFERRED,
+            'data' => ['flags' => self::FLAG_EPHEMERAL],
+        ], 200);
     }
 
     // ── Unlinked deep-link ──────────────────────────────
@@ -365,16 +379,29 @@ class DiscordInteractionController extends Controller
      */
     private function discordJoinUrl(string $gameId): string
     {
-        $baseUrl = is_string(config('app.url')) ? rtrim(config('app.url'), '/') : '';
+        // Same degraded-config fallback the card/digest renderers use — a
+        // relative '' URL would render as a dead link inside Discord.
+        $baseUrl = rtrim($this->appUrlFallback(), '/');
 
         return $baseUrl.'/discord/join/'.$gameId;
     }
 
     private function gameDeepLinkUrl(string $gameId): string
     {
-        $baseUrl = is_string(config('app.url')) ? rtrim(config('app.url'), '/') : '';
+        $baseUrl = rtrim($this->appUrlFallback(), '/');
 
         return $baseUrl.'/games/'.$gameId;
+    }
+
+    /**
+     * Configured app URL, degrading to the localhost placeholder the
+     * renderers use when the config value is absent or not a string.
+     */
+    private function appUrlFallback(): string
+    {
+        $configured = config('app.url');
+
+        return is_string($configured) && $configured !== '' ? $configured : 'http://localhost';
     }
 
     /**

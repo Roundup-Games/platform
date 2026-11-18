@@ -14,11 +14,11 @@ use Illuminate\Support\Facades\Cache;
 //   Berlin  52.5200/13.4050 -> u33     Hamburg 53.5511/9.9937 -> u1x
 //   Munich  48.1351/11.5820 -> u28
 //
-// The migration 2026_10_09_160000 duplicates this logic self-contained; its
-// backfill parity test lives in tests/Feature/Migrations/
-// CityRegistryBackfillMigrationTest.php (the DDL it rewinds — locations FK,
-// cities column — deadlocks sibling --parallel workers, so it runs in the
-// serial ddl-serial tail; moved 2026-11-11).
+// The migration 2026_10_09_160000 duplicated this logic self-contained;
+// its backfill parity harness (tests/Feature/Migrations/
+// CityRegistryBackfillMigrationTest.php) was removed when the migration
+// file was squashed into the schema baseline (#28) — this service test is
+// the durable coverage for the cluster logic.
 beforeEach(function () {
     Cache::flush();
 });

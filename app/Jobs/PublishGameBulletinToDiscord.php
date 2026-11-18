@@ -8,6 +8,7 @@ use App\Models\DiscordBulletinMessage;
 use App\Models\DiscordCardMessage;
 use App\Models\Game;
 use App\Models\GameBulletin;
+use App\Services\Discord\DiscordPalette;
 use App\Services\Discord\DiscordWebhookClient;
 use App\Services\Discord\DiscordWebhookPayload;
 use Illuminate\Bus\Queueable;
@@ -278,8 +279,9 @@ class PublishGameBulletinToDiscord implements ShouldQueue
             ], $locale),
             'url' => route('games.show', ['locale' => $locale, 'id' => $game]),
             'description' => $description,
-            // Discord blurple — the app's Discord brand colour.
-            'color' => DiscordWebhookPayload::BLURPLE,
+            // Emerald brand accent (D280 — the single roundup default, shared
+            // with guild cards and the digest via DiscordPalette).
+            'color' => DiscordPalette::EMERALD,
         ]);
     }
 

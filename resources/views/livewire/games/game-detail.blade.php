@@ -59,6 +59,40 @@
             </a>
         @endif
 
+        {{-- Add to calendar (D287): stateless Google-template deep link —
+             public URL, per-game, no token minting (the webcal token stays an
+             explicit Settings action). The auto-updating lifecycle belongs to
+             the iTIP mail attachments and the personal feed; this is the
+             one-click add. --}}
+        @php
+            $googleCalendarUrl = \App\Services\Calendar\GoogleTemplateLink::forGame(
+                $game,
+                route('games.detail', $game, absolute: true),
+                $game->linkedLocation?->name,
+            );
+        @endphp
+        @if($googleCalendarUrl)
+            <div class="bg-surface-container-low rounded-xl shadow-ambient p-4 flex items-center justify-between gap-3 flex-wrap">
+                <span class="text-sm text-on-surface-variant flex items-center gap-2 min-w-0">
+                    <span class="material-symbols-outlined text-base" aria-hidden="true">event_available</span>
+                    {{ __('games.content_add_to_calendar_hint') }}
+                </span>
+                <span class="flex items-center gap-3 shrink-0">
+                    @auth
+                        <a href="{{ route('settings.show', ['locale' => app()->getLocale()]) }}" wire:navigate
+                           class="text-xs text-on-surface-variant hover:text-primary underline underline-offset-2 transition-colors">
+                            {{ __('games.action_calendar_feed_settings') }}
+                        </a>
+                    @endauth
+                    <a href="{{ $googleCalendarUrl }}" target="_blank" rel="noopener"
+                       class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-colors whitespace-nowrap">
+                        <span class="material-symbols-outlined text-base" aria-hidden="true">calendar_add_on</span>
+                        {{ __('games.action_add_to_calendar') }}
+                    </a>
+                </span>
+            </div>
+        @endif
+
         <x-registration-cta :message="__('games.guest_nudge_game_detail')" />
 
         @include('livewire.games.partials._invitation-banner')

@@ -11,11 +11,11 @@ return [
     // Seitentitel / Composer-Überschrift
     'title_charter' => 'Kampagnen-Charta',
 
-    // Einstiegskarte auf der Kampagnenseite (nur für dich sichtbar)
+    // Einstiegskarte auf der Kampagnenseite (nur für Dich sichtbar)
     'title_entry' => 'Kampagnen-Charta',
     'description_entry_teaser' => 'Erwartungen, Grenzen und Safety-Tools klären, bevor die erste Runde startet — und die Unterschrift aller einholen.',
     'description_entry_fit' => 'Am meisten bringt eine Charta laufenden Kampagnen — und sie ist völlig optional: Deine Kampagne funktioniert auch ohne.',
-    'description_entry_teaser_participant' => 'Diese Kampagne läuft mit einer Charta — lies sie, prüfe deine Grenzen und unterschreibe.',
+    'description_entry_teaser_participant' => 'Diese Kampagne läuft mit einer Charta — lies sie, prüfe Deine Grenzen und unterschreibe.',
     'action_create_charter' => 'Charta erstellen',
     'action_continue_charter' => 'Charta weiterbearbeiten',
     'action_view_charter' => 'Charta ansehen',
@@ -28,10 +28,10 @@ return [
     'status_archived' => 'Archiviert',
 
     // Startbildschirm (noch keine Charta vorhanden)
-    'heading_start' => 'Starte deine Kampagnen-Charta',
+    'heading_start' => 'Starte Deine Kampagnen-Charta',
     'description_start_intro' => 'Eine Charta bündelt alles, was vor der ersten Runde zählt: Worum geht es, wo liegen die Grenzen, welche Safety-Tools nutzt ihr — und worauf verpflichtet sich alle. Deine Spieler lesen sie und unterschreiben.',
     'title_quickstart' => 'Schnellstart',
-    'description_quickstart' => 'Aus deiner Kampagne vorbelegt — du kannst alles anpassen, bevor du veröffentlichst.',
+    'description_quickstart' => 'Aus Deiner Kampagne vorbelegt — Du kannst alles anpassen, bevor Du veröffentlichst.',
     'title_blank' => 'Leere Charta',
     'description_blank' => 'Ganz von vorn anfangen und jede Entscheidung selbst treffen.',
 
@@ -56,14 +56,14 @@ return [
     'section_logistics_description' => 'Spielort, Essen, Rundenrhythmus, Rundendauer, Anwesenheit und euer Kommunikationskanal.',
     'section_character_title' => 'Charaktererstellung',
     'section_character_short' => 'Charaktere',
-    'section_character_description' => 'Bau-Regeln und welche Art von Hintergrundgeschichten du dir wünschst.',
+    'section_character_description' => 'Bau-Regeln und welche Art von Hintergrundgeschichten Du Dir wünschst.',
     'section_agreement_title' => 'Die Vereinbarung',
     'section_agreement_short' => 'Vereinbarung',
-    'section_agreement_description' => 'Prüfe deine Charta und veröffentliche sie. Deine Spieler bestätigen beim Unterschreiben die Aussagen unten.',
+    'section_agreement_description' => 'Prüfe Deine Charta und veröffentliche sie. Deine Spieler bestätigen beim Unterschreiben die Aussagen unten.',
 
     // Felder — Überblick
     'field_overview_pitch_label' => 'Pitch',
-    'field_overview_pitch_help' => 'Worum geht es in dieser Kampagne? Hol deine Spieler ab.',
+    'field_overview_pitch_help' => 'Worum geht es in dieser Kampagne? Hol Deine Spieler ab.',
     'field_overview_pitch_placeholder' => 'z.B. Eine Noir-Intrigen-Kampagne in der Stadt Schwelle — drei Fraktionen, ein Heist, jeder schuldet jemandem etwas.',
     'field_overview_system_notes_label' => 'System, Edition & erlaubte Quellen',
     'field_overview_system_notes_help' => 'Welches System spielt ihr, und welche Bücher oder Quellen sind erlaubt?',
@@ -99,9 +99,9 @@ return [
     'field_boundaries_veils_categories_label' => 'Kategorien',
     'field_boundaries_veils_text_label' => 'In unseren eigenen Worten',
     'field_boundaries_veils_placeholder' => 'z.B. Romantik wird ausgeblendet; Substanzkonsum wird erzählt, nie ausgespielt.',
-    'field_boundaries_intro_note_label' => 'Einleitung für deine Spieler',
-    'field_boundaries_intro_note_help' => 'Wie du Grenzen an deinem Tisch rahmen möchtest.',
-    'field_boundaries_intro_note_placeholder' => 'z.B. Grenzen sind keine Schwäche — sie halten den Tisch für alle angenehm. Verschärfen kannst du deine jederzeit.',
+    'field_boundaries_intro_note_label' => 'Einleitung für Deine Spieler',
+    'field_boundaries_intro_note_help' => 'Wie Du Grenzen an Deinem Tisch rahmen möchtest.',
+    'field_boundaries_intro_note_placeholder' => 'z.B. Grenzen sind keine Schwäche — sie halten den Tisch für alle angenehm. Verschärfen kannst Du Deine jederzeit.',
 
     // Felder — Safety
     'field_safety_tools_label' => 'Genutzte Tools',
@@ -130,7 +130,7 @@ return [
     'field_policies_homebrew_label' => 'Homebrew & Third-Party-Inhalte',
     'field_policies_homebrew_help' => 'Welche eigenen Inhalte sind erlaubt?',
     'field_policies_etiquette_label' => 'Tisch-Etikette',
-    'field_policies_etiquette_help' => 'Wähle die Grundregeln, die an deinem Tisch zählen.',
+    'field_policies_etiquette_help' => 'Wähle die Grundregeln, die an Deinem Tisch zählen.',
     'field_policies_etiquette_text_label' => 'Weitere Etikette in unseren eigenen Worten',
     'field_policies_etiquette_text_help' => 'Alles, was die Auswahl oben nicht abdeckt.',
     'field_policies_etiquette_text_placeholder' => 'z.B. Wir machen alle 90 Minuten eine 10-minütige Pause.',
@@ -149,7 +149,7 @@ return [
     'field_ai_tools_recording_label' => 'Audio-/Videoaufnahmen',
     'field_ai_tools_recording_help' => 'Wird irgendetwas aufgenommen?',
     'field_ai_tools_custom_clause_label' => 'Eigene Klausel',
-    'field_ai_tools_custom_clause_help' => 'Optional — formuliere deine eigene Tooling-Regel.',
+    'field_ai_tools_custom_clause_help' => 'Optional — formuliere Deine eigene Tooling-Regel.',
     'field_ai_tools_custom_clause_placeholder' => 'z.B. Musik über Playlists ist okay; keine geklonten Charakterstimmen.',
 
     // Felder — Logistik
@@ -173,12 +173,12 @@ return [
     'field_logistics_session_length_other_help' => 'Beschreibe eure typische Rundenlänge.',
     'field_logistics_session_length_other_placeholder' => 'z.B. Etwa 5 Stunden mit Essenspause.',
     'field_logistics_attendance_note_label' => 'Anwesenheitserwartung',
-    'field_logistics_attendance_note_help' => 'Was erwartest du von der Anwesenheit deiner Spieler?',
+    'field_logistics_attendance_note_help' => 'Was erwartest Du von der Anwesenheit Deiner Spieler?',
     'field_logistics_attendance_note_placeholder' => 'z.B. Wir spielen auch, wenn ein Spieler fehlt; bitte Status frühzeitig aktualisieren.',
     'field_logistics_max_missed_sessions_label' => 'Grenze für Fehlrunden',
     'field_logistics_max_missed_sessions_help' => 'Wer mehr als diese Anzahl Runden in Folge verpasst, kann seinen Platz verlieren. Leer lassen für kein Limit.',
     'field_logistics_absence_notice_label' => 'Absage-Frist',
-    'field_logistics_absence_notice_help' => 'Wie viel Vorlauf brauchst du bei einer Absage?',
+    'field_logistics_absence_notice_help' => 'Wie viel Vorlauf brauchst Du bei einer Absage?',
     'field_logistics_missing_player_label' => 'Wenn ein Spieler fehlt',
     'field_logistics_missing_player_help' => 'Was passiert mit der Runde — und mit dem Charakter?',
     'field_logistics_comms_label' => 'Kommunikationskanal',
@@ -192,7 +192,7 @@ return [
     'field_character_build_constraints_help' => 'Level, Methode, erlaubte Bücher, Gruppenzusammensetzung.',
     'field_character_build_constraints_placeholder' => 'z.B. Start auf Stufe 1, Standard-Array oder Punktesystem, nur Grundregelwerk. Die Gruppe braucht mindestens eine heilende Rolle.',
     'field_character_backstory_requested_label' => 'Hintergrund-Hooks erwünscht',
-    'field_character_backstory_requested_help' => 'Bitte Spieler, Hintergrund-Hooks mitzubringen, die du in die Handlung einweben kannst.',
+    'field_character_backstory_requested_help' => 'Bitte Spieler, Hintergrund-Hooks mitzubringen, die Du in die Handlung einweben kannst.',
     'field_character_backstory_guidance_label' => 'Hinweise zur Hintergrundgeschichte',
     'field_character_backstory_guidance_help' => 'Welche Art von Geschichten? Wie lang, wie dunkel, wie verknüpft?',
     'field_character_backstory_guidance_placeholder' => 'z.B. Maximal drei Absätze, eine offene Frage für mich, eine Verbindung zu einem anderen Charakter.',
@@ -306,23 +306,23 @@ return [
     'action_copy_link' => 'Link kopieren',
 
     // Entwurfszustand
-    'content_draft_banner' => 'Diese Charta ist ein Entwurf — bis zur Veröffentlichung siehst sie nur du.',
+    'content_draft_banner' => 'Diese Charta ist ein Entwurf — bis zur Veröffentlichung siehst sie nur Du.',
     'flash_draft_saved' => 'Entwurf gespeichert.',
 
     // Veröffentlichung erfolgreich
     'flash_publish_success' => 'Charta veröffentlicht!',
-    'description_publish_success' => 'Deine Charta ist online. Teile den Link mit deinen Spielern, damit sie sie lesen und unterschreiben können.',
+    'description_publish_success' => 'Deine Charta ist online. Teile den Link mit Deinen Spielern, damit sie sie lesen und unterschreiben können.',
     'label_share_link' => 'Teilbarer Link',
     'flash_version_published' => 'Version :version veröffentlicht',
 
     // Öffentliche, schreibgeschützte Ansicht
-    'view_description_by_gm' => 'Kampagnen-Charta deines Game Masters',
+    'view_description_by_gm' => 'Kampagnen-Charta Deines Game Masters',
     'content_version' => 'Version :version',
     'content_published_on' => 'Veröffentlicht am :date',
     'view_draft_banner' => 'Das ist ein Entwurf — diese Charta ist noch nicht veröffentlicht.',
     'content_archived_note' => 'Diese Charta wurde am Ende der Kampagne archiviert.',
     'content_gm_strip_published' => 'Version :version veröffentlicht am :date',
-    'view_agreement_intro' => 'Wenn deine Spieler unterschreiben, bestätigen sie diese Aussagen:',
+    'view_agreement_intro' => 'Wenn Deine Spieler unterschreiben, bestätigen sie diese Aussagen:',
 
     // Lifecycle-Schutzregeln
     'error_only_draft_editable' => 'Bearbeitet werden kann nur eine Charta, die noch im Entwurf ist.',
@@ -354,19 +354,19 @@ return [
     // die Panel-Texte, die privaten Antwortfelder und die Unterschrifts-Karte ab.
     'heading_signature_panel' => 'Diese Charta unterschreiben',
     'description_signature_panel_intro' => 'Bestätige alle fünf Aussagen mit einem Häkchen und unterschreibe danach. Deine Unterschrift ist an Version :version gebunden.',
-    'description_privacy_note' => 'Private Antworten sehen nur du und der GM — niemals andere Teilnehmer.',
+    'description_privacy_note' => 'Private Antworten sehen nur Du und der GM — niemals andere Teilnehmer.',
     'action_sign_charter' => 'Charta unterschreiben',
-    'flash_signed_success' => 'Charta unterschrieben — danke dir!',
+    'flash_signed_success' => 'Charta unterschrieben — danke Dir!',
     'heading_private_answers' => 'Deine privaten Antworten',
-    'description_private_answers_intro' => 'Ergänze deine eigenen Lines und Veils zum Tisch-Standard oben. Der GM teilt sie nie mit dem Tisch.',
+    'description_private_answers_intro' => 'Ergänze Deine eigenen Lines und Veils zum Tisch-Standard oben. Der GM teilt sie nie mit dem Tisch.',
     'field_my_lines_label' => 'Meine Lines — hartes Nein',
-    'field_my_lines_help' => 'Themen, die für dich nie an diesen Tisch gehören.',
+    'field_my_lines_help' => 'Themen, die für Dich nie an diesen Tisch gehören.',
     'field_my_lines_text_label' => 'Meine Lines in eigenen Worten',
     'field_my_veils_label' => 'Meine Veils — ausblenden',
-    'field_my_veils_help' => 'Themen, die okay sind, aber für dich off-screen bleiben sollen.',
+    'field_my_veils_help' => 'Themen, die okay sind, aber für Dich off-screen bleiben sollen.',
     'field_my_veils_text_label' => 'Meine Veils in eigenen Worten',
-    'field_note_to_gm_label' => 'Notiz an deinen GM',
-    'field_note_to_gm_help' => 'Alles, was dein GM vor der ersten Runde noch wissen sollte.',
+    'field_note_to_gm_label' => 'Notiz an Deinen GM',
+    'field_note_to_gm_help' => 'Alles, was Dein GM vor der ersten Runde noch wissen sollte.',
     'heading_signed_card' => 'Unterschrieben',
     'content_signed_card' => 'Du hast Charta v:version am :date unterschrieben.',
     'content_signed_no_answers' => 'Du hast keine privaten Antworten hinterlegt.',
@@ -385,7 +385,7 @@ return [
     'label_roster_answer_lines' => 'Lines — hartes Nein',
     'label_roster_answer_veils' => 'Veils — ausblenden',
     'label_roster_answer_note' => 'Notiz an den GM',
-    'description_roster_privacy' => 'Private Antworten sehen nur du und der jeweilige Teilnehmer — bearbeiten lassen sie sich nie.',
+    'description_roster_privacy' => 'Private Antworten sehen nur Du und der jeweilige Teilnehmer — bearbeiten lassen sie sich nie.',
     'action_countersign_charter' => 'Charta gegenzeichnen',
     'description_countersign_no_participants' => 'Noch keine zugelassenen Teilnehmer — der GM zeichnet gegen, sobald der Tisch unterschrieben hat.',
     'description_countersign_pending' => ':count zugelassene Teilnehmer haben noch nicht unterschrieben.',
@@ -412,14 +412,14 @@ return [
     'action_amend_charter' => 'Charta ändern',
     'action_cancel_amendment' => 'Änderung abbrechen',
     'action_publish_amendment' => 'Änderung veröffentlichen',
-    'label_amendment_in_progress' => 'Du änderst die veröffentlichte Charta — deine Änderungen greifen erst, wenn du die neue Version veröffentlichst.',
+    'label_amendment_in_progress' => 'Du änderst die veröffentlichte Charta — Deine Änderungen greifen erst, wenn Du die neue Version veröffentlichst.',
     'label_amendment_material_badge' => 'Wesentliche Änderung',
     'label_amendment_minor_badge' => 'Geringfügige Änderung',
-    'description_amendment_material' => 'Wesentliche Änderungen setzen jede Unterschrift — die deiner Spieler und deine Gegenzeichnung — wieder auf ausstehende Zustimmung zurück.',
+    'description_amendment_material' => 'Wesentliche Änderungen setzen jede Unterschrift — die Deiner Spieler und Deine Gegenzeichnung — wieder auf ausstehende Zustimmung zurück.',
     'description_amendment_minor' => 'Geringfügige Änderungen übernehmen alle bestehenden Unterschriften — niemand muss erneut unterschreiben.',
     'field_amendment_changelog_label' => 'Änderungsprotokoll',
     'field_amendment_changelog_placeholder' => 'z. B. Die Lines zu Gewalt nach dem Session-Zero-Gespräch präzisiert.',
-    'description_amendment_changelog' => 'Pflichtfeld. Fasse zusammen, was sich geändert hat und warum — es wird mit der neuen Version gespeichert und deinen Spielern zusammen mit der Übersicht der Änderungen angezeigt.',
+    'description_amendment_changelog' => 'Pflichtfeld. Fasse zusammen, was sich geändert hat und warum — es wird mit der neuen Version gespeichert und Deinen Spielern zusammen mit der Übersicht der Änderungen angezeigt.',
     'flash_amendment_published' => 'Änderung als Version :version veröffentlicht.',
 
     // Re-Agreement-Banner für Teilnehmer (M070/S03-T04) — eingeblendet auf
@@ -428,7 +428,7 @@ return [
     // zurückgesetzt hat.
     'content_amended_banner_title' => 'Diese Charta wurde geändert',
     'content_amended_banner_on' => 'Geändert am :date',
-    'content_amended_banner_body' => 'Der GM hat eine wesentliche Änderung veröffentlicht — deine Unterschrift braucht daher erneut deine Zustimmung. Sieh dir die Änderungen an und unterschreibe anschließend die neue Version unten.',
+    'content_amended_banner_body' => 'Der GM hat eine wesentliche Änderung veröffentlicht — Deine Unterschrift braucht daher erneut Deine Zustimmung. Sieh Dir die Änderungen an und unterschreibe anschließend die neue Version unten.',
     'action_show_changes' => 'Änderungen anzeigen',
     'label_amendment_changelog_shown' => 'Änderungsprotokoll des GM',
 
@@ -460,10 +460,10 @@ return [
     'flash_template_saved' => 'Vorlage gespeichert.',
     'error_templates_member_only' => 'Gespeicherte Charta-Vorlagen sind eine der Komfortfunktionen der Mitgliedschaft.',
     'error_seeds_member_only' => 'Der Start einer Charta aus einer gespeicherten Vorlage oder einer früheren Charta gehört zu den Komfortfunktionen der Mitgliedschaft.',
-    'error_location_not_available' => 'Dieser Ort steht für diese Charta nicht zur Verfügung. Wähle einen deiner eigenen Orte.',
-    'error_template_not_yours' => 'Diese Vorlage existiert nicht oder gehört dir nicht.',
-    'error_previous_not_yours' => 'Diese Charta existiert nicht oder gehört dir nicht.',
-    'label_template_empty' => 'Noch nichts hier — speichere eine Charta als Vorlage oder veröffentliche eine, dann kannst du sie hier wiederverwenden.',
+    'error_location_not_available' => 'Dieser Ort steht für diese Charta nicht zur Verfügung. Wähle einen Deiner eigenen Orte.',
+    'error_template_not_yours' => 'Diese Vorlage existiert nicht oder gehört Dir nicht.',
+    'error_previous_not_yours' => 'Diese Charta existiert nicht oder gehört Dir nicht.',
+    'label_template_empty' => 'Noch nichts hier — speichere eine Charta als Vorlage oder veröffentliche eine, dann kannst Du sie hier wiederverwenden.',
 
     // Charta-Status im GM-Workspace (M070/S04-T03, Konzept §4) — eine
     // Zeile pro eigener Charta: Unterschriftenfortschritt, offene
@@ -476,7 +476,7 @@ return [
     'label_pending_count' => ':count offen',
     'label_days_outstanding' => 'Seit :count Tag offen|Seit :count Tagen offen',
     'label_no_participants' => 'Noch keine Teilnehmer',
-    'content_workspace_empty' => 'Noch keine Chartas — starte eine über die Seite deiner Kampagne.',
+    'content_workspace_empty' => 'Noch keine Chartas — starte eine über die Seite Deiner Kampagne.',
 
     // Charta-Prüfexport (M070/S04-T04, R085) — die dritte
     // Mitgliedschafts-Komfortfunktion: der unveränderliche Versions- und
@@ -488,8 +488,8 @@ return [
     'heading_signature_history' => 'Unterschriftenverlauf',
     'action_print_export' => 'Drucken / Als PDF speichern',
     'action_export_audit' => 'Prüfexport erstellen',
-    'label_audit_privacy_note' => 'Private Grenzen-Antworten sind niemals Teil dieses Exports — sie bleiben zwischen dir und jedem Teilnehmer.',
-    'content_upsell_audit' => 'Ein druckfertiger Export des kompletten Prüfverlaufs deiner Charta — jede veröffentlichte Version mit ihrem Änderungsprotokoll und jede Unterschrift mit Zeitstempel — ist eine der Komfortfunktionen der Mitgliedschaft.',
+    'label_audit_privacy_note' => 'Private Grenzen-Antworten sind niemals Teil dieses Exports — sie bleiben zwischen Dir und jedem Teilnehmer.',
+    'content_upsell_audit' => 'Ein druckfertiger Export des kompletten Prüfverlaufs Deiner Charta — jede veröffentlichte Version mit ihrem Änderungsprotokoll und jede Unterschrift mit Zeitstempel — ist eine der Komfortfunktionen der Mitgliedschaft.',
     'label_audit_not_published' => 'Diese Charta wurde noch nicht veröffentlicht — die Prüfhistorie beginnt mit der ersten veröffentlichten Version.',
 
     // Prüfexport-Tabellen-Chrome: Spaltenköpfe und Rollen-Chips. Status-Chips

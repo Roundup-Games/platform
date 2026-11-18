@@ -8,7 +8,7 @@ return [
     'label_gm_strengths' => 'GM-Stärken',
     'content_max_3' => 'maximal 3 auswählen',
     'content_star_count' => ':count Stern|:count Sterne',
-    'placeholder_tell_us_about_experience' => 'Erzähl uns von deiner Erfahrung (optional)',
+    'placeholder_tell_us_about_experience' => 'Erzähl uns von Deiner Erfahrung (optional)',
     'action_submit_review' => 'Bewertung absenden',
     'action_write_review' => 'Bewertung schreiben',
     'action_go_back' => 'Zurück',
@@ -20,7 +20,7 @@ return [
     'validation_tags_max' => 'Du kannst maximal 3 Stärken auswählen.',
     'validation_tags_invalid' => 'Ungültige Stärke ausgewählt.',
     // Errors
-    'error_not_found' => 'Das Element, das du bewerten möchtest, konnte nicht gefunden werden.',
+    'error_not_found' => 'Das Element, das Du bewerten möchtest, konnte nicht gefunden werden.',
     'error_not_eligible' => 'Du bist nicht berechtigt, dieses Element zu bewerten.',
     // Flash
     'flash_review_submitted' => 'Deine Bewertung wurde gesendet. Vielen Dank!',
@@ -32,7 +32,7 @@ return [
     'content_review_count' => ':count Bewertung|:count Bewertungen',
     // Report
     'title_report_review' => 'Bewertung melden',
-    'content_report_review_explanation' => 'Warum meldest du diese Bewertung? Meldungen werden an unser Moderationsteam weitergeleitet.',
+    'content_report_review_explanation' => 'Warum meldest Du diese Bewertung? Meldungen werden an unser Moderationsteam weitergeleitet.',
     'report_reason_spam' => 'Spam oder irreführend',
     'error_review_not_found' => 'Die Bewertung konnte nicht gefunden werden.',
     'error_review_already_reported' => 'Diese Bewertung wurde bereits gemeldet.',

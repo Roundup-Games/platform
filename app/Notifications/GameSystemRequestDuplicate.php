@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\GameSystem;
 use App\Models\User;
+use App\Services\Discord\DiscordPalette;
 use App\Services\Discord\DiscordWebhookPayload;
 use Escalated\Laravel\Models\Ticket;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -43,7 +44,7 @@ class GameSystemRequestDuplicate extends BaseNotification
         $existingUrl = route('game-systems.show', ['locale' => $locale, 'slug' => $this->existingSystem->slug]);
         $name = $this->getGameSystemName();
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('notifications.subject_game_system_request_duplicate', [
                 'name' => $name,
             ]))
@@ -52,8 +53,10 @@ class GameSystemRequestDuplicate extends BaseNotification
                 'name' => $name,
                 'existing' => $this->existingSystem->name,
             ]))
-            ->action(__('notifications.action_view_game_system'), $existingUrl)
+            ->action(__('notifications.action_view_game_system'), $this->actionUrlWithMarker($notifiable, $existingUrl))
             ->line($this->unsubscribeLine($notifiable, 'game_system_request'));
+
+        return $this->withPreheader($mail, 'notifications.preheader_game_system_request_duplicate');
     }
 
     /**
@@ -98,5 +101,13 @@ class GameSystemRequestDuplicate extends BaseNotification
     public function toDiscord(User $notifiable): ?DiscordWebhookPayload
     {
         return null;
+    }
+
+    /**
+     * D280 semantic layer: action-needed amber — the requester should review the duplicate outcome (toDiscord is a null opt-out today; the mapping is declared so a future DM inherits it).
+     */
+    protected function semanticColor(): int
+    {
+        return DiscordPalette::ACTION_NEEDED;
     }
 }

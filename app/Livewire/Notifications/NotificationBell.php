@@ -4,6 +4,7 @@ namespace App\Livewire\Notifications;
 
 use App\Dto\NotificationGroup;
 use App\Services\NotificationQueryService;
+use App\Traits\ResolvesNotificationSettingsLinks;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -25,6 +26,8 @@ use Livewire\Component;
  */
 class NotificationBell extends Component
 {
+    use ResolvesNotificationSettingsLinks;
+
     /**
      * Track the dropdown open state for Alpine.js interaction.
      */

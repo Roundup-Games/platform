@@ -36,11 +36,26 @@ use Illuminate\Support\Facades\Schema;
  * controller (mail engagement), the signed unsubscribe links, PushChannel,
  * and DiscordChannel. PostHog keeps its existing per-send events; this
  * table is the per-category aggregate Resend/PostHog cannot give us.
+ *
+ * RE-ADDED POST-SQUASH (2026-11-17): this file was authored for M080 but
+ * deleted by the 2026-11-16 schema re-squash (commit 46336760) BEFORE any
+ * deployed environment could run it — the squash folded the table into
+ * database/schema/pgsql-schema.sql, which existing databases never load
+ * (Laravel consults the dump only for a fresh install with an empty
+ * migrations table). The file is restored under its ORIGINAL name so the
+ * schema baseline's ledger row (id 309) and the migrations directory stay
+ * in lockstep: fresh installs skip it (ledger row + table already present),
+ * existing environments run it once. The hasTable guard is belt-and-braces
+ * for any database that somehow holds the table without the ledger row.
  */
 return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('notification_engagement_counters')) {
+            return;
+        }
+
         Schema::create('notification_engagement_counters', function (Blueprint $table) {
             // Counter-table exemption from D170's uuid policy (the
             // short_link_hits precedent): the row identity is the natural

@@ -7,6 +7,7 @@ use App\Notifications\Channels\TaggedMailChannel;
 use App\Notifications\WaitlistPromoted;
 use App\Notifications\WeeklyDigest;
 use App\Services\NotificationService;
+use Carbon\Carbon;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -99,7 +100,7 @@ it('stamps the roundup_category metadata header on a dispatched notification mai
 
     app(NotificationService::class)->send(
         $user,
-        new WaitlistPromoted($game, 'Friday, 18:00'),
+        new WaitlistPromoted($game, Carbon::parse('next friday 18:00')),
         NotificationCategory::WaitlistPromoted,
     );
 
@@ -119,7 +120,7 @@ it('localizes the mail copy while the category tag stays constant', function () 
         $this->capturedMails = collect();
         app(NotificationService::class)->send(
             $user,
-            new WaitlistPromoted($game, 'Friday, 18:00'),
+            new WaitlistPromoted($game, Carbon::parse('next friday 18:00')),
             NotificationCategory::WaitlistPromoted,
         );
 
@@ -170,8 +171,9 @@ it('tags the weekly digest mail with the canonical digest category', function ()
     // must stamp the same key — if toDatabase()'s type changed or the digest
     // ever left the TaggedMailChannel path, delivered counters would fall
     // back to the 'WeeklyDigest' basename and the funnel would split with
-    // zero other failures. Production dispatch is $user->notify(new
-    // WeeklyDigest($user->unreadNotifications)) (SendWeeklyDigest command).
+    // zero other failures. Production dispatch is $user->notify(
+    // WeeklyDigest::fromNotifications($user->unreadNotifications))
+    // (SendWeeklyDigest command).
     $user = User::factory()->create(['weekly_digest_enabled' => true]);
     $user->notifications()->create([
         'id' => Str::uuid(),
@@ -179,7 +181,7 @@ it('tags the weekly digest mail with the canonical digest category', function ()
         'data' => ['type' => 'waitlist_promoted'],
     ]);
 
-    $user->notify(new WeeklyDigest($user->unreadNotifications));
+    $user->notify(WeeklyDigest::fromNotifications($user->unreadNotifications));
 
     expect($this->capturedMails)->toHaveCount(1)
         ->and($this->capturedMails[0]->getHeaders()->get('X-Metadata-'.TaggedMailChannel::CATEGORY_TAG)?->getValue())

@@ -43,12 +43,14 @@ class BadgeAwardedNotification extends BaseNotification
      */
     public function toMail(User $notifiable): MailMessage
     {
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__($this->subjectKey(), ['badge' => $this->displayBadge()]))
             ->greeting($this->greetingLine($notifiable))
             ->line(__($this->bodyKey(), ['badge' => $this->displayBadge()]))
-            ->action(__('notifications.action_badge_awarded'), $this->actionUrl($notifiable))
+            ->action(__('notifications.action_badge_awarded'), $this->actionUrlWithMarker($notifiable, $this->actionUrl($notifiable)))
             ->line($this->unsubscribeLine($notifiable, 'badge_awarded'));
+
+        return $this->withPreheader($mail, $this->preheaderKey());
     }
 
     /**
@@ -76,7 +78,7 @@ class BadgeAwardedNotification extends BaseNotification
         return $this->pushPayload(
             __('notifications.category_badge_awarded'),
             __($this->subjectKey(), ['badge' => $this->displayBadge()]),
-            $this->actionUrl($notifiable),
+            $this->actionUrlWithMarker($notifiable, $this->actionUrl($notifiable)),
             "badge-{$this->badgeKey}",
         );
     }
@@ -114,6 +116,13 @@ class BadgeAwardedNotification extends BaseNotification
         return $this->upgraded
             ? 'notifications.subject_badge_upgraded'
             : 'notifications.subject_badge_awarded';
+    }
+
+    private function preheaderKey(): string
+    {
+        return $this->upgraded
+            ? 'notifications.preheader_badge_upgraded'
+            : 'notifications.preheader_badge_awarded';
     }
 
     private function bodyKey(): string

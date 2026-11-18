@@ -26,7 +26,7 @@ class TeamInvitation extends BaseNotification
         $locale = $this->resolveLocale($notifiable);
         $actionUrl = route('teams.detail', ['locale' => $locale, 'slug' => $this->team->slug]);
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(__('notifications.subject_team_invitation', [
                 'inviter' => $this->inviter->name,
                 'team' => $this->team->name,
@@ -36,8 +36,10 @@ class TeamInvitation extends BaseNotification
                 'inviter' => $this->inviter->name,
                 'team' => $this->team->name,
             ]))
-            ->action(__('notifications.action_team_invitation'), $actionUrl)
+            ->action(__('notifications.action_team_invitation'), $this->actionUrlWithMarker($notifiable, $actionUrl))
             ->line($this->unsubscribeLine($notifiable, 'team_invitation'));
+
+        return $this->withPreheader($mail, 'notifications.preheader_team_invitation');
     }
 
     /**
