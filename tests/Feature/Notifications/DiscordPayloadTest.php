@@ -90,7 +90,7 @@ class DiscordPayloadTest extends TestCase
         $game = Game::factory()->create();
         $notifiable = User::factory()->create(['preferred_language' => ContentLanguage::En]);
 
-        $payload = (new AttendanceNudge($game, Carbon::parse('2026-11-06 18:00:00', 'UTC')))->toDiscord($notifiable);
+        $payload = (new AttendanceNudge($game, Carbon::parse(now()->addDays(3)->toDateString().' 18:00:00', 'UTC')))->toDiscord($notifiable);
 
         $embed = $this->embed($payload);
         // Title is the static 'Attendance Reminder' key (no :game param);
@@ -334,7 +334,7 @@ class DiscordPayloadTest extends TestCase
                 DiscordPalette::AMBIENT,
             ],
             'action-needed (AttendanceNudge)' => [
-                (new AttendanceNudge($game, Carbon::parse('2026-11-06 18:00:00', 'UTC')))->toDiscord($notifiable),
+                (new AttendanceNudge($game, Carbon::parse(now()->addDays(3)->toDateString().' 18:00:00', 'UTC')))->toDiscord($notifiable),
                 DiscordPalette::ACTION_NEEDED,
             ],
         ];
@@ -362,7 +362,7 @@ class DiscordPayloadTest extends TestCase
         $notifiable = User::factory()->create(['preferred_language' => ContentLanguage::En]);
 
         $payloads = [
-            (new AttendanceNudge($game, Carbon::parse('2026-11-06 18:00:00', 'UTC')))->toDiscord($notifiable),
+            (new AttendanceNudge($game, Carbon::parse(now()->addDays(3)->toDateString().' 18:00:00', 'UTC')))->toDiscord($notifiable),
             (new EntityCancelled($campaign))->toDiscord($notifiable),
             (new NewFollower($follower))->toDiscord($notifiable),
         ];
@@ -387,7 +387,7 @@ class DiscordPayloadTest extends TestCase
         $game = Game::factory()->create(['name' => ['en' => 'Ping @everyone and @here heist']]);
         $notifiable = User::factory()->create(['preferred_language' => ContentLanguage::En]);
 
-        $payload = (new AttendanceNudge($game, Carbon::parse('2026-11-06 18:00:00', 'UTC')))->toDiscord($notifiable);
+        $payload = (new AttendanceNudge($game, Carbon::parse(now()->addDays(3)->toDateString().' 18:00:00', 'UTC')))->toDiscord($notifiable);
 
         $body = $payload->toArray();
         // The hostile name renders verbatim as embed text (no sanitization —

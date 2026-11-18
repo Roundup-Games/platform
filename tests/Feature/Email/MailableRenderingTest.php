@@ -26,8 +26,8 @@ describe('EventRegistrationConfirmed notification', function () {
         $user = User::factory()->create(['name' => 'Bob']);
         $event = Event::factory()->create([
             'name' => 'Summer Open',
-            'start_date' => '2026-07-15',
-            'end_date' => '2026-07-17',
+            'start_date' => now()->addWeeks(2)->toDateString(),
+            'end_date' => now()->addWeeks(2)->addDays(2)->toDateString(),
             'venue_name' => 'Convention Center',
         ]);
         $registration = EventRegistration::factory()->confirmed()->create([

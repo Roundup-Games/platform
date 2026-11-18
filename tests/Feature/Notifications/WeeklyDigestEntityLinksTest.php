@@ -8,7 +8,6 @@ use App\Notifications\BadgeAwardedNotification;
 use App\Notifications\EntityInvitation;
 use App\Notifications\TeamInvitation;
 use App\Notifications\WeeklyDigest;
-use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Tests\Traits\CreatesGameInstances;
 use Tests\Traits\CreatesTeams;
@@ -62,7 +61,7 @@ beforeEach(function () {
  */
 function seedDigestRows(User $user, int $count, array $payloads = []): void
 {
-    $base = Carbon::parse('2026-11-15 12:00:00');
+    $base = now()->subHour();
 
     $rows = [];
     for ($i = 0; $i < $count; $i++) {
@@ -210,7 +209,7 @@ it('links rows whose payload comes from the real EntityInvitation::toDatabase() 
         'id' => Str::uuid(),
         'type' => EntityInvitation::class,
         'data' => $payload,
-        'created_at' => Carbon::parse('2026-11-15 12:00:00'),
+        'created_at' => now()->subMinutes(30),
     ]);
 
     $rendered = renderDigest($this->user);
@@ -238,7 +237,7 @@ it('links team invitation rows through the TARGET_ENTITY_KEYS name extraction', 
         'id' => Str::uuid(),
         'type' => TeamInvitation::class,
         'data' => $payload,
-        'created_at' => Carbon::parse('2026-11-15 12:00:00'),
+        'created_at' => now()->subMinutes(30),
     ]);
 
     $rendered = renderDigest($this->user);
@@ -261,7 +260,7 @@ it('links badge award rows through the badge_name extraction arm', function () {
         'id' => Str::uuid(),
         'type' => BadgeAwardedNotification::class,
         'data' => $payload,
-        'created_at' => Carbon::parse('2026-11-15 12:00:00'),
+        'created_at' => now()->subMinutes(30),
     ]);
 
     $rendered = renderDigest($this->user);

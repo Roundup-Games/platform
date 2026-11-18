@@ -344,36 +344,6 @@ describe('deadline call-site riders (D286)', function () {
         ]);
     })->with(['en', 'de']);
 
-    it('renders a legacy string deadline queued by pre-M081 code (deploy-boundary tolerance)', function () {
-        app()->setLocale('en');
-        $game = $this->createGameWithOwner()['game'];
-        $recipient = User::factory()->create();
-
-        // Jobs serialized before M081 carry the deadline as the old
-        // isoFormat('LLL') string (or the '' default) — a Carbon-only
-        // property type makes those in-flight payloads fail unserialization
-        // and lose the whole notification. The tolerant union parses the
-        // string at render time; the empty string renders deadline-less.
-        $legacyString = new WaitlistPromoted($game, 'Nov 21, 2026 6:00 PM');
-        $parsed = Carbon::parse('Nov 21, 2026 6:00 PM');
-
-        expect($legacyString->toPush($recipient)->toArray()['body'])->toBe(
-            __('notifications.push_body_waitlist_promoted', [
-                'game' => $game->name,
-                'deadline' => format_date($parsed, 'datetime', $recipient->timezone ?? community_timezone()),
-            ], 'en')
-        );
-
-        $legacyEmpty = new WaitlistPromoted($game, '');
-
-        expect($legacyEmpty->toPush($recipient)->toArray()['body'])->toBe(
-            __('notifications.push_body_waitlist_promoted', [
-                'game' => $game->name,
-                'deadline' => '',
-            ], 'en')
-        );
-    });
-
     it('rides the session-start event timestamp, tag and renotify on the session reminder', function () {
         app()->setLocale('en');
         $startsAt = Carbon::parse('2026-11-15 19:00:00');

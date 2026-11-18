@@ -239,7 +239,7 @@ describe('AddSessionToCampaign — Authorization', function () {
         Livewire\Livewire::actingAs($owner)
             ->test(AddSessionToCampaign::class, ['id' => $campaign->id])
             ->set('name', 'Test Session')
-            ->set('date_time', '2026-05-01 19:00')
+            ->set('date_time', now()->addDays(7)->format('Y-m-d H:i'))
             ->call('save')
             ->assertRedirect();
     });
@@ -253,7 +253,7 @@ describe('AddSessionToCampaign — Creation', function () {
         Livewire\Livewire::actingAs($owner)
             ->test(AddSessionToCampaign::class, ['id' => $campaign->id])
             ->set('name', 'Session 3 — The Lost Temple')
-            ->set('date_time', '2026-05-01 19:00')
+            ->set('date_time', now()->addDays(7)->format('Y-m-d H:i'))
             ->call('save')
             ->assertRedirect();
 
@@ -286,7 +286,7 @@ describe('AddSessionToCampaign — Creation', function () {
         Livewire\Livewire::actingAs($owner)
             ->test(AddSessionToCampaign::class, ['id' => $campaign->id])
             ->set('name', 'Inherited Session')
-            ->set('date_time', '2026-06-15 18:00')
+            ->set('date_time', now()->addDays(14)->format('Y-m-d H:i'))
             ->call('save')
             ->assertRedirect();
 

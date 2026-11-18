@@ -27,6 +27,12 @@ use Illuminate\Support\Facades\Queue;
  */
 
 beforeEach(function () {
+    // Freeze mid-week (Thursday noon): the week cache key is derived from
+    // community_now() both in the datasets below and inside the service —
+    // with a live clock the week can flip between the two derivations when
+    // a run straddles the Monday-midnight boundary.
+    $this->travelTo(community_now()->startOfWeek()->addDays(3)->setHour(12));
+
     $this->service = app(DashboardCacheService::class);
     Cache::flush();
     Queue::fake();

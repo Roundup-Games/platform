@@ -467,6 +467,13 @@ test('my sessions lists upcoming hosted and joined games and active campaigns', 
 test('my dashboard summarizes the week and the next session', function () {
     $user = User::factory()->create();
 
+    // Freeze mid-week (Thursday noon, the DashboardIntegrationTest pattern):
+    // the endOfWeek() clamp below can yield a PAST instant when the live
+    // clock runs late Sunday evening, and nextSession() only sees
+    // date_time > now() — so pin the clock where both "this week" and
+    // "future" hold simultaneously.
+    $this->travelTo(community_now()->startOfWeek()->addDays(3)->setHour(12));
+
     // A future instant safely inside the current community week.
     $thisWeek = now()->addMinutes(45);
     $endOfWeek = community_now()->copy()->endOfWeek()->utc();
