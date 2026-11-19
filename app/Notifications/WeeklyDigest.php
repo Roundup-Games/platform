@@ -5,12 +5,15 @@ namespace App\Notifications;
 use App\Models\User;
 use App\Services\Discord\DiscordWebhookPayload;
 use App\Services\Mail\SignedUnsubscribeUrls;
+use App\Services\NotificationEngagementCounters;
 use App\Services\NotificationQueryService;
 use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
+use Throwable;
 
 /**
  * Weekly digest email summarising a user's unread in-app notifications.
@@ -163,7 +166,48 @@ class WeeklyDigest extends BaseNotification
             return new HtmlString('• <a href="'.e($url).'">'.e($name).'</a>');
         }
 
+        // The row degrades to label-only: no deep link, so the degradation
+        // itself is the coverage signal (D294 rider 2 — see countDegradedRow).
+        $this->countDegradedRow();
+
         return '• '.$this->shortType($row, $locale);
+    }
+
+    /**
+     * Best-effort degraded-row counter (D294 rider 2, M082/S03): a row that
+     * renders label-only is a deep-link COVERAGE GAP — its stored payload
+     * lacked a resolvable entity name or action_url, so Monday's digest was
+     * the last chance to deep-link it and could not. Counting under
+     * ('digest', 'mail', 'row_degraded') makes the weekly digest volume the
+     * coverage signal: the digest funnel's delivered-vs-degraded ratio shows
+     * how much digest volume is unlinkable without per-send grepping.
+     *
+     * 'digest' is the canonical counter category the mail funnel already
+     * joins on (Resend-webhook mail attribution and unsubscribeDigest() both
+     * count under it) — a second 'weekly_digest' category would split the
+     * funnel, violating D284's one-row-set invariant. Called from
+     * digestRow's fallback branch only, so one render counts each degraded
+     * row exactly once (digest rendering happens once per send).
+     *
+     * Container-resolved, not constructor-injected: ShouldQueue serializes
+     * this notification, so it must hold no service dependencies — the same
+     * reason digestRow resolves NotificationQueryService through the
+     * container. Counter failure is logged and swallowed (countUnsubscribe
+     * pattern): the mail render is load-bearing and must never degrade on
+     * telemetry.
+     */
+    private function countDegradedRow(): void
+    {
+        try {
+            app(NotificationEngagementCounters::class)->incrementFor('digest', 'mail', 'row_degraded');
+        } catch (Throwable $e) {
+            Log::warning('notifications.engagement_counter_failed', [
+                'category' => 'digest',
+                'channel' => 'mail',
+                'event' => 'row_degraded',
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

@@ -535,7 +535,7 @@ class DiscordDigestRendererTest extends TestCase
         $embed = $payload->toArray()['embeds'][0];
 
         $this->assertStringContainsString(__('discord.content_digest_empty_title', [], 'de'), $embed['title'], 'empty-state title is German');
-        $this->assertStringContainsString('keine öffentlichen roundup-Spiele', $embed['description']);
+        $this->assertStringContainsString(__('discord.content_digest_empty_body', [], 'de'), $embed['description']);
         $this->assertStringContainsString('tabletop über Community-Grenzen', $embed['footer']['text']);
     }
 

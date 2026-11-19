@@ -50,9 +50,9 @@ return [
     'content_language_location' => 'Sprache & Standort',
     'content_preferred_language' => 'Bevorzugte Sprache',
     'field_timezone' => 'Zeitzone',
-    'hint_timezone' => 'Uhrzeiten (z. B. Sitzungserinnerungen) werden Dir in Deiner Ortszeit angezeigt. Die Zeitzone wird automatisch von Deinen Geräten erfasst — wenn Du hier eine Zone auswählst, bleibt sie fest und die automatische Erfassung überschreibt Deine Wahl nicht mehr. Leere das Feld, um zur Geräte-Erfassung zurückzukehren.',
+    'hint_timezone' => 'Uhrzeiten (z. B. Runden-Erinnerungen) werden Dir in Deiner Ortszeit angezeigt. Die Zeitzone wird automatisch von Deinen Geräten erfasst — wenn Du hier eine Zone auswählst, bleibt sie fest und die automatische Erfassung überschreibt Deine Wahl nicht mehr. Leere das Feld, um zur Geräte-Erfassung zurückzukehren.',
     'content_timezone_current_time' => 'Aktuelle Uhrzeit in dieser Zeitzone: :time',
-    'content_this_helps_us_find_games_and_events_near_you' => 'Das hilft uns, Spiele und Events in Deiner Nähe zu finden.',
+    'content_this_helps_us_find_games_and_events_near_you' => 'Das hilft uns, Runden und Events in Deiner Nähe zu finden.',
     'content_vibe_preferences' => 'Vibe-Präferenzen',
     // Privacy settings
     'content_privacy_settings' => 'Privatsphäre-Einstellungen',
@@ -111,14 +111,14 @@ return [
     // Dashboard-Statistikbeschriftungen
     'dashboard_stats_unread_notifications' => 'Ungelesen',
     // Community Feed
-    'dashboard_feed_action_created_game' => 'hat ein Spiel gestartet',
+    'dashboard_feed_action_created_game' => 'hat eine Runde gestartet',
     'dashboard_feed_action_recapped_game' => 'hat ein Recap geschrieben für',
     'dashboard_feed_action_created_campaign' => 'hat eine Kampagne gestartet',
     // Smart-Prompt-Aktionen (auch in DashboardSmartPromptService verwendet)
     'dashboard_prompt_view_invitations' => 'Einladungen ansehen',
     'dashboard_prompt_view_details' => 'Details ansehen',
     'dashboard_prompt_write_recap' => 'Recap schreiben',
-    'dashboard_prompt_find_game' => 'Spiel finden',
+    'dashboard_prompt_find_game' => 'Runde finden',
     'dashboard_prompt_view_profile' => 'Profil ansehen',
     'dashboard_prompt_view_schedule' => 'Zeitplan ansehen',
     // Smart-Prompt-Nachrichten
@@ -131,7 +131,7 @@ return [
     'dashboard_prompt_msg_from_now' => 'in :time',
     'dashboard_prompt_msg_completed_recap' => 'Wie war :game? Schreib ein Recap',
     'dashboard_prompt_msg_empty_week' => 'Noch nichts in Deinem Kalender',
-    'dashboard_prompt_msg_browse_nearby' => ':count Spiele in der Nähe entdecken',
+    'dashboard_prompt_msg_browse_nearby' => ':count Runden in der Nähe entdecken',
     'dashboard_prompt_msg_new_follower' => ':name folgt Dir jetzt',
     'dashboard_prompt_msg_new_follower_shared' => ':name folgt Dir jetzt — ihr teilt :count Spiel-System|:name folgt Dir jetzt — ihr teilt :count Spiel-Systeme',
     'dashboard_prompt_msg_greeting' => 'Guten :time_of_day, :name',
@@ -139,11 +139,11 @@ return [
     'dashboard_prompt_msg_time_morning' => 'Morgen',
     'dashboard_prompt_msg_time_afternoon' => 'Tag',
     'dashboard_prompt_msg_time_evening' => 'Abend',
-    // Spiele in der Nähe
+    // Runden in der Nähe
     // Deine Beiträge
     // Schnellaktionen
     // Deine-Woche-Sektion
-    'dashboard_your_week_find_game' => 'Finde Dein nächstes Spiel',
+    'dashboard_your_week_find_game' => 'Finde Deine nächste Runde',
     // Zuverlässigkeitsstufen
     'label_reliability_tier_reliable' => 'Zuverlässig',
     'label_reliability_attendance_rate' => 'Anwesenheit',
@@ -183,17 +183,17 @@ return [
     // Dashboard-Modus
     // Newcomer-Dashboard
     'dashboard_newcomer_welcome' => 'Willkommen, :name!',
-    'dashboard_newcomer_matching_games' => '{1} :count passendes Spiel in Deiner Nähe|[2,*] :count passende Spiele in Deiner Nähe',
-    'dashboard_newcomer_no_matches' => 'Aktuell keine Spiele, die zu Deinen Präferenzen passen',
+    'dashboard_newcomer_matching_games' => '{1} :count passende Runde in Deiner Nähe|[2,*] :count passende Runden in Deiner Nähe',
+    'dashboard_newcomer_no_matches' => 'Aktuell keine Runden, die zu Deinen Präferenzen passen',
     'dashboard_newcomer_be_first' => 'Sei der Erste, der eine Runde ausrichtet',
-    'dashboard_newcomer_be_first_cta' => 'Erstelle ein Spiel und lade andere ein',
+    'dashboard_newcomer_be_first_cta' => 'Erstelle eine Runde und lade andere ein',
     'dashboard_newcomer_best_matches_heading' => 'Deine besten Treffer',
     'dashboard_newcomer_relevance_matches_taste' => 'Passt zu Deinem Geschmack',
     'dashboard_newcomer_relevance_popular' => 'Beliebt in der Nähe',
     'dashboard_newcomer_relevance_filling_fast' => 'Füllt sich schnell',
     'dashboard_newcomer_relevance_starting_soon' => 'Startet bald',
     'dashboard_newcomer_spots' => '{1} :count Platz frei|[2,*] :count Plätze frei',
-    'dashboard_newcomer_step_find_game' => 'Spiel finden',
+    'dashboard_newcomer_step_find_game' => 'Runde finden',
     'dashboard_newcomer_step_attend_session' => 'Runde spielen',
     'dashboard_newcomer_step_current' => 'aktuell',
     'dashboard_newcomer_nearby_people_heading' => 'Wer spielt in der Nähe',
@@ -203,8 +203,8 @@ return [
     'dashboard_action_center_all_clear' => 'Alles erledigt — nichts braucht Deine Aufmerksamkeit',
     'dashboard_action_center_next_session' => 'Deine nächste Runde ist :name am :date',
     'dashboard_action_center_view_session' => 'Runde ansehen',
-    'dashboard_action_center_find_game' => 'Finde Dein nächstes Spiel',
-    'dashboard_action_center_view_all' => '{1} :count weiteren Eintrag in Meine Spiele ansehen|[2,*] :count weitere Einträge in Meine Spiele ansehen',
+    'dashboard_action_center_find_game' => 'Finde Deine nächste Runde',
+    'dashboard_action_center_view_all' => '{1} :count weiteren Eintrag in Meine Runden ansehen|[2,*] :count weitere Einträge in Meine Runden ansehen',
     // Action Center items
     'dashboard_action_waitlist_title' => 'Bestätige Deinen Platz: :game',
     'dashboard_action_waitlist_desc' => 'Dein Wartelistenplatz läuft bald ab',
@@ -236,7 +236,7 @@ return [
     'dashboard_action_campaign_session_desc' => 'Eine neue Runde wurde zu Deiner Kampagne hinzugefügt',
     'dashboard_action_campaign_session_action' => 'Kampagne ansehen',
     'dashboard_action_bulletin_title' => 'Host-Update: :game',
-    'dashboard_action_bulletin_action' => 'Spiel ansehen',
+    'dashboard_action_bulletin_action' => 'Runde ansehen',
     'dashboard_action_recurrence_title' => 'Vorausplanen: :campaign',
     'dashboard_action_expires_in_hm' => 'Läuft in :hours Std :minutes Min ab',
     'dashboard_action_expires_in_m' => 'Läuft in :minutes Min ab',
@@ -244,11 +244,11 @@ return [
     // Etabliertes Dashboard - Zeitplan
     'dashboard_schedule_heading' => 'Dein Zeitplan',
     'dashboard_schedule_coming_up' => 'Demnächst',
-    'dashboard_schedule_nothing_scheduled' => 'Nichts geplant — finde Dein nächstes Spiel',
+    'dashboard_schedule_nothing_scheduled' => 'Nichts geplant — finde Deine nächste Runde',
     'dashboard_schedule_host_again' => 'Nochmal ausrichten',
     // Etabliertes Dashboard - In der Nähe & Bemerkenswert
     'dashboard_nearby_heading' => 'In der Nähe & Bemerkenswert',
-    'dashboard_nearby_empty' => 'Noch keine Spiele in der Nähe',
+    'dashboard_nearby_empty' => 'Noch keine Runden in der Nähe',
     'dashboard_nearby_spots' => '{1} :count Platz|[2,*] :count Plätze',
     'dashboard_nearby_friends_going' => 'Freunde gehen hin',
     // Etabliertes Dashboard - Community-Puls
@@ -257,17 +257,17 @@ return [
     'dashboard_story_heading' => 'Deine Geschichte',
     'dashboard_story_new_badge' => 'Neu',
     'dashboard_story_veteran_host' => 'Erfahrener Host',
-    'dashboard_story_veteran_host_desc' => 'Du hast :count Spiele geleitet — ein Eckpfeiler Deiner lokalen Community.',
+    'dashboard_story_veteran_host_desc' => 'Du hast :count Runden geleitet — ein Eckpfeiler Deiner lokalen Community.',
     'dashboard_story_community_builder' => 'Community-Builder',
     'dashboard_story_community_builder_desc' => 'Du hast :count einzigartige Spieler an Deinen Tisch geholt.',
     'dashboard_story_campaign_commitment' => 'Kampagnen-Hingabe',
     'dashboard_story_campaign_commitment_desc' => '{1}Deine längste Kampagne umfasste :count Runde|[2,*]Deine längste Kampagne umfasste :count Runden',
     'dashboard_story_trusted_voice' => 'Vertrauensstimme',
-    'dashboard_story_trusted_voice_desc' => 'Du hast :count Bewertungen geschrieben, die anderen helfen, tolle Spiele zu finden.',
+    'dashboard_story_trusted_voice_desc' => 'Du hast :count Bewertungen geschrieben, die anderen helfen, tolle Runden zu finden.',
     'dashboard_story_explorer' => 'Entdecker',
     'dashboard_story_explorer_desc' => 'Du hast :count verschiedene Spielsysteme gespielt — immer bereit für Neues.',
     // Etabliertes Dashboard - Schnellaktionen
-    'dashboard_quick_discover' => 'Spiele entdecken',
+    'dashboard_quick_discover' => 'Runden entdecken',
     'dashboard_quick_find_campaigns' => 'Kampagnen finden',
     // Dashboard - Relative Zeitformatierung
     'dashboard_relative_today' => 'Heute um :time',

@@ -360,6 +360,120 @@ enum NotificationCategory: string
     }
 
     /**
+     * Whether events of this category batch into the burst defer window
+     * (D296, M082/S01): NotificationService::send() buffers them into a
+     * 5-minute Postgres batch (keyed recipient × category × entity) that
+     * flushes as ONE notification, instead of dispatching each event
+     * immediately.
+     *
+     * Semantic rationale — the v1 set is exactly the host-side,
+     * non-deadline, structurally bursty categories: ParticipantJoined and
+     * NewApplication (an open game collects joins and applications in
+     * clusters while it circulates) and SessionAddedToCampaign (a host
+     * typically schedules several sessions at once). They are awareness
+     * signals for the host: nothing expires and no seat is lost when
+     * delivery waits for the window to close. Every deadline- or
+     * plan-critical category — invitations, waitlist promotions,
+     * cancellations, moderation, attendance nudges/resolutions, session
+     * reminders, confirmation expiry — NEVER batches, mirroring the
+     * mail-tier urgency philosophy of defaultMailEnabled().
+     *
+     * The Filament policy matrix page (S03, NotificationBatchingPage)
+     * renders this method's verdict per category with rationale and live
+     * batch-vs-immediate counter columns, so the visible policy can never
+     * drift from what the dispatch path enforces. Widening the set is
+     * data-gated (D296 deferrals) — revisit with real counter volumes.
+     */
+    public function isBatchable(): bool
+    {
+        return match ($this) {
+            self::ParticipantJoined,
+            self::NewApplication,
+            self::SessionAddedToCampaign => true,
+
+            default => false,
+        };
+    }
+
+    /**
+     * Semantic rationale for this category's batching verdict (M082/S03,
+     * D296) — the copy the admin Notification Batching matrix renders next
+     * to the isBatchable() status. EN by design: it documents an admin-only
+     * System surface (filament views are EN-only, K002) and lives in code so
+     * the rationale and the verdict it explains are reviewed together.
+     *
+     * Every string states WHY the verdict is safe or necessary: batched rows
+     * name the burst shape and the no-deadline argument; never-batched rows
+     * name the deadline/plan/access cost of deferral (or, for ambient
+     * categories, the absence of a burst to collapse — v1 scope, widening is
+     * data-gated per D296).
+     */
+    public function batchingRationale(): string
+    {
+        return match ($this) {
+            // Batched (v1) — host-side, non-deadline, structurally bursty
+            self::ParticipantJoined => 'Host-side awareness signal: an open game collects joins in clusters while it circulates. Nothing expires and no seat is lost when delivery waits — five joins land as one notification.',
+            self::NewApplication => 'Host-side decision signal arriving in bursts while a game is open; the defer window collapses a burst into one application digest and no applicant loses a seat to the wait.',
+            self::SessionAddedToCampaign => 'Hosts schedule sessions in clusters; the burst collapses into one per-campaign update. New sessions are awareness, not a decision with a deadline.',
+
+            // Social — ambient, no burst shape
+            self::NewFollower => 'Ambient social awareness — a single per-follower notice with no per-entity burst to collapse in v1. Data-gated for widening (D296).',
+
+            // Invitations — deadline-critical by construction
+            self::GameInvitation => 'Deadline-critical: the invitation expires. The defer window would consume reply time the sender already paid for.',
+            self::CampaignInvitation => 'Deadline-critical: campaign invitations expire — deferral trades the recipient\'s decision time for nothing.',
+            self::TeamInvitation => 'Deadline-critical: team invitations expire — the recipient must see it the moment it lands.',
+
+            // Applications — outcome events the applicant is waiting on
+            self::ApplicationApproved => 'The applicant is waiting on this outcome to plan — every deferred minute is avoidable uncertainty.',
+            self::ApplicationRejected => 'Outcome event the applicant is actively waiting for — immediate, so the decision loop closes now.',
+
+            // Participation access changes — effective immediately
+            self::ParticipantRemoved => 'Access change: the recipient just lost a seat and needs the context to react immediately.',
+            self::SeatDemoted => 'Access change (bench demotion) — the recipient\'s standing changed now; the notice must too.',
+            self::TeamMemberRemoved => 'Access change: removal from a team is effective immediately, and so is the notice.',
+            self::WaitlistPromoted => 'The most time-sensitive participant event: a seat is gained and must be confirmed before it expires. Hard never-batch guarantee — fires immediately even while an open batch exists.',
+            self::WaitlistPlacement => 'Single placement notice — not deadline-critical, but no per-entity burst shape in v1. Widening the batched set is data-gated (D296).',
+            self::BenchUpdates => 'Bench movements are plan-adjacent (confirmation clocks) and arrive as single notices in v1 — data-gated for any widening.',
+
+            // Attendance — time-bounded accountability loops
+            self::AttendanceReported => 'Starts the confirmation clock on the record — deferral shortens the window to respond or dispute.',
+            self::DisputeResolved => 'The disputant is waiting for the verdict; disputes resolve one at a time, so there is no burst to collapse.',
+            self::AttendanceNudge => 'The nudge IS the deadline signal — buffering it for five minutes defeats its purpose.',
+            self::AttendanceResolved => 'Closes the loop AttendanceNudge opens — a waiting state ends now, so delivery is now.',
+
+            // Entity status — cancellations rewrite plans; the rest is ambient
+            self::GameCancelled => 'Cancellation rewrites the recipient\'s plans; five minutes of silence is plan-critical dead time. Hard never-batch guarantee.',
+            self::CampaignCancelled => 'Cancellation rewrites plans for every campaign member — immediate. Hard never-batch guarantee.',
+            self::GameCompleted => 'Ambient lifecycle milestone — a single event per game end, no burst shape. Data-gated for widening.',
+            self::CampaignCompleted => 'Ambient lifecycle milestone — a single event, no burst shape. Data-gated for widening.',
+            self::GameUpdated => 'Edits can change plans (time, venue, roster); v1 ships every update immediately. Collapse is a data-gated candidate once counter volumes show edit bursts.',
+            self::CampaignUpdated => 'Campaign edits can change commitments; v1 ships immediately — widening is data-gated.',
+            self::SessionContent => 'Recaps, bulletins and debriefings are ambient reading with no deadline — single posts with no burst shape in v1. Data-gated.',
+            self::CharterPublished => 'Governance: the charter is the contract members signed up for — publication ships immediately.',
+            self::CharterAmended => 'Governance: an amendment changes the campaign contract — members must see the delta now, not next window.',
+
+            // Events
+            self::EventRegistration => 'The receipt for a seat just claimed — confirmation is part of the transaction, not an optimization candidate.',
+
+            // Content
+            self::GameSystemRequest => 'The requester is waiting on the outcome — single response events, no burst shape. Immediate.',
+
+            // Scheduling — the window IS the deadline
+            self::BelowMinPlayers => 'The game needs players inside a shrinking window — buffering costs exactly the time the game needs.',
+            self::ConfirmationExpired => 'The expiry IS the deadline event — a delayed expiry notice is a contradiction.',
+            self::SessionReminder => 'Reminder timing is the product — a reminder delivered late by design is not a reminder. Never buffered.',
+
+            // Moderation — trust and account consequences
+            self::ReviewReported => 'Moderator-queue intake and a trust signal to the reporter — the report must be visible now.',
+            self::ModerationNotice => 'Account-level consequences (suspension, content removal) — the recipient must learn immediately. Hard never-batch guarantee.',
+
+            // Achievements
+            self::BadgeAwarded => 'Celebratory single event — no deadline, no burst shape per recipient. Data-gated for widening.',
+        };
+    }
+
+    /**
      * Build the default notification preference matrix.
      * Each category maps to database (in-app), mail, push, and discord booleans.
      *

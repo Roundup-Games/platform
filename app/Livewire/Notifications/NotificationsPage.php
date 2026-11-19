@@ -89,14 +89,19 @@ class NotificationsPage extends Component
      * Mark a single notification group as read.
      *
      * Parses the group key to determine type and date, then marks
-     * all matching unread notifications as read.
+     * all matching unread notifications as read — scoped to the group's
+     * underlying category and entity for BatchedNotification rows (the
+     * per-burst grouping key carries both — see
+     * NotificationQueryService::groupKeyFor()).
      */
     public function markAsRead(string $groupKey): void
     {
-        // Parse group key: "{TypeShortName}_{Y-m-d}"
-        $parts = explode('_', $groupKey);
-        $dateString = array_pop($parts);
-        $shortType = implode('_', $parts);
+        $parsed = NotificationQueryService::parseGroupKey($groupKey);
+        if ($parsed === null) {
+            return;
+        }
+
+        [$shortType, $dateString, $category, $entityId] = $parsed;
 
         // Resolve the full notification class name
         $fullType = $this->resolveFullType($shortType);
@@ -105,10 +110,19 @@ class NotificationsPage extends Component
         }
 
         // Mark matching unread notifications as read
-        $marked = $this->authUser->unreadNotifications()
+        $query = $this->authUser->unreadNotifications()
             ->where('type', $fullType)
-            ->whereDate('created_at', $dateString)
-            ->update(['read_at' => now()]);
+            ->whereDate('created_at', $dateString);
+
+        if ($category !== null) {
+            $query->where('data->type', $category);
+        }
+
+        if ($entityId !== null) {
+            $query->where('data->entity_id', $entityId);
+        }
+
+        $marked = $query->update(['read_at' => now()]);
 
         if ($marked > 0) {
             Log::info('Notification group marked as read (page)', [
@@ -205,15 +219,19 @@ class NotificationsPage extends Component
             return [];
         }
 
-        // Parse every expanded group key into its (fullType, date) filter.
+        // Parse every expanded group key into its (fullType, date, category,
+        // entity) filter.
         $filters = [];
         foreach (array_keys($this->expandedGroups) as $groupKey) {
-            $parts = explode('_', $groupKey);
-            $dateString = array_pop($parts);
-            $shortType = implode('_', $parts);
+            $parsed = NotificationQueryService::parseGroupKey($groupKey);
+            if ($parsed === null) {
+                continue;
+            }
+
+            [$shortType, $dateString, $category, $entityId] = $parsed;
             $fullType = $this->resolveFullType($shortType);
             if ($fullType !== null && $dateString !== '') {
-                $filters[] = [$fullType, $dateString];
+                $filters[] = [$fullType, $dateString, $category, $entityId];
             }
         }
 
@@ -223,16 +241,37 @@ class NotificationsPage extends Component
 
         $query = $this->authUser->notifications();
         $query->where(function ($outer) use ($filters): void {
-            foreach ($filters as [$fullType, $dateString]) {
-                $outer->orWhere(function ($inner) use ($fullType, $dateString): void {
+            foreach ($filters as [$fullType, $dateString, $category, $entityId]) {
+                $outer->orWhere(function ($inner) use ($fullType, $dateString, $category, $entityId): void {
                     $inner->where('type', $fullType)
                         ->whereDate('created_at', $dateString);
+
+                    if ($category !== null) {
+                        $inner->where('data->type', $category);
+                    }
+
+                    if ($entityId !== null) {
+                        $inner->where('data->entity_id', $entityId);
+                    }
                 });
             }
         });
 
+        // Re-key each fetched row by the SAME group key buildGroups would
+        // assign it, so two same-type bursts on one day (per-burst group
+        // keys) can never share an expansion bucket.
         return $query->orderByDesc('created_at')->get()
-            ->groupBy(fn ($notification) => $notification->type.'|'.($notification->created_at?->toDateString() ?? ''))
+            ->groupBy(function (DatabaseNotification $notification): string {
+                $shortType = class_exists($notification->type)
+                    ? (new \ReflectionClass($notification->type))->getShortName()
+                    : $notification->type;
+
+                return NotificationQueryService::groupKeyFor(
+                    $shortType,
+                    $notification->data,
+                    $notification->created_at?->toDateString() ?? '',
+                );
+            })
             ->all();
     }
 

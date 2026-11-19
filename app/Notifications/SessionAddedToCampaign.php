@@ -85,7 +85,37 @@ class SessionAddedToCampaign extends BaseNotification
     }
 
     /**
-     * Discord opted out (D130): this type has no push surface, so it has no Discord surface either.
+     * Burst batch key (D296): the CAMPAIGN's burst, not the individual
+     * session's — a host scheduling several sessions at once produces one
+     * batch per campaign, which is the burst the members experience.
+     */
+    public function batchKey(User $notifiable): string
+    {
+        return 'session_added_to_campaign:'.$this->campaign->id;
+    }
+
+    /**
+     * Per-event snapshot extras (D296/M082 review): the batch keys on the
+     * campaign, so the buffered item must carry the SESSION's identity —
+     * the batched mail renders session-named digest lines and re-attaches
+     * the per-session iTIP REQUEST (D287) from it at flush time.
+     *
+     * @return array<string, string>
+     */
+    public function batchItemContext(User $notifiable): array
+    {
+        return [
+            'session_id' => $this->session->id,
+            'session_name' => $this->session->name,
+        ];
+    }
+
+    /**
+     * Discord opted out for the immediate single-event surface (D130: this
+     * type has no push surface, so it has no Discord surface either). The
+     * batched path is separate: a burst of two or more sessions flushes as
+     * BatchedNotification, which carries its own push + Discord voice —
+     * deliberately, per D286's per-channel batch rendering.
      */
     public function toDiscord(User $notifiable): ?DiscordWebhookPayload
     {

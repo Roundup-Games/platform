@@ -49,10 +49,20 @@ class SignedReadMarker
      * payload carries no whitelisted id key — the marker then binds
      * user+type and markReadByType clears every unread row of that type.
      *
+     * $category (M082 review, D294 rider 1) carries the UNDERLYING
+     * notification category for classes whose basename is not an enum
+     * case — BatchedNotification landings must attribute to the burst's
+     * category (participant_joined …), not a pseudo-category, so the
+     * read_marker funnel joins the per-category rows its mail/push
+     * deliveries already count under. The signature covers it like every
+     * other param; the controller additionally validates it against the
+     * enum before trusting it.
+     *
      * @param  int|string|null  $entityId  Value stored under $dataKey in the row's data payload.
      * @param  string|null  $dataKey  Payload key the entity id lives under (null → markReadByType default 'entity_id' / no entity filter).
+     * @param  string|null  $category  Underlying category value for counter attribution (null → controller basename fallback).
      */
-    public function build(User $user, string $locale, string $notificationType, int|string|null $entityId, ?string $dataKey, string $redirect): string
+    public function build(User $user, string $locale, string $notificationType, int|string|null $entityId, ?string $dataKey, string $redirect, ?string $category = null): string
     {
         if ($dataKey !== null && ! in_array($dataKey, self::ALLOWED_DATA_KEYS, true)) {
             throw new InvalidArgumentException("SignedReadMarker: data key [{$dataKey}] is not an allowed entity binding key — use one of SignedReadMarker::ALLOWED_DATA_KEYS.");
@@ -64,6 +74,7 @@ class SignedReadMarker
             'type' => $notificationType,
             'entity' => $entityId,
             'key' => $dataKey,
+            'category' => $category,
             'redirect' => $redirect,
         ], fn (mixed $value): bool => $value !== null));
     }

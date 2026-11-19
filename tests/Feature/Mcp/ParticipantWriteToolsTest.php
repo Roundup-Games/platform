@@ -18,7 +18,7 @@ use App\Models\GameParticipant;
 use App\Models\McpCall;
 use App\Models\User;
 use App\Models\UserRelationship;
-use App\Notifications\NewApplication;
+use App\Notifications\BatchedNotification;
 use App\Notifications\WaitlistPromoted;
 use App\Services\EntityJoinGate;
 use Illuminate\Support\Facades\Notification;
@@ -489,8 +489,11 @@ test('games.apply submits a protected-game application, lands pending, and notif
     expect($payload['status'])->toBe('application_submitted')
         ->and($payload['participant_status'])->toBe('pending');
 
-    // Same NotificationService path as the web apply surface.
-    Notification::assertSentTo($owner, NewApplication::class);
+    // Same NotificationService path as the web apply surface — now batched
+    // from birth (D296): the application event buffers for the game's burst
+    // and the sync connection flushes inline, delivering ONE
+    // BatchedNotification to the host through the faked channel manager.
+    Notification::assertSentTo($owner, BatchedNotification::class);
 });
 
 test('games.apply refuses the owner their own game', function () {

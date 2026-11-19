@@ -246,6 +246,29 @@ return [
     'body_seat_demoted' => 'Your approved seat in **:entity** was reclaimed because the host lowered the player limit. Reason: :reason. You are now back on the waitlist and will be re-promoted if a seat opens up.',
     'subject_team_member_removed' => 'You were removed from :team',
     'body_team_member_removed' => 'You were removed from the team **:team**. If you have questions, contact the team organizer.',
+    // Burst-batched notifications (D296, M082/S02) — one flushed batch per burst,
+    // one canon-clean digest per channel. Per-category bodies follow the
+    // subject/verb agreement convention of the verb_* keys: "_plural" variants
+    // take over at 2+ distinct actors (German verbs must agree); English copies
+    // keep both keys with identical wording. K001 canon: Game/Runde, du-form DE.
+    'subject_batched' => '{1}:count update for :entity|[2,*]:count updates for :entity',
+    'push_title_batched' => '{1}:count update for :entity|[2,*]:count updates for :entity',
+    'push_body_batched_participant_joined' => ':actors joined your game.',
+    'push_body_batched_participant_joined_plural' => ':actors joined your game.',
+    'push_body_batched_new_application' => ':actors applied to join your game.',
+    'push_body_batched_new_application_plural' => ':actors applied to join your game.',
+    'push_body_batched_session_added_to_campaign' => ':actors scheduled new sessions in your campaign.',
+    'push_body_batched_session_added_to_campaign_plural' => ':actors scheduled new sessions in your campaign.',
+    'body_batched_line_participant_joined' => '**:actor** joined your game.',
+    'body_batched_line_new_application' => '**:actor** applied to join your game.',
+    'body_batched_line_session_added_to_campaign' => '**:actor** scheduled a new session in your campaign.',
+    'body_batched_line_session_added_to_campaign_with_session' => '**:actor** scheduled **:session** in your campaign.',
+    'body_batched_headline_participant_joined' => ':actors joined your game — :count updates in total.',
+    'body_batched_headline_participant_joined_plural' => ':actors joined your game — :count updates in total.',
+    'body_batched_headline_new_application' => ':actors applied to join your game — :count applications in total.',
+    'body_batched_headline_new_application_plural' => ':actors applied to join your game — :count applications in total.',
+    'body_batched_headline_session_added_to_campaign' => ':actors scheduled new sessions in your campaign — :count updates in total.',
+    'body_batched_headline_session_added_to_campaign_plural' => ':actors scheduled new sessions in your campaign — :count updates in total.',
     // Email subjects — Status
     'subject_game_cancelled' => ':game has been cancelled',
     'body_game_cancelled' => 'The game **:game** scheduled for :date has been cancelled. Check out other available games.',
@@ -459,6 +482,7 @@ return [
     'preheader_attendance_resolved' => 'The question is settled — see your final recorded status.',
     'preheader_badge_awarded' => 'Show it off — the badge is now part of your profile.',
     'preheader_badge_upgraded' => 'Wear the new tier proudly — see it on your profile.',
+    'preheader_batched' => '{1}:count new update for :entity.|[2,*]:count new updates for :entity.',
     'preheader_below_min_players' => 'Spread the word so :game can go ahead as planned.',
     'preheader_bulletin_posted' => 'Catch up on what :host posted for the game.',
     'preheader_charter_published' => 'Read it, check your boundaries, and add your signature.',

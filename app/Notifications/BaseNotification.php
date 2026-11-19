@@ -170,6 +170,48 @@ abstract class BaseNotification extends Notification implements ShouldQueue
     }
 
     /**
+     * Burst batch key for the defer window (D296, M082/S01): identifies
+     * WHICH open batch this event joins — the buffer path in
+     * NotificationService::send() looks the batch up by
+     * (recipient, batch_key), where batch_key is 'category:entityUuid'
+     * (e.g. 'participant_joined:<game uuid>').
+     *
+     * The base returns null — an un-overridden notification NEVER batches
+     * and send() dispatches it immediately. The two halves of the policy
+     * must agree: send() buffers only when batchKey() returns non-null AND
+     * NotificationCategory::isBatchable() is true for the category (a
+     * batchable category whose notification forgets the override stays
+     * immediate — safe default in both directions).
+     *
+     * BatchedNotification (T03) inherits this null default deliberately:
+     * flushed batches flow back through send() and must never re-buffer
+     * (the re-entry guard's second arm; the instanceof check is the first).
+     */
+    public function batchKey(User $notifiable): ?string
+    {
+        return null;
+    }
+
+    /**
+     * Per-event extras for the burst-batch item snapshot (D296, M082):
+     * whatever this bufferable event's category needs BEYOND the shared
+     * actor/entity snapshot — e.g. SessionAddedToCampaign's session
+     * identity, which the batched mail needs for its per-session ICS
+     * invitations and session-named digest lines.
+     *
+     * The base returns an empty array; only bufferable classes whose
+     * batched rendering needs per-event detail override it. Values must
+     * be scalar or nested arrays of scalars (jsonb-safe) and are stored
+     * verbatim under the item payload's 'context' key.
+     *
+     * @return array<string, mixed>
+     */
+    public function batchItemContext(User $notifiable): array
+    {
+        return [];
+    }
+
+    /**
      * Push payload wrapped in the shared envelope: platform PWA icon plus
      * the caller's title/body/url/tag and the optional richness fields
      * (M081/S05): action buttons, the event timestamp (epoch seconds — the
@@ -274,11 +316,17 @@ abstract class BaseNotification extends Notification implements ShouldQueue
      * by NotificationCorpusRenderTest, which fails for any toMail()
      * class that does not attach one.
      *
+     * $choice (M082 review) selects the pluralization arm for
+     * count-bearing preheader keys — pass the number the copy counts;
+     * non-choice keys ignore it.
+     *
      * @param  array<string, string>  $replace
      */
-    protected function withPreheader(MailMessage $message, string $key, array $replace = []): MailMessage
+    protected function withPreheader(MailMessage $message, string $key, array $replace = [], ?int $choice = null): MailMessage
     {
-        $message->viewData['preheader'] = __($key, $replace);
+        $message->viewData['preheader'] = $choice !== null
+            ? trans_choice($key, $choice, $replace)
+            : __($key, $replace);
 
         return $message;
     }
@@ -343,6 +391,7 @@ abstract class BaseNotification extends Notification implements ShouldQueue
         ?string $type = null,
         int|string|null $entityId = null,
         ?string $dataKey = null,
+        ?string $category = null,
     ): string {
         [$derivedEntityId, $derivedDataKey] = $this->deriveEntityBinding($notifiable);
 
@@ -353,6 +402,7 @@ abstract class BaseNotification extends Notification implements ShouldQueue
             $entityId ?? $derivedEntityId,
             $dataKey ?? $derivedDataKey,
             $this->relativeActionPath($url),
+            $category,
         );
     }
 

@@ -21,7 +21,7 @@ return [
     'error_user_already_participant' => 'Diese Person ist bereits Teilnehmer.',
     'error_email_invite_already_sent' => 'An diese E-Mail-Adresse wurde bereits eine Einladung gesendet.',
     'error_too_many_invite_attempts' => 'Zu viele Einladungsversuche. Bitte versuche es später erneut.',
-    'error_listing_no_longer_available' => 'Dieses Spiel oder diese Kampagne ist nicht mehr verfügbar.',
+    'error_listing_no_longer_available' => 'Diese Runde oder diese Kampagne ist nicht mehr verfügbar.',
     'flash_confirm_decline_invitation' => 'Bist Du sicher, dass Du diese Einladung ablehnen möchtest?',
     'flash_friends_invited' => '{1} :count Freund eingeladen.|[2,*] :count Freunde eingeladen.',
     'flash_invitation_accepted' => 'Einladung angenommen! Du bist jetzt Teilnehmer.',
@@ -50,7 +50,7 @@ return [
     'placeholder_enter_email_address' => 'E-Mail-Adresse eingeben',
     'action_send_invite' => 'Einladung senden',
     'content_pending_account_creation' => 'Warten auf Kontoerstellung',
-    'flash_email_invite_waitlisted' => 'Spiel ist voll — Eingeladener wurde zur Warteliste hinzugefügt.',
+    'flash_email_invite_waitlisted' => 'Runde ist voll — Eingeladener wurde zur Warteliste hinzugefügt.',
     'flash_email_invite_benched' => 'Runde ist voll — Eingeladener wurde auf die Ersatzbank gesetzt.',
     // Einladungsabschnitt-Hinweise
     'content_invite_section_hint' => 'Füge Spieler zu Deiner Runde hinzu, mit einer der folgenden Methoden.',

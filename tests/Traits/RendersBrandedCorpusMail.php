@@ -2,11 +2,13 @@
 
 namespace Tests\Traits;
 
+use App\Enums\NotificationCategory;
 use App\Mail\EntityInvitationEmail;
 use App\Mail\WelcomeEmail;
 use App\Models\GameBulletin;
 use App\Models\User;
 use App\Notifications\BaseNotification;
+use App\Notifications\BatchedNotification;
 use App\Notifications\EntityInvitation;
 use App\Notifications\WaitlistPromoted;
 use Carbon\Carbon;
@@ -157,8 +159,50 @@ trait RendersBrandedCorpusMail
 
                 return $fqcn::fromNotifications($fixture->recipient->unreadNotifications);
             })(),
+            'BatchedNotification' => new BatchedNotification(
+                NotificationCategory::ParticipantJoined,
+                'game',
+                $fixture->game->id,
+                $fixture->game->name,
+                url('/games/'.$fixture->game->id),
+                $this->batchedCorpusItems($fixture),
+            ),
             default => throw new InvalidArgumentException("Unknown branded corpus notification [{$class}]."),
         };
+    }
+
+    /**
+     * Buffered-item snapshots for the batched corpus arm, following the
+     * payload contract in BatchedNotification's docblock: five activities
+     * across three distinct actors (the headline mail tier and the compact
+     * push actor prefix), dated relative to now per D292 just-in-time
+     * dating — past-direction instants keep the digest deterministic and
+     * can never age past a future-facing gate.
+     *
+     * @param  object  $fixture  Lazy fixture context from brandingFixture()
+     * @return array<int, array<string, mixed>>
+     */
+    protected function batchedCorpusItems(object $fixture): array
+    {
+        $actors = [
+            ['id' => $fixture->actor->id, 'name' => $fixture->actor->name],
+            ['id' => $fixture->gameOwner->id, 'name' => $fixture->gameOwner->name],
+            ['id' => $fixture->recipient->id, 'name' => $fixture->recipient->name],
+        ];
+
+        return collect(range(0, 4))
+            ->map(fn (int $i): array => [
+                'actor_id' => $actors[$i % 3]['id'],
+                'actor_name' => $actors[$i % 3]['name'],
+                'entity_type' => 'game',
+                'entity_id' => $fixture->game->id,
+                'entity_name' => $fixture->game->name,
+                'event' => 'participant_joined',
+                'context' => [],
+                'action_url' => url('/games/'.$fixture->game->id),
+                'occurred_at' => now()->subMinutes(5 - $i)->toIso8601String(),
+            ])
+            ->all();
     }
 
     /**

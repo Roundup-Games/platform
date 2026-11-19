@@ -76,6 +76,17 @@ class ParticipantJoined extends BaseNotification
     }
 
     /**
+     * Burst batch key (D296): the entity's burst — every join of the same
+     * game (or campaign) within the window lands in ONE batch for the host.
+     * Entity-generic by design: whatever entity the join belongs to keys
+     * its own batch.
+     */
+    public function batchKey(User $notifiable): string
+    {
+        return 'participant_joined:'.$this->entity->id;
+    }
+
+    /**
      * Resolve the entity detail URL from the entity type and ID.
      */
     protected function resolveEntityUrl(string $locale): string
@@ -99,7 +110,11 @@ class ParticipantJoined extends BaseNotification
     }
 
     /**
-     * Discord opted out (D130): this type has no push surface, so it has no Discord surface either.
+     * Discord opted out for the immediate single-event surface (D130: this
+     * type has no push surface, so it has no Discord surface either). The
+     * batched path is separate: a burst of two or more events flushes as
+     * BatchedNotification, which carries its own push + Discord voice —
+     * deliberately, per D286's per-channel batch rendering.
      */
     public function toDiscord(User $notifiable): ?DiscordWebhookPayload
     {

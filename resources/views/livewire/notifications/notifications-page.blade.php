@@ -107,7 +107,9 @@
                         @php
                             // Batched by the component (one query for ALL expanded
                             // groups) — was one query per group per render here.
-                            $individuals = $this->expandedGroupIndividuals[$group->fullType.'|'.$group->createdAt->toDateString()] ?? collect();
+                            // Keyed by the group key buildGroups derived, so two
+                            // same-type bursts on one day never share a bucket.
+                            $individuals = $this->expandedGroupIndividuals[$group->groupKey] ?? collect();
                         @endphp
                             @foreach($individuals as $notification)
                                 <div class="flex items-start gap-3 px-4 py-2.5 {{ ! $loop->last ? 'border-b border-outline-variant/5' : '' }} {{ $notification->read_at ? 'opacity-60' : '' }}">

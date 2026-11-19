@@ -24,7 +24,7 @@ return [
     'content_data_communication_purpose' => 'Um Nachrichten zwischen Nutzern zu senden und gewünschte Benachrichtigungen zuzustellen.',
     'content_data_communication_items' => 'Direktnachrichten zwischen Nutzern, Benachrichtigungseinstellungen und E-Mail-Zustellungsprotokolle.',
     'heading_data_invitations' => 'Einladungsdaten',
-    'content_data_invitations_purpose' => 'Um Hosts zu ermöglichen, Personen zu Spielen und Kampagnen einzuladen.',
+    'content_data_invitations_purpose' => 'Um Hosts zu ermöglichen, Personen zu Runden und Kampagnen einzuladen.',
     'content_data_invitations_items' => 'Wenn Du jemanden per E-Mail einlädst, der kein Konto hat, speichern wir die E-Mail-Adresse im Teilnehmer-Datensatz. Eingeladene E-Mail-Adressen werden 90 Tage nach Ende des Spiels oder der Kampagne anonymisiert. Empfänger können sich jederzeit über einen Ein-Klick-Link in der Einladungs-E-Mail von zukünftigen Einladungen abmelden.',
     'heading_data_sensitive' => 'Besondere Datenkategorien (DSGVO Art. 9)',
     'content_data_sensitive_purpose' => 'Geschlecht ist die einzige besondere Datenkategorie, die wir erheben, und nur mit Deiner ausdrücklichen Einwilligung.',

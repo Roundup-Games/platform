@@ -34,11 +34,11 @@ return [
 
     'empty_city_index' => 'Noch sind keine Stadt-Hubs aktiv — sie erscheinen automatisch, sobald lokale Szenen öffentliche Aktivität und verifizierte Veranstaltungsorte aufbauen.',
 
-    'empty_city_index_cta' => 'Spiele in Deiner Nähe entdecken',
+    'empty_city_index_cta' => 'Runden in Deiner Nähe entdecken',
 
     'nav_cities' => 'Städte',
 
-    'heading_city_hub' => 'Tabletop-Spiele in :city',
+    'heading_city_hub' => 'Tabletop-Runden in :city',
 
     'content_intro' => 'Anstehende öffentliche Spielrunden, Kampagnen und Events in und um :city — plus verifizierte Veranstaltungsorte zum Spielen.',
 
@@ -67,12 +67,12 @@ return [
 
     // Locale-spezifisches SEO (T04). :city rendert den kanonischen
     // Anzeigenamen des Clusters; der Seiten-Suffix kommt aus der SEO-Paket-Konfiguration.
-    'seo_title' => 'Tabletop-Spiele in :city',
+    'seo_title' => 'Tabletop-Runden in :city',
     'seo_description' => 'Anstehende öffentliche Brettspiel-Runden, Kampagnen und Events in :city finden, plus verifizierte Veranstaltungsorte zum Spielen.',
 
     // SEO der Indexseite (M066/S06/T04); der Seiten-Suffix kommt aus der
     // SEO-Paket-Konfiguration.
-    'seo_title_index' => 'Stadt-Hubs für Tabletop-Spiele',
+    'seo_title_index' => 'Stadt-Hubs für Tabletop-Runden',
     'seo_description_index' => 'Alle aktiven Stadt-Hubs entdecken: anstehende öffentliche Brettspiel-Runden, Kampagnen und Events plus verifizierte Veranstaltungsorte — Stadt für Stadt.',
 
 

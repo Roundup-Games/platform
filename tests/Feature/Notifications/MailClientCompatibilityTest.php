@@ -123,6 +123,7 @@ it('renders the corpus mail without R103-blocked client features and with the ta
         'notification/EntityCancelled',
         'notification/WeeklyDigest',
         'notification/BulletinPosted',
+        'notification/BatchedNotification',
         'mailable/WelcomeEmail',
         'mailable/EntityInvitationEmail',
     ])
@@ -150,6 +151,7 @@ it('carries a fully readable light-mode base outside the dark media query in ren
     'notification/EntityCancelled',
     'notification/WeeklyDigest',
     'notification/BulletinPosted',
+    'notification/BatchedNotification',
     'mailable/WelcomeEmail',
     'mailable/EntityInvitationEmail',
 ]);

@@ -6,7 +6,7 @@
 return [
     // Calendar feed (iCal token) — D123
     'title_calendar_feed' => 'Kalender-Feed',
-    'description_calendar_feed' => 'Abonniere Deine bevorstehenden roundup-Spiele über Google Kalender, Apple Kalender oder jede Kalender-App, die iCal-Feeds (.ics) unterstützt.',
+    'description_calendar_feed' => 'Abonniere Deine bevorstehenden Roundup-Runden über Google Kalender, Apple Kalender oder jede Kalender-App, die iCal-Feeds (.ics) unterstützt.',
     'label_calendar_feed_url' => 'Deine Kalender-Feed-URL',
     'hint_calendar_feed_url' => 'Füge diese URL als neues Kalenderabonnement in Deiner Kalender-App hinzu. Halte diese URL privat — jeder, der sie hat, kann Deinen Zeitplan einsehen.',
     'action_calendar_feed_generate' => 'Kalender-Feed erstellen',
@@ -15,7 +15,7 @@ return [
     'action_calendar_feed_copy' => 'Kopieren',
     'confirm_calendar_feed_regenerate' => 'Dadurch wird eine neue Feed-URL erstellt und die aktuelle ungültig. Jede Kalender-App, die die alte URL verwendet, muss aktualisiert werden. Fortfahren?',
     'confirm_calendar_feed_revoke' => 'Dadurch wird Dein Kalender-Feed dauerhaft deaktiviert. Jede Kalender-App, die diese URL verwendet, wird nicht mehr aktualisiert. Du kannst jederzeit einen neuen Feed erstellen. Fortfahren?',
-    'flash_calendar_feed_generated' => 'Deine Kalender-Feed-URL wurde erstellt. Füge sie Deiner Kalender-App hinzu, um bevorstehende Spiele zu sehen.',
+    'flash_calendar_feed_generated' => 'Deine Kalender-Feed-URL wurde erstellt. Füge sie Deiner Kalender-App hinzu, um bevorstehende Runden zu sehen.',
     'flash_calendar_feed_revoked' => 'Dein Kalender-Feed wurde widerrufen und ist nicht mehr zugänglich.',
 
     // Discord-Server (Vermieter-Oberfläche — Gilden, in die der Bot installiert wurde)

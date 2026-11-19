@@ -167,6 +167,15 @@ Schedule::command('pwa:prune-visits')->monthly()->onOneServer();
 // dozens of per-category emails. Monday 04:00 to avoid the Sunday maintenance window.
 Schedule::command('notifications:weekly-digest')->weekly()->mondays()->at('04:00')->withoutOverlapping(10)->onOneServer();
 
+// Burst-window flush sweep (D296, M082/S01): the durable second flush path
+// for notification batches. The fast path is the 5-minute delayed
+// FlushNotificationBatch job, but redis is ephemeral — a lost scheduled job
+// would strand the buffered events, so the sweep re-dispatches the same job
+// every minute (Knock's dual-path pattern; processed_at idempotency makes
+// the double dispatch harmless). Sweep redispatches are bounded by the
+// command's flush_attempts < 5 guard.
+Schedule::command('notifications:flush-batches')->everyMinute()->onOneServer();
+
 // Discord calendar digest — one edited message per guild rewritten daily, listing
 // the next two weeks of public events. Daily 06:00 (morning check-in window);
 // onOneServer prevents duplicate dispatches when multiple schedulers run.
@@ -246,8 +255,9 @@ Schedule::command('observability:digest')
     ->emailOutputOnFailure(config('mail.from.address'));
 
 // Retention — prune Prunable models. Today that is scheduled_task_runs
-// (30-day run history + 24h zombie-running sweep); every future Prunable
-// model is covered by this single entry.
+// (30-day run history + 24h zombie-running sweep) and processed
+// notification_batches older than 30 days (cascade clears their items);
+// every future Prunable model is covered by this single entry.
 Schedule::command('model:prune')->dailyAt('05:45')->onOneServer();
 
 // Location stewardship — non-destructive drift sweep feeding the LocationResource admin queue

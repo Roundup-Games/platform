@@ -126,19 +126,19 @@ describe('CityHubPage render', function () {
     it('switches heading and section copy between the en and de locales', function () {
         cityHubQualifyingBerlin();
 
-        // Known literals from lang/en|de/city-hubs.php — asserting the
-        // files' actual copy, not a re-derivation of it.
+        // Locale-switch pair resolved from lang files (K004: assert
+        // resolved values, never literals).
         $en = get(route('city-hubs.show', ['locale' => 'en', 'slug' => 'berlin']))
             ->assertOk()
-            ->assertSee('Tabletop gaming in Berlin')
+            ->assertSee(__('city-hubs.heading_city_hub', ['city' => 'Berlin'], 'en'))
             ->assertSee(__('city-hubs.section_upcoming_sessions', [], 'en'))
-            ->assertDontSee('Tabletop-Spiele in Berlin');
+            ->assertDontSee(__('city-hubs.heading_city_hub', ['city' => 'Berlin'], 'de'));
 
         $de = get(route('city-hubs.show', ['locale' => 'de', 'slug' => 'berlin']))
             ->assertOk()
-            ->assertSee('Tabletop-Spiele in Berlin')
+            ->assertSee(__('city-hubs.heading_city_hub', ['city' => 'Berlin'], 'de'))
             ->assertSee(__('city-hubs.section_venues', [], 'de'))
-            ->assertDontSee('Tabletop gaming in Berlin');
+            ->assertDontSee(__('city-hubs.heading_city_hub', ['city' => 'Berlin'], 'en'));
     });
 });
 

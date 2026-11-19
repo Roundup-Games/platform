@@ -193,7 +193,81 @@ class NotificationController extends Controller
             is_string($key) && $key !== '' ? $key : null,
         );
 
+        // D294 rider 1: the landing itself is a signal — daily volume per
+        // category of markers users actually arrive on (cross-channel
+        // click-through, the mail/push counterpart of the in-app open).
+        // Both guards above already passed, so tampered-signature and
+        // unsafe-redirect 404s return before this line and are never
+        // counted as landings.
+        $this->countReadMarkerLanding($type, $request->query('category'));
+
         return redirect()->to($redirect);
+    }
+
+    /**
+     * Best-effort read-marker landing counter (D294 rider 1, M082/S03):
+     * the mark-read write above is the load-bearing behavior, so a counter
+     * failure is logged and swallowed (countUnsubscribe pattern) — the
+     * redirect must never degrade. Daily volume per category is the
+     * signal; landings are idempotent-safe to double-count (a repeat
+     * click is a repeat landing) and need no distinct-actor semantics.
+     */
+    private function countReadMarkerLanding(mixed $type, mixed $category = null): void
+    {
+        $resolved = $this->resolveMarkerCategory($type, $category);
+
+        try {
+            $this->counters->incrementFor($resolved, 'read_marker', 'landed');
+        } catch (Throwable $e) {
+            Log::warning('notifications.engagement_counter_failed', [
+                'category' => $resolved,
+                'channel' => 'read_marker',
+                'event' => 'landed',
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Best-effort category for a marker landing. The marker's type query
+     * param carries a notification CLASS name (static::class), not a
+     * category value: class_basename() is matched against
+     * NotificationCategory case names (NewFollower → new_follower),
+     * falling back to the raw basename string — the same basename-fallback
+     * philosophy as ResolvesNotificationCategory, so unknown classes
+     * attribute under their basename instead of throwing.
+     *
+     * The optional category param (M082 review) resolves the attribution
+     * for classes whose basename is not an enum case: BatchedNotification
+     * markers carry the UNDERLYING category, so their landings join the
+     * per-category rows the batched mail/push deliveries already count
+     * under instead of splitting the D284 funnel into a pseudo-category.
+     * The value is enum-validated — the signature already covers it, and
+     * an unknown value falls through to the basename mapping as before.
+     */
+    private function resolveMarkerCategory(mixed $type, mixed $category = null): string
+    {
+        if (is_string($category) && $category !== '') {
+            $validated = NotificationCategory::tryFrom($category);
+
+            if ($validated !== null) {
+                return $validated->value;
+            }
+        }
+
+        if (! is_string($type) || $type === '') {
+            return 'untagged';
+        }
+
+        $basename = class_basename($type);
+
+        foreach (NotificationCategory::cases() as $case) {
+            if ($case->name === $basename) {
+                return $case->value;
+            }
+        }
+
+        return $basename;
     }
 
     /**

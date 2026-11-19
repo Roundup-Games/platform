@@ -48,7 +48,13 @@ class NotificationEngagementCounters
      *                            notifications (VerifyEmail/ResetPassword), or
      *                            'untagged' for mail sent outside the
      *                            notification pipeline.
-     * @param  string  $channel  mail | push | discord.
+     * @param  string  $channel  mail | push | discord | batch | read_marker
+     *                           (batch: the burst defer window's
+     *                           lifecycle, flushed at flush time,
+     *                           event_buffered / dispatch_immediate at
+     *                           buffer time — D296; read_marker: signed
+     *                           cross-channel marker landings, event
+     *                           landed — D294 rider 1).
      * @param  string  $event  e.g. delivered, opened, clicked, bounced,
      *                         complained, failed, unsubscribed, sent,
      *                         dm_skipped:<reason>.

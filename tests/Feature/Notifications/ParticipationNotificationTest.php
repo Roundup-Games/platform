@@ -15,6 +15,7 @@ use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
 use App\Models\UserRelationship;
+use App\Notifications\BatchedNotification;
 use App\Notifications\EntityInvitation;
 use App\Notifications\ParticipantJoined;
 use App\Notifications\ParticipantRemoved;
@@ -53,14 +54,20 @@ describe('Accept game invitation → ParticipantJoined', function () {
             ->test(GamesPage::class)
             ->call('acceptInvitation', (string) $participant->id);
 
-        $notifications = $owner->notifications()->where('type', ParticipantJoined::class)->get();
+        // D296 defer window: a join no longer dispatches an individual
+        // notification — the event buffers for this game's burst and the
+        // sync test connection flushes it inline, so the owner receives
+        // ONE BatchedNotification typed by the UNDERLYING category. (Window
+        // and flush semantics: BatchDeferWindowTest + BatchFlushDurabilityTest.)
+        $notifications = $owner->notifications()->where('type', BatchedNotification::class)->get();
         expect($notifications)->toHaveCount(1);
 
         $data = $notifications->first()->data;
         expect($data['type'])->toBe('participant_joined')
-            ->and($data['participant_id'])->toBe($invitee->id)
             ->and($data['entity_type'])->toBe('game')
             ->and($data['entity_id'])->toBe($game->id)
+            ->and($data['actor_names'])->toBe([$invitee->name])
+            ->and($data['batch_count'])->toBe(1)
             ->and($data)->toHaveKey('action_url');
     });
 
@@ -151,14 +158,16 @@ describe('Accept campaign invitation → ParticipantJoined', function () {
             ->test(CampaignsPage::class)
             ->call('acceptInvitation', (string) $participant->id);
 
-        $notifications = $owner->notifications()->where('type', ParticipantJoined::class)->get();
+        // D296 defer window: campaign joins batch exactly like game joins
+        // (entity-generic key), flushing inline under the sync connection.
+        $notifications = $owner->notifications()->where('type', BatchedNotification::class)->get();
         expect($notifications)->toHaveCount(1);
 
         $data = $notifications->first()->data;
         expect($data['type'])->toBe('participant_joined')
             ->and($data['entity_type'])->toBe('campaign')
             ->and($data['entity_id'])->toBe($campaign->id)
-            ->and($data['participant_id'])->toBe($invitee->id);
+            ->and($data['actor_names'])->toBe([$invitee->name]);
     });
 });
 

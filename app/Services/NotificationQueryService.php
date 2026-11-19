@@ -116,7 +116,8 @@ class NotificationQueryService
      *   - actor_names    — unique list of actor display names
      *   - display_string — human-readable summary (e.g. "Alice and Bob followed you")
      *   - is_read        — whether all notifications in the group are read
-     *   - group_key      — unique key for frontend (type_date)
+     *   - group_key      — unique key for frontend (type_date, extended per
+     *                      burst for BatchedNotification rows — see groupKeyFor())
      *
      * @return Collection<int, NotificationGroup>
      */
@@ -162,9 +163,73 @@ class NotificationQueryService
     }
 
     /**
+     * Derive the grouping key for one notification row (M082/S02 display
+     * follow-up — the single source both buildGroups and the notifications
+     * page's expanded-individuals lookup derive from, so the key can never
+     * drift between writer and reader).
+     *
+     * Base shape: "{shortType}_{Y-m-d}". BatchedNotification rows extend
+     * it to "{shortType}:{underlying category}:{entity uuid}_{Y-m-d}": a
+     * flushed burst is already entity-scoped aggregation, so two bursts
+     * that share a day but not a category/entity must NEVER merge — the
+     * merged row would attribute one burst's actors to the other's verb
+     * ("Sarah applied" while Sarah joined). Rows missing either binding
+     * (malformed payloads) fall back to the base shape and degrade exactly
+     * as they did before the split.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public static function groupKeyFor(string $shortType, array $data, string $dateKey): string
+    {
+        if ($shortType === 'BatchedNotification') {
+            $category = $data['type'] ?? null;
+            $entityId = $data['entity_id'] ?? null;
+
+            if (is_string($category) && $category !== ''
+                && is_string($entityId) && $entityId !== '') {
+                return "BatchedNotification:{$category}:{$entityId}_{$dateKey}";
+            }
+        }
+
+        return "{$shortType}_{$dateKey}";
+    }
+
+    /**
+     * Parse a group key back into its filter parts — the inverse of
+     * groupKeyFor() the bell's and the page's markAsRead use to scope
+     * their read updates, and expandedGroupIndividuals uses to scope its
+     * row fetch. Legacy "{shortType}_{date}" keys parse identically to
+     * the pre-split format (category and entity stay null).
+     *
+     * @return null|array{0: string, 1: string, 2: string|null, 3: string|null}
+     *                                                                          [shortType, dateString, ?category, ?entityId] — null when the
+     *                                                                          key carries no date segment.
+     */
+    public static function parseGroupKey(string $groupKey): ?array
+    {
+        $parts = explode('_', $groupKey);
+        $dateString = array_pop($parts);
+        $head = implode('_', $parts);
+
+        if ($head === '' || $dateString === '') {
+            return null;
+        }
+
+        // "{shortType}:{category}:{entityId}" — segments beyond the first
+        // are optional; a legacy plain shortType yields two nulls.
+        $segments = explode(':', $head, 3);
+        $shortType = $segments[0];
+        $category = isset($segments[1]) && $segments[1] !== '' ? $segments[1] : null;
+        $entityId = isset($segments[2]) && $segments[2] !== '' ? $segments[2] : null;
+
+        return [$shortType, $dateString, $category, $entityId];
+    }
+
+    /**
      * Build grouped view models from a flat notification collection.
      *
-     * Grouping key: notification type short-name + date string (Y-m-d).
+     * Grouping key: notification type short-name + date string (Y-m-d) —
+     * extended per Burst for BatchedNotification rows (see groupKeyFor()).
      * Within each group, actor names are deduplicated and used to build
      * a display string like "Alice followed you" or "Alice, Bob, and 3 others followed you".
      *
@@ -181,7 +246,7 @@ class NotificationQueryService
             $type = $notification->type;
             $shortType = class_exists($type) ? (new \ReflectionClass($type))->getShortName() : $type;
             $dateKey = ($notification->created_at ?? now())->toDateString();
-            $groupKey = "{$shortType}_{$dateKey}";
+            $groupKey = self::groupKeyFor($shortType, $notification->data, $dateKey);
 
             if (! isset($groups[$groupKey])) {
                 $groups[$groupKey] = new NotificationGroup(
@@ -213,13 +278,36 @@ class NotificationQueryService
                 $group->isRead = false;
             }
 
-            // Extract actor name and ID from data JSON
-            $actorName = $this->extractActorName($shortType, $notification->data);
-            $actorId = $this->extractActorId($shortType, $notification->data);
+            // Extract actor name and ID from data JSON. Batched rows carry
+            // position-aligned actor NAMES+IDS arrays (one flushed burst =
+            // one row whose display lists every actor), so they expand into
+            // the group here instead of the single-value maps (M082/S02
+            // display follow-up — closes the subjectless-verb gap).
+            if ($shortType === 'BatchedNotification'
+                && isset($notification->data['actor_names'])
+                && is_array($notification->data['actor_names'])) {
+                $names = $notification->data['actor_names'];
+                $ids = isset($notification->data['actor_ids']) && is_array($notification->data['actor_ids'])
+                    ? $notification->data['actor_ids']
+                    : [];
 
-            if ($actorName !== null && ! in_array($actorName, $group->actorNames, true)) {
-                $group->actorNames[] = $actorName;
-                $group->actorIds[] = $actorId;
+                foreach ($names as $index => $actorName) {
+                    if (! is_string($actorName) || $actorName === '' || in_array($actorName, $group->actorNames, true)) {
+                        continue;
+                    }
+
+                    $actorId = $ids[$index] ?? null;
+                    $group->actorNames[] = $actorName;
+                    $group->actorIds[] = is_string($actorId) && $actorId !== '' ? $actorId : null;
+                }
+            } else {
+                $actorName = $this->extractActorName($shortType, $notification->data);
+                $actorId = $this->extractActorId($shortType, $notification->data);
+
+                if ($actorName !== null && ! in_array($actorName, $group->actorNames, true)) {
+                    $group->actorNames[] = $actorName;
+                    $group->actorIds[] = $actorId;
+                }
             }
         }
 
@@ -478,6 +566,24 @@ class NotificationQueryService
                 $stripped = preg_replace('/_(invitation|updated|cancelled|completed)$/', '', $data['type']);
                 $entityType = is_string($stripped) ? $stripped : null;
             }
+
+            if (is_string($entityType) && $entityType !== '') {
+                $nameKey = "{$entityType}_name";
+                $val = $data[$nameKey] ?? $data['entity_name'] ?? null;
+
+                return is_string($val) ? $val : null;
+            }
+        }
+
+        // BatchedNotification rows (M082/S02): the payload carries an explicit
+        // entity_type plus the name under the conventional "{entity_type}_name"
+        // key — resolve through the explicit type (mirroring the unified
+        // classes' dynamic resolution) so the bell, notifications page, and
+        // digest never degrade the linked entity for batched rows. The
+        // entity_name/game_name/campaign_name fallback below stays as the
+        // belt for legacy rows.
+        if ($shortType === 'BatchedNotification') {
+            $entityType = $data['entity_type'] ?? null;
 
             if (is_string($entityType) && $entityType !== '') {
                 $nameKey = "{$entityType}_name";

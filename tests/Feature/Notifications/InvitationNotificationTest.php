@@ -14,6 +14,7 @@ use App\Models\Team;
 use App\Models\TeamMember;
 use App\Models\User;
 use App\Models\UserRelationship;
+use App\Notifications\BatchedNotification;
 use App\Notifications\EntityInvitation;
 use App\Notifications\SessionAddedToCampaign;
 use App\Notifications\TeamInvitation;
@@ -226,14 +227,20 @@ describe('Session Added to Campaign → SessionAddedToCampaign', function () {
         $game = Game::where('campaign_id', $campaign->id)->first();
         $this->assertNotNull($game, 'Session game should have been created');
 
-        $notifications = $participant->fresh()->notifications()->where('type', SessionAddedToCampaign::class)->get();
+        // D296 defer window: session additions batch per campaign (the
+        // campaign's burst, not the individual session's) and the sync test
+        // connection flushes inline, delivering ONE BatchedNotification
+        // typed by the UNDERLYING category. (v1 batched payload carries the
+        // entity + actors; per-session detail grows in S02.)
+        $notifications = $participant->fresh()->notifications()->where('type', BatchedNotification::class)->get();
         expect($notifications)->toHaveCount(1);
 
         $data = $notifications->first()->data;
         expect($data['type'])->toBe('session_added_to_campaign')
-            ->and($data['campaign_id'])->toBe($campaign->id)
+            ->and($data['entity_type'])->toBe('campaign')
+            ->and($data['entity_id'])->toBe($campaign->id)
             ->and($data['campaign_name'])->toBe($campaign->name)
-            ->and($data)->toHaveKey('session_id')
+            ->and($data['actor_names'])->toBe([$owner->name])
             ->and($data)->toHaveKey('action_url');
     });
 

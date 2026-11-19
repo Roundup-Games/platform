@@ -1,14 +1,17 @@
 <?php
 
 use App\Enums\NotificationCategory;
+use App\Jobs\FlushNotificationBatch;
 use App\Models\Campaign;
 use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\Location;
+use App\Models\NotificationBatch;
 use App\Models\User;
 use App\Notifications\ApplicationApproved;
+use App\Notifications\BatchedNotification;
 use App\Notifications\EntityCancelled;
 use App\Notifications\EntityInvitation;
 use App\Notifications\EntityUpdated;
@@ -19,11 +22,13 @@ use App\Notifications\SessionAddedToCampaign;
 use App\Notifications\SessionReminder;
 use App\Notifications\WaitlistPromoted;
 use App\Services\Calendar\IcsBuilder;
+use App\Services\NotificationEngagementCounters;
 use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Notifications\Channels\MailChannel;
 use Illuminate\Support\Facades\Event as EventFacade;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Symfony\Component\Mime\Part\DataPart;
 
@@ -262,14 +267,21 @@ it('attaches no calendar part for a bare campaign invitation', function () {
         ->and(icsAttachment(0))->toBeNull();
 });
 
-it('addresses each campaign session as its own VEVENT UID', function () {
-    // The session-added category defaults to database+push (no mail);
-    // opt this recipient in so the ICS part is actually rendered.
+it('addresses each campaign session as its own VEVENT UID — including through the batched flush path', function () {
+    // The session-added category batches from birth (D296): send() buffers
+    // the event and the flush renders BatchedNotification. D287's per-session
+    // iTIP REQUEST contract survives the batching handoff (M082 review):
+    // the digest mail re-attaches one VEVENT per buffered session, each
+    // addressed by its own UID so the invitation lands on the session's
+    // calendar slot. Pinned through the PRODUCTION dispatch surface —
+    // buffer, flush, mail — not a direct renderer call.
     $recipient = User::factory()->create([
         'notification_settings' => ['session_added_to_campaign' => ['mail' => true]],
     ]);
     $campaign = Campaign::factory()->create();
-    $session = Game::factory()->create(['campaign_id' => $campaign->id]);
+    $session = Game::factory()->create(['campaign_id' => $campaign->id, 'date_time' => now()->addDays(7)]);
+
+    Queue::fake([FlushNotificationBatch::class]);
 
     app(NotificationService::class)->send(
         $recipient,
@@ -277,7 +289,20 @@ it('addresses each campaign session as its own VEVENT UID', function () {
         NotificationCategory::SessionAddedToCampaign,
     );
 
-    $content = icsUnfold(icsContent(icsAttachment(0)));
+    // The event buffered, not dispatched — the digest renders at flush.
+    expect($this->capturedMails)->toHaveCount(0)
+        ->and($recipient->notifications)->toHaveCount(0);
+
+    $batch = NotificationBatch::query()->sole();
+    (new FlushNotificationBatch($batch->id))
+        ->handle(app(NotificationService::class), app(NotificationEngagementCounters::class));
+
+    // One batched digest mail, one VEVENT on the session's own UID.
+    expect($this->capturedMails)->toHaveCount(1)
+        ->and($recipient->notifications()->where('type', BatchedNotification::class)->count())->toBe(1);
+
+    $raw = icsContent(icsAttachment(0));
+    $content = icsUnfold($raw);
 
     expect($content)
         ->toContain('METHOD:REQUEST')

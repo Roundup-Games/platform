@@ -64,16 +64,21 @@ class NotificationBell extends Component
     /**
      * Mark a single notification group as read.
      *
-     * Marks all unread notifications in the group's type+date range as read.
+     * Marks all unread notifications in the group's type+date range as
+     * read, scoped to the group's underlying category and entity for
+     * BatchedNotification rows (the per-burst grouping key carries both —
+     * see NotificationQueryService::groupKeyFor()).
      */
     public function markAsRead(string $groupKey): void
     {
         $user = authenticatedUser();
 
-        // Parse group key: "{TypeShortName}_{Y-m-d}"
-        $parts = explode('_', $groupKey);
-        $dateString = array_pop($parts);
-        $shortType = implode('_', $parts);
+        $parsed = NotificationQueryService::parseGroupKey($groupKey);
+        if ($parsed === null) {
+            return;
+        }
+
+        [$shortType, $dateString, $category, $entityId] = $parsed;
 
         // Resolve the full notification class name
         $fullType = $this->resolveFullType($shortType);
@@ -82,10 +87,19 @@ class NotificationBell extends Component
         }
 
         // Mark matching unread notifications as read
-        $marked = $user->unreadNotifications()
+        $query = $user->unreadNotifications()
             ->where('type', $fullType)
-            ->whereDate('created_at', $dateString)
-            ->update(['read_at' => now()]);
+            ->whereDate('created_at', $dateString);
+
+        if ($category !== null) {
+            $query->where('data->type', $category);
+        }
+
+        if ($entityId !== null) {
+            $query->where('data->entity_id', $entityId);
+        }
+
+        $marked = $query->update(['read_at' => now()]);
 
         if ($marked > 0) {
             Log::info('Notification group marked as read', [

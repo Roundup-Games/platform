@@ -76,7 +76,8 @@ function corpusNotificationDataset(): array
     $classes = [
         'AccountSuspended', 'ApplicationApproved', 'ApplicationRejected',
         'AttendanceNudge', 'AttendanceReported', 'AttendanceResolved',
-        'BadgeAwardedNotification', 'BelowMinPlayersWarning', 'BulletinPosted',
+        'BadgeAwardedNotification', 'BatchedNotification', 'BelowMinPlayersWarning',
+        'BulletinPosted',
         'CharterAmended', 'CharterPublished', 'ConfirmationExpired',
         'ContentRemoved', 'ContentReportWarning', 'DebriefingAvailable',
         'DisputeResolved', 'EntityCancelled', 'EntityCompleted',
@@ -239,6 +240,17 @@ it('renders every defined channel with non-empty payloads in both en and de', fu
             ),
             'AttendanceResolved' => new $fqcn($fx->game, AttendanceStatus::NoShow),
             'BadgeAwardedNotification' => new $fqcn('supporting_member', null, BadgeSource::Automatic, false),
+            'BatchedNotification' => new $fqcn(
+                NotificationCategory::ParticipantJoined,
+                'game',
+                $fx->game->id,
+                $fx->game->name,
+                route('games.show', ['locale' => app()->getLocale(), 'id' => $fx->game]),
+                [
+                    corpusBatchItem($fx->actor->id, $fx->actor->name, $fx->game),
+                    corpusBatchItem($fx->gameOwner->id, $fx->gameOwner->name, $fx->game),
+                ],
+            ),
             'BelowMinPlayersWarning' => new $fqcn($fx->game, 1, 2),
             'BulletinPosted' => new $fqcn(
                 $fx->game,
@@ -632,7 +644,29 @@ it('classifies the dynamic type variants the corpus fixtures cannot reach', func
     }
 });
 
-// ── Lazy cluster fixtures ─────────────────────────────────────────────────
+// ── Lazy cluster fixtures ─────────────────────────────────────────
+
+/**
+ * One buffered event snapshot for the BatchedNotification corpus fixture
+ * — the item payload contract the buffer path (T04) writes and the
+ * batched rendering replays (see BatchedNotification's docblock).
+ *
+ * @param  object  $game  Fixture game the batch is keyed on (stdClass|Game — id + name only).
+ */
+function corpusBatchItem(string $actorId, string $actorName, object $game): array
+{
+    return [
+        'actor_id' => $actorId,
+        'actor_name' => $actorName,
+        'entity_type' => 'game',
+        'entity_id' => $game->id,
+        'entity_name' => $game->name,
+        'event' => 'participant_joined',
+        'context' => [],
+        'action_url' => route('games.show', ['locale' => 'en', 'id' => $game->id]),
+        'occurred_at' => Carbon::now()->subMinute()->toIso8601String(),
+    ];
+}
 
 /**
  * Escalated game-system-request ticket (the GameSystemRequest* cluster),

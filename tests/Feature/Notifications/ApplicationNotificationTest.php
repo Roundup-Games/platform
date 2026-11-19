@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Models\UserRelationship;
 use App\Notifications\ApplicationApproved;
 use App\Notifications\ApplicationRejected;
+use App\Notifications\BatchedNotification;
 use App\Notifications\NewApplication;
 use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
@@ -54,14 +55,19 @@ describe('Apply to protected game → NewApplication', function () {
             ->call('submitApplication')
             ->assertHasNoErrors();
 
-        $notifications = $owner->notifications()->where('type', NewApplication::class)->get();
+        // D296 defer window: the application event buffers for this game's
+        // burst and the sync test connection flushes it inline, delivering
+        // ONE BatchedNotification typed by the UNDERLYING category (window
+        // semantics: BatchDeferWindowTest + BatchFlushDurabilityTest).
+        $notifications = $owner->notifications()->where('type', BatchedNotification::class)->get();
         expect($notifications)->toHaveCount(1);
 
         $data = $notifications->first()->data;
         expect($data['type'])->toBe('new_application')
             ->and($data['entity_type'])->toBe('game')
             ->and($data['entity_id'])->toBe($game->id)
-            ->and($data['applicant_id'])->toBe($applicant->id)
+            ->and($data['actor_names'])->toBe([$applicant->name])
+            ->and($data['batch_count'])->toBe(1)
             ->and($data)->toHaveKey('action_url');
     });
 
@@ -133,14 +139,16 @@ describe('Apply to protected campaign → NewApplication', function () {
             ->call('submitApplication')
             ->assertHasNoErrors();
 
-        $notifications = $owner->notifications()->where('type', NewApplication::class)->get();
+        // D296 defer window: campaign applications batch per campaign
+        // (entity-generic key) and flush inline under the sync connection.
+        $notifications = $owner->notifications()->where('type', BatchedNotification::class)->get();
         expect($notifications)->toHaveCount(1);
 
         $data = $notifications->first()->data;
         expect($data['type'])->toBe('new_application')
             ->and($data['entity_type'])->toBe('campaign')
             ->and($data['entity_id'])->toBe($campaign->id)
-            ->and($data['applicant_id'])->toBe($applicant->id)
+            ->and($data['actor_names'])->toBe([$applicant->name])
             ->and($data)->toHaveKey('action_url');
     });
 
