@@ -1,3 +1,4 @@
+import './build-guard';
 import './bootstrap';
 import './client-errors';
 import './guest-location';

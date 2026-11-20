@@ -102,7 +102,13 @@ it('lands five burst joins as one batched notification at window close while a m
     }
 
     // The burst held: one batch, five items, nothing dispatched yet.
-    $batch = NotificationBatch::query()->sole();
+    // Scoped to the fixture's key: under --parallel, sibling suites may
+    // hold committed residue rows outside this test's transaction (see
+    // BatchDeferWindowTest's PDO race guard) — a table-wide sole() is a
+    // cross-worker race (MultipleRecordsFoundException, CI 2026-11-20).
+    $batch = NotificationBatch::query()
+        ->where('batch_key', 'participant_joined:'.$game->id)
+        ->sole();
     expect($batch->batch_key)->toBe('participant_joined:'.$game->id)
         ->and($batch->items()->count())->toBe(5)
         ->and($batch->processed_at)->toBeNull()

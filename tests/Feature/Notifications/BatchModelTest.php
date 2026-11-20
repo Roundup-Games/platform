@@ -12,6 +12,15 @@ use Illuminate\Support\Str;
  * D296): the model primitives the buffer interception (T04) and the dual
  * flush paths (T03) build on — scope predicates, processed_at
  * idempotency, and the open-batch uniqueness of the partial index.
+ *
+ * Count assertions are scoped to the rows each test creates (recipient_id
+ * / batch_id): under --parallel the workers share one database, and some
+ * sibling suites (BatchDeferWindowTest's append-race guard) deliberately
+ * COMMIT rows through raw PDO outside the per-test transaction wrapper —
+ * committed residue is visible to this file's queries until that file's
+ * afterAll sweep fires in ITS worker. A table-wide count is therefore a
+ * cross-worker race (seen on CI 2026-11-20: 5 vs 4 / 3 vs 2), while a
+ * scoped count stays exact regardless of sibling scheduling.
  */
 
 /**
@@ -40,7 +49,7 @@ it('collects every unprocessed batch in the open scope regardless of closes_at',
     $processed = createNotificationBatch($user, 'participant_joined:game-3');
     $processed->markProcessed();
 
-    $open = NotificationBatch::query()->open()->get();
+    $open = NotificationBatch::query()->open()->where('recipient_id', $user->id)->get();
 
     // The past-closing batch MUST match: an event arriving after
     // closes_at but before the flush ran appends to it (T04 relies on
@@ -66,7 +75,7 @@ it('restricts the closed-unprocessed scope to elapsed unflushed windows', functi
     ]);
     $pastProcessed->markProcessed();
 
-    $closed = NotificationBatch::query()->closedUnprocessed()->get();
+    $closed = NotificationBatch::query()->closedUnprocessed()->where('recipient_id', $user->id)->get();
 
     expect($closed)->toHaveCount(1)
         ->and($closed->first()->id)->toBe($pastOpen->id)
@@ -111,9 +120,9 @@ it('releases a key for a new batch once the previous one is processed', function
     $second = createNotificationBatch($user, 'participant_joined:game-1');
 
     expect($second->exists)->toBeTrue()
-        ->and(NotificationBatch::query()->open()->get())->toHaveCount(1)
-        ->and(NotificationBatch::query()->open()->first()->id)->toBe($second->id)
-        ->and(NotificationBatch::query()->count())->toBe(2);
+        ->and(NotificationBatch::query()->open()->where('recipient_id', $user->id)->get())->toHaveCount(1)
+        ->and(NotificationBatch::query()->open()->where('recipient_id', $user->id)->first()->id)->toBe($second->id)
+        ->and(NotificationBatch::query()->where('recipient_id', $user->id)->count())->toBe(2);
 });
 
 it('isolates open batches per recipient and per key', function () {
@@ -139,7 +148,9 @@ it('isolates open batches per recipient and per key', function () {
         'closes_at' => now()->addMinutes(5),
     ]);
 
-    expect(NotificationBatch::query()->open()->count())->toBe(4);
+    expect(NotificationBatch::query()->open()
+        ->whereIn('recipient_id', [$host->id, $otherHost->id])
+        ->count())->toBe(4);
 });
 
 it('appends immutable payload snapshots in deterministic append order', function () {
@@ -185,12 +196,12 @@ it('deletes a batch items with the batch', function () {
     $batch->items()->create(['payload' => ['actor_name' => 'Sarah']]);
     $batch->items()->create(['payload' => ['actor_name' => 'Alex']]);
 
-    expect(NotificationBatchItem::query()->count())->toBe(2);
+    expect(NotificationBatchItem::query()->where('batch_id', $batch->id)->count())->toBe(2);
 
     $batch->delete();
 
-    expect(NotificationBatch::query()->count())->toBe(0)
-        ->and(NotificationBatchItem::query()->count())->toBe(0);
+    expect(NotificationBatch::query()->whereKey($batch->id)->count())->toBe(0)
+        ->and(NotificationBatchItem::query()->where('batch_id', $batch->id)->count())->toBe(0);
 });
 
 it('prunes processed batches past the retention horizon and cascades their items', function () {
@@ -238,5 +249,7 @@ it('never prunes unprocessed batches, however old — dead-letters stay forensic
     // pruned rows cannot be investigated.
     expect(NotificationBatch::find($deadLetter->id))->not->toBeNull()
         ->and(NotificationBatch::find($open->id))->not->toBeNull()
-        ->and((new NotificationBatch)->prunable()->count())->toBe(0);
+        ->and((new NotificationBatch)->prunable()
+            ->whereIn('id', [$deadLetter->id, $open->id])
+            ->count())->toBe(0);
 });

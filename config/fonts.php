@@ -41,6 +41,7 @@ return [
         'map', 'location_on', 'location_off', 'my_location', 'edit_location',
         'add_location', 'add_location_alt', 'near_me', 'sports_esports', 'swords',
         'play_circle', 'stop_circle', 'start', 'event', 'event_available',
+        'calendar_add_on', 'edit_calendar',
         'circle',
         'event_busy', 'event_note', 'event_seat', 'event_upcoming',
         'calendar_today', 'calendar_month', 'schedule',
@@ -126,7 +127,8 @@ return [
         'inventory_2', 'location_city', 'more_horiz',
         'notification_important', 'place', 'policy', 'print',
         'published_with_changes', 'report', 'smart_toy', 'space_dashboard',
-        'swap_vert', 'sync', 'visibility_lock',
+        'swap_vert', 'sync', 'sync_problem', 'visibility_lock',
+        'science', 'dynamic_feed',
     ],
 
     /*

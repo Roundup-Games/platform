@@ -50,8 +50,10 @@ return [
         // Minutes between full reconcile passes over connected users'
         // calendars. 15 keeps confirmed games, campaign sessions, and event
         // registrations visible in Google within a quarter hour without
-        // hammering the Calendar API quota.
-        'reconcile_every_minutes' => env('GOOGLE_CALENDAR_RECONCILE_EVERY_MINUTES', 15),
+        // hammering the Calendar API quota. Cast to int: env values are
+        // always strings, and the S01 config test pins the int contract
+        // ('15' !== 15 — CI runs on a .env.example copy that sets this).
+        'reconcile_every_minutes' => (int) env('GOOGLE_CALENDAR_RECONCILE_EVERY_MINUTES', 15),
     ],
 
     // Emails permitted to connect while verification_mode=test_user.

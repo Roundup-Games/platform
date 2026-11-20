@@ -89,7 +89,10 @@ function criticalBypassOpenBatch(User $recipient, string $kind, Game $game, Camp
     }
 
     /** @var NotificationBatch */
-    return NotificationBatch::query()->sole();
+    return NotificationBatch::query()
+        ->where('recipient_type', $recipient->getMorphClass())
+        ->where('recipient_id', $recipient->id)
+        ->sole();
 }
 
 /**
