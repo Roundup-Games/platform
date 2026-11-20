@@ -76,6 +76,22 @@
             ]);</script>
         @endif
 
+        {{-- Livewire config only — the actual Livewire+Alpine runtime is bundled
+             through Vite (resources/js/app.js imports the vendor ESM build), so it
+             loads as a spec-deferred module instead of a synchronous script tag
+             that blocked parsing (CWV 2026-11, commit 30dc5171). This layout
+             originally shipped WITHOUT the config — authenticated pages then
+             kept Livewire's auto-injected livewire.min.js (inject_assets
+             defaults true; config/livewire.php now disables it) alongside the
+             bundled runtime, double-booting Alpine on every authed page: the
+             second registration dies with "can't redefine non-configurable
+             property '$persist'" and every Alpine/Livewire surface
+             (settingsTabs, copyButton…) stays blank (live 2026-11-20). The
+             config must execute before app.js runs; inline here in <head> that
+             is guaranteed, since module scripts defer until after parse — the
+             same guarantee public-layout.blade.php relies on. --}}
+        @livewireScriptConfig
+
         {{-- Scripts --}}
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @include('partials.posthog-script')
