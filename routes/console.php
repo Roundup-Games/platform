@@ -278,3 +278,31 @@ Schedule::command('horizon:snapshot')->everyFiveMinutes()->onOneServer();
 Schedule::command('schedule:health-check')
     ->hourly()
     ->onOneServer();
+
+// Google Calendar managed sync — drift-healing reconcile sweep (M083/S03-T04,
+// D287): one queued per-connection pass over the feed's commitment semantics
+// (same job the connect-time backfill dispatches). Cadence comes from
+// calendar_sync.sync.reconcile_every_minutes; cron's minute field can only
+// step by divisors of 60, so a configured cadence that is not itself a
+// divisor rounds to the LARGEST divisor not greater than it — never less
+// frequent than configured (the quarter-hour visibility promise the config
+// documents), never the every-minute hammer a naive fallback would mint
+// (90 → hourly, 45 → every 30, 7 → every 6). withoutOverlapping +
+// onOneServer mirror every other sweep entry in this file; the per-connection
+// jobs carry the actual Google I/O, so this entry stays a fast dispatch-only
+// hop.
+$calendarReconcileMinutes = max(1, (int) config('calendar_sync.sync.reconcile_every_minutes', 15));
+
+$calendarReconcileStep = 1;
+foreach ([60, 30, 20, 15, 12, 10, 6, 5, 4, 3, 2] as $calendarReconcileDivisor) {
+    if ($calendarReconcileDivisor <= $calendarReconcileMinutes) {
+        $calendarReconcileStep = $calendarReconcileDivisor;
+
+        break;
+    }
+}
+
+Schedule::command('calendar:sync-reconcile')
+    ->cron(sprintf('*/%d * * * *', $calendarReconcileStep))
+    ->withoutOverlapping(10)
+    ->onOneServer();

@@ -3,12 +3,14 @@
 namespace App\Services;
 
 use App\Dto\EntityMeta;
+use App\Enums\CalendarSyncOperation;
 use App\Enums\NotificationCategory;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\Game;
 use App\Notifications\BelowMinPlayersWarning;
+use App\Services\Calendar\CalendarSyncDispatcher;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -71,6 +73,24 @@ class Roster
                 'entity_id' => $entity->id,
                 'error' => $e->getMessage(),
             ]);
+        }
+
+        // Managed-sync trigger (M083/S03-T03), after the entity status write
+        // the callers (GamesPage/CampaignsPage) already committed: a
+        // cancelled GAME converges to status=cancelled on every connected
+        // calendar that carries it (host, approved participants, approved
+        // campaign members — the feed's audience rule, one job per user).
+        //
+        // A cancelled CAMPAIGN deliberately dispatches nothing: the feed
+        // keeps publishing an approved member's sessions after campaign
+        // cancellation (this cascade rejects only Waitlisted/Benched rows,
+        // approved members keep their membership), so cancelling them on
+        // Google would contradict the commitment semantics the reconcile
+        // sweep enforces — the sweep would re-upsert them on its next pass.
+        // Drift on either surface is healed by the sweep; its drift counts
+        // are the signal.
+        if ($entity instanceof Game) {
+            CalendarSyncDispatcher::dispatchToRoster($entity, CalendarSyncOperation::Cancel);
         }
     }
 

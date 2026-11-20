@@ -2,10 +2,12 @@
 
 namespace App\Filament\Resources\EventResource\Pages;
 
+use App\Enums\CalendarSyncOperation;
 use App\Enums\EventStatus;
 use App\Filament\Concerns\TransformsLocaleSwitchWithoutValidation;
 use App\Filament\Resources\EventResource;
 use App\Models\Event;
+use App\Services\Calendar\CalendarSyncDispatcher;
 use App\Services\EventLifecycleService;
 use App\Services\SeoCacheService;
 use Filament\Actions\DeleteAction;
@@ -90,6 +92,14 @@ class EditEvent extends EditRecord
 
         if ($cancelling) {
             app(EventLifecycleService::class)->cancel($record);
+        } else {
+            // Managed-sync trigger (M083/S03-T03 parity with the
+            // organizer-facing ManageEvent save): a content edit (dates,
+            // venue, name) re-upserts the event on every connected
+            // registrant's calendar. The reconcile sweep never re-patches
+            // content, so without this trigger an admin edit would never
+            // reach any connected calendar.
+            CalendarSyncDispatcher::dispatchToEventRegistrants($record, CalendarSyncOperation::Upsert);
         }
 
         return $record;

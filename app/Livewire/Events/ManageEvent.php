@@ -2,11 +2,13 @@
 
 namespace App\Livewire\Events;
 
+use App\Enums\CalendarSyncOperation;
 use App\Enums\ContentLanguage;
 use App\Enums\EventType;
 use App\Models\Event;
 use App\Models\Game;
 use App\Models\User;
+use App\Services\Calendar\CalendarSyncDispatcher;
 use App\Services\EventDelegationService;
 use App\Services\EventLifecycleService;
 use App\Services\ScopedRoleService;
@@ -475,6 +477,15 @@ class ManageEvent extends Component
 
         if ($cancellingViaForm) {
             app(EventLifecycleService::class)->cancel($this->event);
+        } else {
+            // Managed-sync trigger (M083/S03-T03): a content edit (dates,
+            // venue, name) re-upserts the event on every connected
+            // registrant's calendar — the same parity GamesPage gives
+            // games. The reconcile sweep is a presence/status diff by
+            // design and never re-patches content, so without this
+            // trigger an organizer's date or venue change would never
+            // reach any connected calendar.
+            CalendarSyncDispatcher::dispatchToEventRegistrants($this->event, CalendarSyncOperation::Upsert);
         }
 
         Log::info('Event updated', [

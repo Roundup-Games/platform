@@ -7,7 +7,7 @@
 return [
     // Calendar feed (iCal token) — D123
     'title_calendar_feed' => 'Calendar Feed',
-    'description_calendar_feed' => 'Subscribe to your upcoming roundup games from Google Calendar, Apple Calendar, or any calendar app that supports iCal (.ics) feeds.',
+    'description_calendar_feed' => 'Subscribe to your upcoming Roundup games from Google Calendar, Apple Calendar, or any calendar app that supports iCal (.ics) feeds.',
     'label_calendar_feed_url' => 'Your calendar feed URL',
     'hint_calendar_feed_url' => 'Add this URL to your calendar app as a new calendar subscription. Keep this URL private — anyone with it can see your schedule.',
     'action_calendar_feed_generate' => 'Generate Calendar Feed',
@@ -21,14 +21,14 @@ return [
 
     // Discord Servers (landlord surface — guilds the user installed the bot into)
     'title_discord_servers' => 'Discord Servers',
-    'description_discord_servers' => 'Servers where you have installed the roundup bot. Manage channels, posting, and the moderation mode for each.',
+    'description_discord_servers' => 'Servers where you have installed the Roundup bot. Manage channels, posting, and the moderation mode for each.',
     'status_discord_servers_paused' => 'Paused',
     'action_discord_servers_configure' => 'Configure',
     'aria_settings_sections' => 'Settings sections',
 
     // Agent Tokens (MCP consumers — M079/S01/T02, D277)
     'title_agent_tokens' => 'Agent Tokens',
-    'description_agent_tokens' => 'Personal access tokens that let AI agents and other API clients use roundup on your behalf. Each token identifies one agent; revoking it cuts its access immediately.',
+    'description_agent_tokens' => 'Personal access tokens that let AI agents and other API clients use Roundup on your behalf. Each token identifies one agent; revoking it cuts its access immediately.',
     'label_agent_token_name' => 'Agent name',
     'hint_agent_token_name' => 'For example "my-planner-agent" — helps you recognize the token later.',
     'label_agent_token_value' => 'Your new token',

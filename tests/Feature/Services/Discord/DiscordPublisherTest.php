@@ -242,7 +242,7 @@ class DiscordPublisherTest extends TestCase
 
                     return str_contains($value, '[@alice](https://discord.com/users/111)')
                         && str_contains($value, '[@bob](https://discord.com/users/222)')
-                        && str_contains($value, '+1 from roundup');
+                        && str_contains($value, __('discord.content_card_from_roundup', ['count' => 1], 'en'));
                 }
             }
 

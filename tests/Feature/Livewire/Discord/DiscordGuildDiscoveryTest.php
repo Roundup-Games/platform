@@ -412,7 +412,7 @@ class DiscordGuildDiscoveryTest extends TestCase
         Livewire::actingAs($organizer)
             ->test(OrganizerGuilds::class)
             ->assertSet('hasDiscordLink', true)
-            ->assertSeeHtml('No roundup servers yet');
+            ->assertSeeHtml(__('discord.content_no_roundup_servers_title', [], 'en'));
     }
 
     #[Test]

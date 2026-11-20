@@ -34,6 +34,7 @@ use App\Http\Controllers\PaddleBillingController;
 use App\Http\Controllers\PaddleWebhookController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ResendWebhookController;
+use App\Http\Controllers\Settings\CalendarLinkController;
 use App\Http\Controllers\ShortLinkController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Middleware\EnsurePaddleWebhookConfigured;
@@ -183,6 +184,25 @@ Route::get('auth/{provider}/redirect', [OAuthController::class, 'redirect'])
 Route::get('auth/{provider}/callback', [OAuthController::class, 'callback'])
     ->middleware('throttle:10,1')
     ->name('oauth.callback');
+
+// ── Google Calendar managed sync (M083/S02) ───────────
+// Calendar-link OAuth round trip — deliberately SEPARATE from the login
+// OAuth routes above: calendar consent must never depend on being a
+// Google-login user (D287 — the link-anyway path), and the scope set is
+// the narrower calendar.events asserted from config/calendar_sync.scopes
+// rather than services.google.scope. Top-level (outside the {locale}
+// prefix) because Google redirects back to a fixed callback URL, like the
+// login OAuth routes. CalendarSyncGate::supportsConnect runs FIRST inside
+// the controller on BOTH routes — while the gate is closed nobody ever
+// leaves for Google (the honest refusal flows back to Settings as the
+// calendar_sync_refusal flash).
+Route::get('settings/calendar/google/connect', [CalendarLinkController::class, 'connect'])
+    ->middleware(['auth', 'not.disabled', 'profile.complete'])
+    ->name('settings.calendar.google.connect');
+
+Route::get('settings/calendar/google/callback', [CalendarLinkController::class, 'callback'])
+    ->middleware(['auth', 'not.disabled', 'profile.complete', 'throttle:10,1'])
+    ->name('settings.calendar.google.callback');
 
 // ── Combined sign-in: identifier-first branch lookup ──
 // Locale-independent JSON (mirrors the OAuth routes' top-level placement).

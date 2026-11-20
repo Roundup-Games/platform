@@ -434,7 +434,7 @@ return [
     'action_badge_awarded' => 'Profil anzeigen',
     // Discord-RSVP-Menü („Mein Platz“) — gerendert in der Sprache des Klickenden,
     // gesteuert über das locale-Feld der Interaktion (siehe DiscordRsvpMenuRenderer).
-    'content_rsvp_hosting' => '🎲 Du leitest diese Runde — verwalte Kader und Details auf roundup.',
+    'content_rsvp_hosting' => '🎲 Du leitest diese Runde — verwalte Kader und Details auf Roundup.',
     'content_rsvp_approved' => '✅ Du bist dabei — Dein Platz ist sicher. 🎲',
     'content_rsvp_approved_seat' => '✅ Du bist dabei (Platz :current von :max) — Dein Platz ist sicher. 🎲',
     'content_rsvp_waitlisted' => '📋 Du bist auf der Warteliste — Du rückst nach, sobald ein Platz frei wird.',
@@ -445,14 +445,14 @@ return [
     'content_rsvp_joiner_open_roster' => '🎟️ :approved dabei · offene Liste — hol Dir Deinen Platz.',
     'content_rsvp_joiner_seats_left' => '🎟️ :approved/:max Plätze · :left frei — hol Dir Deinen.',
     'content_rsvp_joiner_full' => '🎟️ :max/:max Plätze — voll. Sag zu, um Dir einen Wartelistenplatz zu holen — Du rückst nach, sobald ein Platz frei wird.',
-    'content_rsvp_game_cancelled' => 'Diese Runde wurde abgesagt — schau auf roundup für die neuesten Infos.',
-    'content_rsvp_game_completed' => 'Diese Runde ist abgeschlossen — schau auf roundup für die neuesten Infos.',
+    'content_rsvp_game_cancelled' => 'Diese Runde wurde abgesagt — schau auf Roundup für die neuesten Infos.',
+    'content_rsvp_game_completed' => 'Diese Runde ist abgeschlossen — schau auf Roundup für die neuesten Infos.',
     'action_rsvp_join' => '✅ Zusagen',
     'action_rsvp_join_waitlist' => 'Auf die Warteliste setzen',
     'action_rsvp_leave' => '🚪 Verlassen',
     'action_rsvp_leave_waitlist' => 'Warteliste verlassen',
     'error_rsvp_game_not_found' => 'Diese Runde konnte nicht gefunden werden — sie wurde möglicherweise entfernt.',
-    'error_rsvp_unprocessable' => 'Dieser Button konnte nicht verarbeitet werden. Sag auf roundup zu oder tippe auf den Link der Runde für die neuesten Details.',
+    'error_rsvp_unprocessable' => 'Dieser Button konnte nicht verarbeitet werden. Sag auf Roundup zu oder tippe auf den Link der Runde für die neuesten Details.',
     // Ausstehende Zu-/Absage-Bestätigungen (MEM1741) — per @original-PATCH
     // von ProcessDiscordRsvp/ProcessDiscordLeave versendet, gerendert in der
     // Interaktions-Sprache des Klickenden (fünf Join- + vier Leave-Ergebnisse).

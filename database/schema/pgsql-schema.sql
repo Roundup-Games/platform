@@ -3510,6 +3510,26 @@ CREATE TABLE public.gm_social_links (
 
 
 --
+-- Name: google_calendar_connections; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.google_calendar_connections (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    google_account_email character varying(255) NOT NULL,
+    token text NOT NULL,
+    refresh_token text NOT NULL,
+    token_expires_at timestamp(0) without time zone NOT NULL,
+    source_toggles jsonb DEFAULT '{"games": true, "events": true, "campaign_sessions": true}'::jsonb NOT NULL,
+    status character varying(255) DEFAULT 'active'::character varying NOT NULL,
+    revoked_at timestamp(0) without time zone,
+    last_synced_at timestamp(0) without time zone,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
 -- Name: gsc_snapshots; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3804,6 +3824,36 @@ CREATE TABLE public.nearby_discovery_views (
     updated_at timestamp(0) without time zone,
     user_id uuid NOT NULL,
     id uuid NOT NULL
+);
+
+
+--
+-- Name: notification_batch_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.notification_batch_items (
+    id uuid NOT NULL,
+    batch_id uuid NOT NULL,
+    payload jsonb NOT NULL,
+    created_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: notification_batches; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.notification_batches (
+    id uuid NOT NULL,
+    recipient_type character varying(255) NOT NULL,
+    recipient_id uuid NOT NULL,
+    category character varying(64) NOT NULL,
+    batch_key character varying(255) NOT NULL,
+    closes_at timestamp(0) without time zone NOT NULL,
+    processed_at timestamp(0) without time zone,
+    flush_attempts integer DEFAULT 0 NOT NULL,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
 );
 
 
@@ -6413,6 +6463,22 @@ ALTER TABLE ONLY public.gm_social_links
 
 
 --
+-- Name: google_calendar_connections google_calendar_connections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.google_calendar_connections
+    ADD CONSTRAINT google_calendar_connections_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: google_calendar_connections google_calendar_connections_user_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.google_calendar_connections
+    ADD CONSTRAINT google_calendar_connections_user_id_unique UNIQUE (user_id);
+
+
+--
 -- Name: gsc_snapshots gsc_snapshots_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6570,6 +6636,22 @@ ALTER TABLE ONLY public.model_has_roles
 
 ALTER TABLE ONLY public.nearby_discovery_views
     ADD CONSTRAINT nearby_discovery_views_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: notification_batch_items notification_batch_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notification_batch_items
+    ADD CONSTRAINT notification_batch_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: notification_batches notification_batches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notification_batches
+    ADD CONSTRAINT notification_batches_pkey PRIMARY KEY (id);
 
 
 --
@@ -8545,6 +8627,20 @@ CREATE UNIQUE INDEX nearby_discovery_views_user_id_unique ON public.nearby_disco
 
 
 --
+-- Name: notification_batch_items_batch_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX notification_batch_items_batch_id_index ON public.notification_batch_items USING btree (batch_id);
+
+
+--
+-- Name: notification_batches_open_batch_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX notification_batches_open_batch_unique ON public.notification_batches USING btree (recipient_type, recipient_id, batch_key) WHERE (processed_at IS NULL);
+
+
+--
 -- Name: notifications_notifiable_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -9800,6 +9896,14 @@ ALTER TABLE ONLY public.gm_social_links
 
 
 --
+-- Name: google_calendar_connections google_calendar_connections_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.google_calendar_connections
+    ADD CONSTRAINT google_calendar_connections_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: linked_accounts linked_accounts_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9901,6 +10005,14 @@ ALTER TABLE ONLY public.model_has_roles
 
 ALTER TABLE ONLY public.nearby_discovery_views
     ADD CONSTRAINT nearby_discovery_views_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: notification_batch_items notification_batch_items_batch_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notification_batch_items
+    ADD CONSTRAINT notification_batch_items_batch_id_foreign FOREIGN KEY (batch_id) REFERENCES public.notification_batches(id) ON DELETE CASCADE;
 
 
 --
@@ -10457,6 +10569,9 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 308	2026_11_10_224500_add_target_to_mcp_calls_table	15
 309	2026_11_14_125454_create_notification_engagement_counters_table	16
 310	2026_11_16_121322_create_calendar_lifecycle_counters_table	17
+311	2026_11_19_082556_create_notification_batches_table	18
+312	2026_11_19_151055_add_batch_id_index_to_notification_batch_items_table	18
+313	2026_11_20_103616_create_google_calendar_connections_table	18
 \.
 
 
@@ -10464,7 +10579,7 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 310, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 313, true);
 
 
 --

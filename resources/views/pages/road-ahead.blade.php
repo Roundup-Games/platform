@@ -145,7 +145,37 @@
                 </p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                {{-- Notification design language (M081) — most recent receipt first --}}
+                {{-- Google Calendar managed sync (M083) — most recent receipt first --}}
+                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">edit_calendar</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('roadmap.heading_delivered_google_sync') }}</h3>
+                            <p class="text-sm text-on-surface-variant leading-relaxed">
+                                {{ __('roadmap.content_delivered_google_sync_body') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Notification burst rhythm (M082) --}}
+                <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-primary text-2xl" aria-hidden="true">dynamic_feed</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading font-semibold text-on-surface text-lg mb-2">{{ __('roadmap.heading_delivered_notification_rhythm') }}</h3>
+                            <p class="text-sm text-on-surface-variant leading-relaxed">
+                                {{ __('roadmap.content_delivered_notification_rhythm_body') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Notification design language (M081) --}}
                 <div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient">
                     <div class="flex items-start gap-4">
                         <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">

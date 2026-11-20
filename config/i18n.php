@@ -69,6 +69,13 @@ return [
             'content_badge_tier_bronze',
             'content_badge_tier_gold',
         ],
+        'calendar_sync' => [
+            // Deliberate loanword — "Event" is the canonical DE entity term
+            // for the Event entity (GLOSSARY D174/D181 corpus sweep); the
+            // events-source label is identical in EN and DE by design,
+            // same canon as events.content_events.
+            'label_source_events',
+        ],
         'events' => [
             // Deliberate loanword — "Convention" is the canonical DE
             // event-type term (GLOSSARY D174: the German scene says

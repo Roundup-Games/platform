@@ -93,7 +93,7 @@ class DiscordCardRendererTest extends TestCase
         $this->assertSame('https://roundup.test/games/'.self::GAME_ID, $embed['url']);
         $this->assertSame(DiscordCardRenderer::COLOR_BRAND, $embed['color']);
         $this->assertSame('2026-08-15T19:00:00+00:00', $embed['timestamp']);
-        $this->assertSame(['text' => 'roundup · cross-community tabletop'], $embed['footer']);
+        $this->assertSame(['text' => __('discord.content_digest_footer', [], 'en')], $embed['footer']);
         $this->assertStringContainsString('relaxed evening', $embed['description']);
 
         // Author (organizer) with profile deep link + avatar omitted (none set).
@@ -346,7 +346,7 @@ class DiscordCardRendererTest extends TestCase
         $this->assertStringContainsString('[@bob](https://discord.com/users/222)', $players);
         $this->assertStringContainsString('[@carol](https://discord.com/users/333)', $players);
         // 1 unlinked participant (4 approved − 3 linked) folds into the tail.
-        $this->assertStringContainsString('+1 from roundup', $players);
+        $this->assertStringContainsString(__('discord.content_card_from_roundup', ['count' => 1], 'en'), $players);
         // Block layout when names are present.
         foreach ($embed['fields'] as $f) {
             if ($f['name'] === 'Players') {
@@ -379,8 +379,8 @@ class DiscordCardRendererTest extends TestCase
         $this->assertStringContainsString('**Bench (1):**', $players);
         $this->assertStringContainsString('[@carol](https://discord.com/users/333)', $players);
         // Per-roster roundup remainders: approved 3−1=2, waitlist 2−1=1, bench 1−1=0.
-        $this->assertStringContainsString('+2 from roundup', $players);
-        $this->assertStringContainsString('+1 from roundup', $players);
+        $this->assertStringContainsString(__('discord.content_card_from_roundup', ['count' => 2], 'en'), $players);
+        $this->assertStringContainsString(__('discord.content_card_from_roundup', ['count' => 1], 'en'), $players);
     }
 
     #[Test]
@@ -720,7 +720,7 @@ class DiscordCardRendererTest extends TestCase
         $this->assertContains('Spieler', $this->fieldNames($embed));
         $this->assertContains('System', $this->fieldNames($embed));
         $this->assertContains('Organisator', $this->fieldNames($embed));
-        $this->assertSame('roundup · tabletop über Community-Grenzen hinweg', $embed['footer']['text']);
+        $this->assertSame(__('discord.content_digest_footer', [], 'de'), $embed['footer']['text']);
 
         // Trust badge localized.
         $organizerValue = $this->field($embed, 'Organisator');
@@ -738,7 +738,7 @@ class DiscordCardRendererTest extends TestCase
         $labels = array_map(fn (array $b): string => $b['label'], $components[0]['components']);
 
         $this->assertSame('🎟️ Mein Platz', $labels[0]);
-        $this->assertSame('Auf roundup ansehen', $labels[1]);
+        $this->assertSame(__('discord.content_card_button_view', [], 'de'), $labels[1]);
     }
 
     #[Test]

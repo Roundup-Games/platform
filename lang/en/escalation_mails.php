@@ -2,13 +2,13 @@
 
 /*
 |--------------------------------------------------------------------------
-| Escalated requester mails — roundup copy (M081 follow-up)
+| Escalated requester mails — Roundup copy (M081 follow-up)
 |--------------------------------------------------------------------------
 |
 | Copy for the four requester-facing escalated ticket mails. The S03
 | view overrides replaced the vendor's translatable keys with hardcoded
 | English, which silently dropped localization for German users filing
-| tickets. These keys restore the roundup voice in both locales; the
+| tickets. These keys restore the Roundup voice in both locales; the
 | override views resolve the requester's preferred_language and pass it
 | explicitly to __(). Agent-facing surfaces (assigned) stay EN-only per
 | the K002 exemption.

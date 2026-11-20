@@ -20,14 +20,14 @@ return [
 
     // Discord-Server (Vermieter-Oberfläche — Gilden, in die der Bot installiert wurde)
     'title_discord_servers' => 'Discord-Server',
-    'description_discord_servers' => 'Server, auf denen Du den roundup-Bot installiert hast. Verwalte Kanäle, Veröffentlichungen und den Moderationsmodus für jeden.',
+    'description_discord_servers' => 'Server, auf denen Du den Roundup-Bot installiert hast. Verwalte Kanäle, Veröffentlichungen und den Moderationsmodus für jeden.',
     'status_discord_servers_paused' => 'Pausiert',
     'action_discord_servers_configure' => 'Konfigurieren',
     'aria_settings_sections' => 'Einstellungsbereiche',
 
     // Agent-Tokens (MCP-Konsumenten — M079/S01/T02, D277)
     'title_agent_tokens' => 'Agent-Tokens',
-    'description_agent_tokens' => 'Persönliche Zugriffstokens, mit denen KI-Agenten und andere API-Clients roundup in Deinem Namen nutzen. Jedes Token identifiziert einen Agenten; ein Widerruf beendet seinen Zugriff sofort.',
+    'description_agent_tokens' => 'Persönliche Zugriffstokens, mit denen KI-Agenten und andere API-Clients Roundup in Deinem Namen nutzen. Jedes Token identifiziert einen Agenten; ein Widerruf beendet seinen Zugriff sofort.',
     'label_agent_token_name' => 'Agent-Name',
     'hint_agent_token_name' => 'Zum Beispiel „mein-planungs-agent“ — so erkennst Du das Token später wieder.',
     'label_agent_token_value' => 'Dein neues Token',

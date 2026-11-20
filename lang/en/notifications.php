@@ -436,7 +436,7 @@ return [
     'action_badge_awarded' => 'View Profile',
     // Discord RSVP menu ("My seat") — rendered in the clicker's locale, driven
     // by the interaction payload's locale field (see DiscordRsvpMenuRenderer).
-    'content_rsvp_hosting' => '🎲 You\'re hosting this game. Manage the roster and details on roundup.',
+    'content_rsvp_hosting' => '🎲 You\'re hosting this game. Manage the roster and details on Roundup.',
     'content_rsvp_approved' => '✅ You\'re in — your seat is saved. 🎲',
     'content_rsvp_approved_seat' => '✅ You\'re in (seat :current of :max) — your seat is saved. 🎲',
     'content_rsvp_waitlisted' => '📋 You\'re on the waitlist — you\'ll move up the moment a seat opens.',
@@ -447,14 +447,14 @@ return [
     'content_rsvp_joiner_open_roster' => '🎟️ :approved joined · open roster — claim your seat.',
     'content_rsvp_joiner_seats_left' => '🎟️ :approved/:max seats · :left left — claim yours.',
     'content_rsvp_joiner_full' => '🎟️ :max/:max seats — full. Join to grab a waitlist spot; you\'ll move up the moment a seat opens.',
-    'content_rsvp_game_cancelled' => 'This game has been cancelled — check roundup for the latest.',
-    'content_rsvp_game_completed' => 'This game has been completed — check roundup for the latest.',
+    'content_rsvp_game_cancelled' => 'This game has been cancelled — check Roundup for the latest.',
+    'content_rsvp_game_completed' => 'This game has been completed — check Roundup for the latest.',
     'action_rsvp_join' => '✅ Join',
     'action_rsvp_join_waitlist' => 'Join waitlist',
     'action_rsvp_leave' => '🚪 Leave',
     'action_rsvp_leave_waitlist' => 'Leave waitlist',
     'error_rsvp_game_not_found' => 'This game couldn\'t be found — it may have been removed.',
-    'error_rsvp_unprocessable' => 'This button couldn\'t be processed. Try RSVPing on roundup, or tap the game\'s link for the latest details.',
+    'error_rsvp_unprocessable' => 'This button couldn\'t be processed. Try RSVPing on Roundup, or tap the game\'s link for the latest details.',
     // Deferred join/leave outcome confirmations (MEM1741) — PATCHed to the
     // interaction's @original response by ProcessDiscordRsvp/
     // ProcessDiscordLeave, rendered in the clicker's interaction locale the
@@ -511,7 +511,7 @@ return [
     'preheader_game_system_request_duplicate' => 'No duplicate needed — the existing entry is ready to use.',
     'preheader_game_system_request_rejected' => 'Read the reason, then try again with sharper details.',
     'preheader_new_application' => 'Review the profile, then accept or decline the request.',
-    'preheader_new_follower' => 'See what they have been playing lately on roundup.',
+    'preheader_new_follower' => 'See what they have been playing lately on Roundup.',
     'preheader_participant_joined' => 'Welcome them aboard and check the updated roster.',
     'preheader_participant_removed' => 'If something feels off, the host contact is inside.',
     'preheader_player_benched' => 'Hold tight — the host promotes you as soon as a seat frees.',

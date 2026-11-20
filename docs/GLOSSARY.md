@@ -103,6 +103,12 @@
 | **Share link / Invite** | Direct-join links and email/friend invites. | **Link / Einladung** | — |
 | **RSVP** | Indicate that you will attend — Discord contexts only. | **RSVP** | EN/DE: RSVP outside Discord contexts. Discord's own vernacular ("My seat") stays; but Discord copy must still call a Game a Game (Runde), not an "event". |
 
+## 7. Brand
+
+| Term (EN canonical) | Definition (user-facing) | DE canonical | Retired variants (ban-list) |
+|---|---|---|---|
+| **Roundup** | The platform's brand name — always capitalized in prose, in both locales: "on Roundup", "the Roundup bot", "von Roundup verwaltete Termine", "auf Roundup". [glossary ruling, sweep 2026-11-20 commit 0ab0784a] | **Roundup** (untranslated, capitalized) | Lowercase "roundup" as the brand in user-facing copy. Deliberately unchanged: the common noun ("Your weekly roundup" — DE renders it "Dein wöchentliches Update"), the canonical lowercase URLs (roundup.games, github.com/roundup-games/platform), and the technical identifiers (roundup_type, roundup_uid). |
+
 ---
 
 ## Conventions mapping (BGG · TTRPG · German tabletop norms)

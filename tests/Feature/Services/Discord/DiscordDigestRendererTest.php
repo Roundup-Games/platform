@@ -312,7 +312,7 @@ class DiscordDigestRendererTest extends TestCase
 
         $lastEmbed = end($embeds);
         $this->assertSame(__('discord.content_digest_more_ahead', [], 'en'), $lastEmbed['title']);
-        $this->assertStringContainsString('see roundup for the full', $lastEmbed['description']);
+        $this->assertStringContainsString(trans_choice('discord.content_digest_overflow_body', 9, ['count' => 9], 'en'), $lastEmbed['description']);
     }
 
     #[Test]
@@ -422,7 +422,7 @@ class DiscordDigestRendererTest extends TestCase
 
         foreach ($embeds as $embed) {
             $this->assertArrayHasKey('color', $embed);
-            $this->assertSame(['text' => 'roundup · cross-community tabletop'], $embed['footer']);
+            $this->assertSame(['text' => __('discord.content_digest_footer', [], 'en')], $embed['footer']);
         }
     }
 

@@ -1603,6 +1603,21 @@ CREATE TABLE public.gm_social_links (
     updated_at timestamp NULL
 );
 
+CREATE TABLE public.google_calendar_connections (
+    id varchar NOT NULL,
+    user_id varchar NOT NULL,
+    google_account_email varchar(255) NOT NULL,
+    token text NOT NULL,
+    refresh_token text NOT NULL,
+    token_expires_at timestamp NOT NULL,
+    source_toggles json NOT NULL DEFAULT '{"games": true, "events": true, "campaign_sessions": true}'::jsonb,
+    status varchar(255) NOT NULL DEFAULT 'active'::varchar,
+    revoked_at timestamp NULL,
+    last_synced_at timestamp NULL,
+    created_at timestamp NULL,
+    updated_at timestamp NULL
+);
+
 CREATE TABLE public.gsc_snapshots (
     id varchar NOT NULL,
     range_start date NOT NULL,
@@ -1790,6 +1805,26 @@ CREATE TABLE public.nearby_discovery_views (
     updated_at timestamp NULL,
     user_id varchar NOT NULL,
     id varchar NOT NULL
+);
+
+CREATE TABLE public.notification_batch_items (
+    id varchar NOT NULL,
+    batch_id varchar NOT NULL,
+    payload json NOT NULL,
+    created_at timestamp NULL
+);
+
+CREATE TABLE public.notification_batches (
+    id varchar NOT NULL,
+    recipient_type varchar(255) NOT NULL,
+    recipient_id varchar NOT NULL,
+    category varchar(64) NOT NULL,
+    batch_key varchar(255) NOT NULL,
+    closes_at timestamp NOT NULL,
+    processed_at timestamp NULL,
+    flush_attempts integer NOT NULL DEFAULT 0,
+    created_at timestamp NULL,
+    updated_at timestamp NULL
 );
 
 CREATE TABLE public.notification_engagement_counters (

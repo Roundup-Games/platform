@@ -118,6 +118,7 @@ All public pages are locale-prefixed (`/{locale}/...`), SEO-optimized with sitem
 | Vibe Preferences | 6 paired sliders + 8 standalone tri-state flags for play style | ✅ Complete |
 | Privacy Controls | Field-level visibility settings (location, game systems, vibes, campaigns, teams, friends list, stats) — each settable to everyone/friends/nobody | ✅ Complete |
 | Notification Preferences | Per-category channel selection (database, email, push) | ✅ Complete |
+| Calendar Sync | Google Calendar connection in Settings: connect/disconnect, per-source toggles (games, campaign sessions, events), status row with last sync, revoked re-auth banner — managed sync ships default-off pending Google scope verification (D300) | ✅ Complete |
 | Social Links | Configurable social platform URLs (Discord, Mastodon, etc.) with validation | ✅ Complete |
 | Public Profile | SEO-optimized public profile with visibility-scoped content, follow/block actions | ✅ Complete |
 | Authenticated Profile | Full profile viewer with games, campaigns, GM reviews, reliability badge, team memberships | ✅ Complete |
@@ -306,6 +307,7 @@ Every notification is a corpus class rendered per channel — in-app, email, Dis
 | One-Click Unsubscribe | Signed-URL category unsubscribe honoring RFC 8058 — the List-Unsubscribe header and body link share one signature; scanners can't trip it (GET confirms, POST writes) | ✅ Complete |
 | Weekly Digest | One weekly summary mail for users who keep email off for noisy categories — entity-named rows deep-linked to the thing they're about, with its own one-click opt-out | ✅ Complete |
 | Cross-Channel Read Sync | Acting on an email CTA or push action marks the matching in-app notification read — the bell badge stays truthful whichever channel the user acted on | ✅ Complete |
+| Burst Batching | Notification bursts inside a 5-minute defer window collapse into one digest per channel (recipient × category × entity collapse keys, MaxSize 10 early flush); single standalone events still deliver immediately; flush via delayed job + every-minute sweep with processed_at exactly-once idempotency | ✅ Complete |
 | Engagement Counters | Per-category daily aggregates (sent/delivered/unsubscribed per channel) feeding the verification harness | ✅ Complete |
 
 ### 5.2 Notification Corpus
@@ -350,6 +352,7 @@ A corpus render harness re-renders every class in both locales and machine-enfor
 | iTIP mail lifecycle | Hand-rolled RFC 5545/5546 writer: METHOD:REQUEST invitations, same-UID SEQUENCE-bumped updates when schedule/venue/duration change, METHOD:CANCEL revocations — one shared builder with octet-exact folding and TEXT escaping | ✅ Complete |
 | Personal webcal feed | Token-authenticated `/calendar/{code}` feed (METHOD:PUBLISH) mirroring the user's confirmed games, campaign sessions, and event registrations on a rolling 90-day window; cancellations publish STATUS:CANCELLED | ✅ Complete |
 | Add-to-calendar links | Google Calendar template deep links on the game page and Discord card | ✅ Complete |
+| Google Calendar managed sync | OAuth-connected Google calendars with encrypted tokens and revocation detection: deterministic event ids shared with the ICS lifecycle, idempotent ensure/update/cancel/delete (sendUpdates=none on every mutation, callers cannot override), queued triggers on sanctioned participant/registration writes, bounded reconcile sweep sharing the feed's DesiredCalendarSet commitment query | ✅ Complete |
 
 ### 5.6 Discord Bridge
 
@@ -453,6 +456,7 @@ Verified against `routes/console.php`; all one-server guarded where order matter
 | Every 5 min | Discovery cache sweep | Recompute discovery caches for active nearby users |
 | Every 5 min | Observability scan | Error-pattern scanning for the ops digest |
 | Every 10 min | Discovery cache sweep | (windowed sweep for active viewers — see above) |
+| Every 15 min | Google Calendar reconcile | Drift-heal synced calendars: one bounded job per active connection (config cadence, default 15 min) |
 | Every 30 min | Attendance sweeps | Resolve reports, auto-complete sessions, send nudges |
 | Hourly | City hub recompute | Refresh per-city hub activity |
 | Daily 02:00 | Auto-close resolved | Close resolved helpdesk tickets |

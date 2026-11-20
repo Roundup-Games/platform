@@ -3,12 +3,14 @@
 namespace App\Filament\Resources\GameResource\Pages;
 
 use App\Enums\AttendanceResolutionMethod;
+use App\Enums\CalendarSyncOperation;
 use App\Enums\GameType;
 use App\Filament\Concerns\TransformsLocaleSwitchWithoutValidation;
 use App\Filament\Resources\GameResource;
 use App\Models\Event;
 use App\Models\Game;
 use App\Services\AttendanceResolutionService;
+use App\Services\Calendar\CalendarSyncDispatcher;
 use App\Services\SeoCacheService;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -110,5 +112,12 @@ class EditGame extends EditRecord
         }
 
         app(SeoCacheService::class)->forgetByModel($record);
+
+        // Managed-sync trigger (M083/S03-T03 parity with GamesPage's host
+        // edit path): an admin content edit re-upserts the game on every
+        // connected calendar that carries it. The reconcile sweep never
+        // re-patches content, so this seam is the only admin-path
+        // propagation for date/venue/name changes.
+        CalendarSyncDispatcher::dispatchToRoster($record, CalendarSyncOperation::Upsert);
     }
 }

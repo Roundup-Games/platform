@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\CalendarSyncOperation;
 use App\Enums\EventStatus;
 use App\Enums\NotificationCategory;
 use App\Models\Event;
@@ -9,6 +10,7 @@ use App\Models\EventAnnouncement;
 use App\Models\User;
 use App\Notifications\EventAnnouncementPublished;
 use App\Notifications\EventCancelled;
+use App\Services\Calendar\CalendarSyncDispatcher;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -70,6 +72,14 @@ class EventLifecycleService
         $event->update(['status' => EventStatus::Cancelled->value]);
 
         $this->notifyActiveRegistrants($event);
+
+        // Managed-sync trigger (M083/S03-T03): mirror the registrant side
+        // effect onto connected calendars — every user holding a CONFIRMED
+        // registration with an active connection gets a status=cancelled
+        // patch, one queued job per user (the feed publishes a cancelled
+        // event as STATUS:CANCELLED for confirmed registrants; Google must
+        // never disagree). Read + queue push only — zero participant writes.
+        CalendarSyncDispatcher::dispatchToEventRegistrants($event, CalendarSyncOperation::Cancel);
     }
 
     /**

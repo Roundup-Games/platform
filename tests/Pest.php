@@ -111,6 +111,10 @@ if (getenv('TEST_PROFILE') === '1') {
 $unitDirsNeedingTransactions = [
     'Unit/SEO',
     'Unit/Services',
+    // Moved here from the container-only list (M083/S02-T04): the dir now
+    // hosts GoogleCalendarClientTest, whose refresh/revocation cases persist
+    // connection rows — DatabaseTransactions is the honest wiring for that.
+    'Unit/Calendar',
 ];
 
 $featureExtension = pest()->extend(TestCase::class)

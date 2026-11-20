@@ -58,6 +58,7 @@ use Spatie\Translatable\HasTranslations;
 /**
  * @property-read Game[] $ownedGames
  * @property-read Location|null $linkedLocation
+ * @property-read GoogleCalendarConnection|null $googleCalendarConnection
  * @property-read GMProfile|null $gmProfile
  * @property Carbon|null $email_verified_at
  * @property Carbon|null $created_at
@@ -306,6 +307,21 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     public function mcpClients()
     {
         return $this->hasMany(McpClient::class);
+    }
+
+    /**
+     * The user's Google Calendar managed-sync connection (M083/S02, D287).
+     *
+     * ONE row per user (unique on google_calendar_connections.user_id) —
+     * reconnect replaces the row. Null when the user has never connected:
+     * every calendar-sync surface treats that as a plain no-op, and the
+     * CalendarSyncGate refuses connect attempts before one exists.
+     *
+     * @return HasOne<GoogleCalendarConnection, $this>
+     */
+    public function googleCalendarConnection(): HasOne
+    {
+        return $this->hasOne(GoogleCalendarConnection::class);
     }
 
     /**

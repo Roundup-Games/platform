@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Notifications\ConfirmationExpired;
 use App\Notifications\WaitlistExpiredRejected;
 use App\Notifications\WaitlistPromoted;
+use App\Services\Calendar\CalendarSyncDispatcher;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -205,6 +206,17 @@ class WaitlistService
             'participant_id' => $participant->getId(),
             'user_id' => $participant->getUserId(),
         ]);
+
+        // Managed-sync trigger (M083/S03-T03): a confirmed promotion is an
+        // APPROVED seat — the entity goes onto the confirming user's
+        // calendar (a campaign membership fans out to its in-window
+        // sessions). Read + queue push only; the dispatcher no-ops for
+        // unconnected users.
+        $confirmedUser = $participant->getUser();
+        $confirmedEntity = $participant->getEntity();
+        if ($confirmedUser !== null && $confirmedEntity !== null) {
+            CalendarSyncDispatcher::upsertOnJoin($confirmedUser, $confirmedEntity);
+        }
     }
 
     /**
@@ -374,6 +386,15 @@ class WaitlistService
         }
 
         $participant->update($update);
+
+        // Managed-sync trigger (M083/S03-T03): a manual host promotion is
+        // an APPROVED seat — same calendar commitment as a confirmed
+        // waitlist promotion above.
+        $promotedUser = $participant->getUser();
+        $promotedEntity = $participant->getEntity();
+        if ($promotedUser !== null && $promotedEntity !== null) {
+            CalendarSyncDispatcher::upsertOnJoin($promotedUser, $promotedEntity);
+        }
     }
 
     /**

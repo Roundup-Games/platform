@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Events;
 
+use App\Enums\CalendarSyncOperation;
 use App\Models\Event;
 use App\Models\EventRegistration;
+use App\Services\Calendar\CalendarSyncDispatcher;
 use App\Traits\EscapesLikeWildcards;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -130,6 +132,15 @@ class ManageRegistrations extends Component
             'approved_by' => Auth::id(),
         ]);
 
+        // Managed-sync trigger (M083/S03-T03 parity with the free self-serve
+        // path): approval converts the registration into a calendar
+        // commitment — the event goes onto the registrant's calendar now,
+        // not a reconcile cadence later. Only a transition INTO confirmed
+        // (re-approving an already-confirmed row changes no commitment).
+        if ($oldStatus !== 'confirmed' && $registration->user !== null) {
+            CalendarSyncDispatcher::dispatch($registration->user, $this->event, CalendarSyncOperation::Upsert);
+        }
+
         unset($this->registrations, $this->statusCounts);
         session()->flash('success', __('events.flash_registration_approved'));
     }
@@ -152,6 +163,14 @@ class ManageRegistrations extends Component
             'rejected_by' => Auth::id(),
         ]);
 
+        // Managed-sync trigger (M083/S03-T03): rejecting a CONFIRMED
+        // registration removes a calendar commitment (D299 real deletion);
+        // a pending row never put the event on a calendar, so it dispatches
+        // nothing.
+        if ($oldStatus === 'confirmed' && $registration->user !== null) {
+            CalendarSyncDispatcher::dispatch($registration->user, $this->event, CalendarSyncOperation::Delete);
+        }
+
         unset($this->registrations, $this->statusCounts);
         session()->flash('success', __('events.flash_registration_rejected'));
     }
@@ -161,6 +180,7 @@ class ManageRegistrations extends Component
         $registration = $this->findRegistration($registrationId);
 
         $oldPaymentStatus = $registration->payment_status;
+        $oldStatus = $registration->status;
         $registration->update([
             'payment_status' => 'paid',
             'status' => 'confirmed',
@@ -174,6 +194,15 @@ class ManageRegistrations extends Component
             'new_payment_status' => 'paid',
             'confirmed_by' => Auth::id(),
         ]);
+
+        // Managed-sync trigger (M083/S03-T03): a manually confirmed payment
+        // is the commitment point the Paddle webhook owns on the automatic
+        // path — same instant Upsert the free self-serve path gets. Only a
+        // transition INTO confirmed dispatches (the paid registration was
+        // pending before, but re-confirming changes no commitment).
+        if ($oldStatus !== 'confirmed' && $registration->user !== null) {
+            CalendarSyncDispatcher::dispatch($registration->user, $this->event, CalendarSyncOperation::Upsert);
+        }
 
         unset($this->registrations, $this->statusCounts, $this->paymentCounts);
         session()->flash('success', __('billing.flash_payment_confirmed'));
@@ -216,6 +245,15 @@ class ManageRegistrations extends Component
             'old_status' => $oldStatus,
             'cancelled_by' => Auth::id(),
         ]);
+
+        // Managed-sync trigger (M083/S03-T03): cancelling a CONFIRMED
+        // registration removes the event from the registrant's calendar
+        // (D299 real deletion — not a cancelled patch). Without this the
+        // ghost lingers a full reconcile cadence; a pending row never put
+        // it there and dispatches nothing.
+        if ($oldStatus === 'confirmed' && $registration->user !== null) {
+            CalendarSyncDispatcher::dispatch($registration->user, $this->event, CalendarSyncOperation::Delete);
+        }
 
         unset($this->registrations, $this->statusCounts);
         session()->flash('success', __('events.flash_registration_cancelled'));

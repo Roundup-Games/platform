@@ -277,6 +277,9 @@
                     @endif
                 </section>
 
+                {{-- Google Calendar managed sync (connection lifecycle — M083/S02) --}}
+                <livewire:settings.calendar-sync-section />
+
                 {{-- Discord Servers (landlord surface — guilds this user installed) --}}
                 @include('livewire.profile.partials._discord-servers')
 

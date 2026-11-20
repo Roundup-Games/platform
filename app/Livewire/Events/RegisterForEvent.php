@@ -2,10 +2,12 @@
 
 namespace App\Livewire\Events;
 
+use App\Enums\CalendarSyncOperation;
 use App\Enums\NotificationCategory;
 use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Notifications\EventRegistrationConfirmed;
+use App\Services\Calendar\CalendarSyncDispatcher;
 use App\Services\NotificationService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\QueryException;
@@ -157,6 +159,16 @@ class RegisterForEvent extends Component
             'payment_status' => $registration->payment_status,
             'early_bird' => $isEarlyBird,
         ]);
+
+        // Managed-sync trigger (M083/S03-T03): a CONFIRMED registration is
+        // the calendar commitment (the feed's rule — pending registrations
+        // are not yet). The paid path confirms via the Paddle webhook, whose
+        // confirmation the reconcile sweep heals onto connected calendars;
+        // here only the free/confirmed path dispatches. Read + queue push
+        // only — INV-15 untouched.
+        if ($registration->status === 'confirmed') {
+            CalendarSyncDispatcher::dispatch($user, $this->event, CalendarSyncOperation::Upsert);
+        }
 
         if ($fee > 0) {
             // Redirect to Paddle checkout for payment

@@ -25,6 +25,7 @@ use App\Notifications\EntityInvitation;
 use App\Notifications\ParticipantJoined;
 use App\Notifications\ParticipantRemoved;
 use App\Notifications\PromotedFromBench;
+use App\Services\Calendar\CalendarSyncDispatcher;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -221,6 +222,18 @@ class ParticipantLifecycle
             'short_link_id' => $intent->shortLinkId,
         ]);
 
+        // Managed-sync trigger (M083/S03-T03): a join landing APPROVED puts
+        // the entity on the joiner's Google Calendar (a campaign join fans
+        // out to the campaign's in-window sessions — the feed's D287
+        // membership rule). Overflow placements (Waitlisted/Benched) and
+        // pending applications are not calendar commitments yet; their later
+        // promotions trigger from their own transitions. Zero overhead for
+        // unconnected users (the dispatcher no-ops on one indexed check),
+        // and no participant writes — read + queue push only (INV-15).
+        if ($status === ParticipantStatus::Approved && $intent->user !== null) {
+            CalendarSyncDispatcher::upsertOnJoin($intent->user, $entity);
+        }
+
         return $participant;
     }
 
@@ -284,6 +297,14 @@ class ParticipantLifecycle
     {
         $entity = $participant->getEntity();
 
+        // Captured BEFORE the transition write: applyDeparture() mutates the
+        // in-memory status, and only an APPROVED departure takes an occurrence
+        // off the calendar (Pending/Waitlisted/Benched rows never put one on).
+        $wasApproved = $participant->getStatus() === ParticipantStatus::Approved;
+        $departingUser = $wasApproved && $participant->getUserId() !== null
+            ? User::find($participant->getUserId())
+            : null;
+
         // One atomic unit: the departure write and the seat-refill cascade
         // commit together. A promotion failure rolls the departure back, so a
         // retry lands on a consistent roster instead of stranding an open
@@ -299,6 +320,15 @@ class ParticipantLifecycle
                 $this->roster->onDeparture($entity);
             }
         });
+
+        // Managed-sync trigger (M083/S03-T03), dispatched AFTER the
+        // transaction returns (buffer-path discipline — never afterCommit
+        // under the test wrapper): an APPROVED departure removes the
+        // occurrence from the departing user's calendar (D299 real deletion;
+        // a campaign departure fans out to the campaign's sessions).
+        if ($departingUser !== null && ($entity instanceof Game || $entity instanceof Campaign)) {
+            CalendarSyncDispatcher::deleteOnDeparture($departingUser, $entity);
+        }
     }
 
     /**
@@ -485,6 +515,12 @@ class ParticipantLifecycle
                     'error' => $e->getMessage(),
                 ]);
             }
+
+            // Managed-sync trigger (M083/S03-T03): Benched → Approved is a
+            // calendar commitment now — the game (or, for a campaign, its
+            // in-window sessions) goes onto the promoted user's calendar.
+            // After the transaction returns, read + queue push only.
+            CalendarSyncDispatcher::upsertOnJoin($user, $entity);
         }
     }
 
@@ -666,6 +702,17 @@ class ParticipantLifecycle
             ]);
         }
 
+        // Managed-sync trigger (M083/S03-T03), after the transaction
+        // returns: only a SEATED approval is a calendar commitment — the
+        // overflow outcome landed the applicant Waitlisted/Benched, and
+        // their later promotion triggers from its own transition.
+        if ($outcome === 'seated') {
+            $seatedUser = User::find($participant->getUserId());
+            if ($seatedUser !== null) {
+                CalendarSyncDispatcher::upsertOnJoin($seatedUser, $entity);
+            }
+        }
+
         return ParticipantResult::ok($overflowFlashKey ?? 'common.flash_application_approved');
     }
 
@@ -804,6 +851,14 @@ class ParticipantLifecycle
             $participant, $entity, 'participant.removed',
             ['removed_by' => $remover->id, 'previous_status' => $previousStatus?->value],
         );
+
+        // Managed-sync trigger (M083/S03-T03), after the transaction
+        // returns: removing an APPROVED participant removes the occurrence
+        // from their calendar (D299); removing a Waitlisted/Benched row
+        // changed no calendar entitlement.
+        if ($previousStatus === ParticipantStatus::Approved && $removedUser !== null) {
+            CalendarSyncDispatcher::deleteOnDeparture($removedUser, $entity);
+        }
 
         try {
             if ($removedUser !== null) {
@@ -949,6 +1004,11 @@ class ParticipantLifecycle
             $meta->foreignKey => $entity->id,
             'user_id' => $user->id,
         ]);
+
+        // Managed-sync trigger (M083/S03-T03): the accepted invitation put
+        // the user on the roster — their calendar gets the entity (a
+        // campaign membership fans out to its in-window sessions).
+        CalendarSyncDispatcher::upsertOnJoin($user, $entity);
 
         $this->notifyOwnerOfAcceptedInvitation($entity, $user, $meta);
         $this->markInvitationNotificationRead($entity, $user, $meta);

@@ -3,6 +3,7 @@
 namespace App\Livewire\Games;
 
 use App\Enums\ActivityType;
+use App\Enums\CalendarSyncOperation;
 use App\Enums\GameStatus;
 use App\Enums\NotificationCategory;
 use App\Enums\ParticipantStatus;
@@ -14,6 +15,7 @@ use App\Notifications\EntityCompleted;
 use App\Notifications\EntityUpdated;
 use App\Services\ActivityLogService;
 use App\Services\AttendanceService;
+use App\Services\Calendar\CalendarSyncDispatcher;
 use App\Services\DebriefingService;
 use App\Services\MyGamesBoardService;
 use App\Services\NotificationService;
@@ -188,6 +190,14 @@ class GamesPage extends Component
             'owner_id' => $game->owner_id,
             'changed_fields' => array_keys($changes),
         ]);
+
+        // Managed-sync trigger (M083/S03-T03): a venue/detail edit re-upserts
+        // the game on every connected calendar that carries it (host,
+        // approved participants, approved campaign members — the feed's
+        // audience rule, one queued job per user, chunked). Idempotent: an
+        // unchanged payload is a no-op patch; out-of-window occurrences
+        // never fan out.
+        CalendarSyncDispatcher::dispatchToRoster($game, CalendarSyncOperation::Upsert);
 
         // Notify participants (excluding owner) — every change surfaces now,
         // including arrival-instruction edits, which previously notified nobody.
@@ -373,6 +383,13 @@ class GamesPage extends Component
             'previous_status' => 'scheduled',
             'new_status' => 'completed',
         ]);
+
+        // Managed-sync trigger (M083/S03-T03): a future-dated completion is
+        // a cancellation in the feed's publish semantics (sixth pass) — the
+        // sync service maps it to status=cancelled and skips entities
+        // already outside the feed window, so the fan-out is safe for past
+        // completions too.
+        CalendarSyncDispatcher::dispatchToRoster($game, CalendarSyncOperation::Cancel);
 
         // Notify all approved participants (excluding owner) that the game was completed
         try {
