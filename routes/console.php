@@ -235,8 +235,10 @@ Schedule::command('exports:prune --days=7')->dailyAt('04:30')->onOneServer();
 // the table grows unbounded. Retain 7 days to match Horizon's failed trim.
 Schedule::command('queue:prune-failed --hours=168')->dailyAt('04:45')->onOneServer();
 
-// Data integrity — audit checks + automated repair
-Schedule::command('data:audit')->dailyAt('05:00')->onOneServer()->emailOutputOnFailure(config('mail.from.address'));
+// Data integrity — audit checks + automated repair. All operator-facing
+// failure mails go to the observability ops inbox (config/observability.php
+// ops_recipients) so OBSERVABILITY_OPS_EMAIL is the single seam.
+Schedule::command('data:audit')->dailyAt('05:00')->onOneServer()->emailOutputOnFailure(config('observability.ops_recipients'));
 Schedule::command('data:repair')->dailyAt('05:15')->onOneServer();
 
 // Log-derived alerting backbone (observability 2026-11-03): AlertableErrorTap
@@ -248,11 +250,11 @@ Schedule::command('data:repair')->dailyAt('05:15')->onOneServer();
 Schedule::command('observability:scan')
     ->everyFiveMinutes()
     ->onOneServer()
-    ->emailOutputOnFailure(config('mail.from.address'));
+    ->emailOutputOnFailure(config('observability.ops_recipients'));
 Schedule::command('observability:digest')
     ->dailyAt('06:30')
     ->onOneServer()
-    ->emailOutputOnFailure(config('mail.from.address'));
+    ->emailOutputOnFailure(config('observability.ops_recipients'));
 
 // Retention — prune Prunable models. Today that is scheduled_task_runs
 // (30-day run history + 24h zombie-running sweep) and processed
@@ -261,7 +263,7 @@ Schedule::command('observability:digest')
 Schedule::command('model:prune')->dailyAt('05:45')->onOneServer();
 
 // Location stewardship — non-destructive drift sweep feeding the LocationResource admin queue
-Schedule::command('locations:drift-sweep')->dailyAt('05:30')->onOneServer()->emailOutputOnFailure(config('mail.from.address'));
+Schedule::command('locations:drift-sweep')->dailyAt('05:30')->onOneServer()->emailOutputOnFailure(config('observability.ops_recipients'));
 
 // Horizon metrics snapshot (powers the throughput/wait-time graphs).
 // onOneServer for consistency: harmless with one scheduler container, but a

@@ -63,7 +63,7 @@ class ObservabilityDigest extends Command
      */
     private function sendDigest(EloquentCollection $rows): void
     {
-        $recipients = config('observability.digest_recipients', []);
+        $recipients = config('observability.ops_recipients', []);
 
         Mail::to(array_values(array_filter(is_array($recipients) ? $recipients : [], is_string(...))))
             ->send(new ObservabilityAlertMail(type: 'digest', rows: array_values($rows->all())));

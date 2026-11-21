@@ -71,6 +71,27 @@ it('caps the digest at the top 50 most recent rows and leaves the tail unwaterma
         ->and(AlertableError::query()->whereNull('last_notified_at')->where('message', 'error number 5')->exists())->toBeFalse();
 });
 
+it('sends the digest to the configured ops recipients', function () {
+    config(['observability.ops_recipients' => ['ops@roundup.games', 'oncall@roundup.games']]);
+
+    AlertableError::factory()->critical('badges.sweep.user_failed')->seenAt(now()->subHour())->create();
+
+    $this->artisan(ObservabilityDigest::class)->assertSuccessful();
+
+    Mail::assertQueued(function (ObservabilityAlertMail $mail) {
+        return $mail->hasTo('ops@roundup.games') && $mail->hasTo('oncall@roundup.games');
+    });
+});
+
+it('keeps ops_recipients as a non-empty list of trimmed strings', function () {
+    $recipients = config('observability.ops_recipients');
+
+    expect($recipients)->toBeArray()
+        ->and($recipients)->each->toBeString()
+        ->and(array_filter($recipients, fn (string $r): bool => trim($r) === ''))->toBeEmpty()
+        ->and($recipients)->not->toBeEmpty();
+});
+
 it('sends nothing when there is nothing unresolved', function () {
     $this->artisan(ObservabilityDigest::class)->assertSuccessful();
 

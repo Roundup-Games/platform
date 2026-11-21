@@ -133,7 +133,7 @@ class ObservabilityScan extends Command
      */
     private function recipients(): array
     {
-        $recipients = config('observability.digest_recipients', []);
+        $recipients = config('observability.ops_recipients', []);
 
         return array_values(array_filter(is_array($recipients) ? $recipients : [], is_string(...)));
     }

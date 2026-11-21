@@ -62,13 +62,18 @@ return [
     | Operator Recipients
     |--------------------------------------------------------------------------
     |
-    | Recipients for both observability mails (the scan's page and the daily
-    | digest) — the same ops inbox the DataAudit/LocationsDriftSweep
-    | emailOutputOnFailure mails go to. Internal ops surface: plain EN.
+    | Recipients for every operator mail: the scan's critical pages, the daily
+    | digest, and the scheduler's emailOutputOnFailure covers for the
+    | observability/data-audit/locations-drift commands (routes/console.php
+    | reads this same list). Comma-separated OBSERVABILITY_OPS_EMAIL — must be
+    | a real, monitored inbox; the fallback to MAIL_FROM_ADDRESS only suits
+    | local dev where that address is the developer's own (in production it is
+    | noreply@, which is a black hole: confirmed 2026-11-21 when the daily
+    | digest mailed itself). Internal ops surface: plain EN.
     |
     */
 
-    'digest_recipients' => [(string) config('mail.from.address')],
+    'ops_recipients' => array_values(array_filter(array_map('trim', explode(',', (string) env('OBSERVABILITY_OPS_EMAIL', (string) env('MAIL_FROM_ADDRESS', 'hello@example.com')))))),
 
     /*
     |--------------------------------------------------------------------------
