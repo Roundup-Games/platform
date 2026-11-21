@@ -296,3 +296,55 @@ describe('ticket query scopes', function () {
             ->and($result->contains($assigned->id))->toBeFalse();
     });
 });
+
+describe('customer ticket show page', function () {
+    it('renders for the requester — the payload-to-model bridge recovers the v1.9.16 controller change', function () {
+        // Since escalated-laravel v1.9.16 the customer show() controller
+        // passes CustomerTicketPayload::customerWeb() — an array — where
+        // our Blade surface consumes the Ticket model. Before the
+        // EscalatedBladeRenderer bridge this 500'd for EVERY ticket
+        // ("Attempt to read property 'reference' on array", live RGT-00058).
+        $ticket = createTestTicket($this->user, $this->department, [
+            'subject' => 'Bridge renders tickets',
+            'description' => 'The customer show page must render.',
+        ]);
+        $ticket->replies()->create([
+            'body' => 'A visible reply',
+            'author_type' => (new User)->getMorphClass(),
+            'author_id' => $this->user->id,
+            'is_internal_note' => false,
+        ]);
+
+        $response = $this->actingAs($this->user)->get(route('escalated.customer.tickets.show', $ticket->reference));
+
+        $response->assertOk()
+            ->assertSee('Bridge renders tickets')
+            ->assertSee($ticket->reference)
+            ->assertSee('A visible reply')
+            ->assertSee('Send Reply');
+    });
+
+    it('hides internal notes from the requester', function () {
+        $ticket = createTestTicket($this->user, $this->department);
+        $ticket->replies()->create([
+            'body' => 'Internal staff discussion',
+            'author_type' => (new User)->getMorphClass(),
+            'author_id' => $this->agent->id,
+            'is_internal_note' => true,
+        ]);
+
+        $this->actingAs($this->user)
+            ->get(route('escalated.customer.tickets.show', $ticket->reference))
+            ->assertOk()
+            ->assertDontSee('Internal staff discussion');
+    });
+
+    it('refuses a ticket the requester does not own', function () {
+        $ticket = createTestTicket($this->user, $this->department);
+        $stranger = User::factory()->create(['email_verified_at' => now()]);
+
+        $this->actingAs($stranger)
+            ->get(route('escalated.customer.tickets.show', $ticket->reference))
+            ->assertForbidden();
+    });
+});
