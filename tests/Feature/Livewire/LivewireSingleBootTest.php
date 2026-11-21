@@ -42,3 +42,17 @@ it('serves the public landing page with the same single-boot posture', function 
     // neither layout can silently regress to the auto-injected runtime.
     expect($response->getContent())->not->toContain('livewire.min.js');
 });
+
+it('ships the Livewire runtime styles in the app CSS — inject_assets=false stops the auto-injected stylesheet too', function () {
+    // The Vite bundle carries the JS runtime only; Livewire's JS never
+    // self-injects these rules. With injection off, our own CSS is the
+    // only place they can live — without them every wire:loading element
+    // (spinners, "saving…" labels) renders visible at rest (live
+    // 2026-11-20: Settings → Linked Accounts showed perpetual loading
+    // states while every action worked).
+    $css = (string) file_get_contents(base_path('resources/css/app.css'));
+
+    expect($css)->toContain('[wire\\:loading][wire\\:loading]')
+        ->and($css)->toContain('[wire\\:offline][wire\\:offline]')
+        ->and($css)->toContain('[wire\\:dirty]:not(textarea):not(input):not(select)');
+});

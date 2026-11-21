@@ -16,6 +16,68 @@
     display: none !important;
 }
 
+/*
+    Livewire runtime styles — ported from FrontendAssets::styles().
+
+    Since config/livewire.php set inject_assets=false (single-boot fix,
+    2026-11-20), nothing auto-injects this stylesheet anymore: the Vite
+    bundle ships the JS runtime only, which never self-injects these
+    rules. Without them every wire:loading indicator (spinner icons,
+    "saving…" labels) is visible at rest — the "stuck loading swirls"
+    seen live on Settings → Linked Accounts — and wire:offline/
+    wire:dirty states leak the same way.
+
+    Selectors are doubled exactly as Livewire emits them, so Tailwind
+    cannot override them regardless of stylesheet order. The
+    progress-bar color is livewire.navigate.progress_bar_color's
+    default. [x-cloak] lives above; wire:cloak mirrors it for Livewire's
+    own cloak attribute.
+*/
+[wire\:loading][wire\:loading],
+[wire\:loading\.delay][wire\:loading\.delay],
+[wire\:loading\.list-item][wire\:loading\.list-item],
+[wire\:loading\.inline-block][wire\:loading\.inline-block],
+[wire\:loading\.inline][wire\:loading\.inline],
+[wire\:loading\.block][wire\:loading\.block],
+[wire\:loading\.flex][wire\:loading\.flex],
+[wire\:loading\.table][wire\:loading\.table],
+[wire\:loading\.grid][wire\:loading\.grid],
+[wire\:loading\.inline-flex][wire\:loading\.inline-flex] {
+    display: none;
+}
+
+[wire\:loading\.delay\.none][wire\:loading\.delay\.none],
+[wire\:loading\.delay\.shortest][wire\:loading\.delay\.shortest],
+[wire\:loading\.delay\.shorter][wire\:loading\.delay\.shorter],
+[wire\:loading\.delay\.short][wire\:loading\.delay\.short],
+[wire\:loading\.delay\.default][wire\:loading\.delay\.default],
+[wire\:loading\.delay\.long][wire\:loading\.delay\.long],
+[wire\:loading\.delay\.longer][wire\:loading\.delay\.longer],
+[wire\:loading\.delay\.longest][wire\:loading\.delay\.longest] {
+    display: none;
+}
+
+[wire\:offline][wire\:offline] {
+    display: none;
+}
+
+[wire\:dirty]:not(textarea):not(input):not(select) {
+    display: none;
+}
+
+:root {
+    --livewire-progress-bar-color: #2299dd;
+}
+
+[wire\:cloak="wire:cloak"],
+[wire\:cloak=""] {
+    display: none !important;
+}
+
+dialog#livewire-error::backdrop {
+    background-color: rgba(0, 0, 0, 0.6);
+}
+
 @theme {
   --font-sans:
     Inter, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
