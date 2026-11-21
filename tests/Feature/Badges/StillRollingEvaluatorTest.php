@@ -204,9 +204,13 @@ it('upgrades an existing hold when older hosting history surfaces', function () 
         ->value('id'))
         ->and(BadgeUser::query()->count())->toBe(1)
         ->and(BadgeEvent::query()->count())->toBe(2)
-        ->and(BadgeEvent::query()->pluck('action')->all())->toBe([
-            BadgeEventAction::Awarded,
-            BadgeEventAction::Upgraded,
+        // Order-independent: both badge events are written within the same
+        // second-precision created_at, so the DB tie-break (and thus row
+        // order) is arbitrary — the contract is exactly one Awarded and
+        // one Upgraded, not their sequence.
+        ->and(BadgeEvent::query()->pluck('action')->map(fn (BadgeEventAction $action): string => $action->value)->sort()->values()->all())->toBe([
+            BadgeEventAction::Awarded->value,
+            BadgeEventAction::Upgraded->value,
         ]);
 });
 

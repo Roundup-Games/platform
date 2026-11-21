@@ -73,7 +73,7 @@ return [
     |
     */
 
-    'ops_recipients' => array_values(array_filter(array_map('trim', explode(',', (string) env('OBSERVABILITY_OPS_EMAIL', (string) env('MAIL_FROM_ADDRESS', 'hello@example.com')))))),
+    'ops_recipients' => array_values(array_filter(array_map('trim', explode(',', (string) (env('OBSERVABILITY_OPS_EMAIL') ?: env('MAIL_FROM_ADDRESS', 'hello@example.com')))))),
 
     /*
     |--------------------------------------------------------------------------
