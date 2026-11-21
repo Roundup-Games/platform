@@ -226,10 +226,23 @@ vendor/bin/pest tests/Feature/Notifications/NotificationCorpusRenderTest.php
 
 ## 8. Deliverability DNS Baseline — SPF / DKIM / DMARC (D288)
 
-Production mail goes through **Resend** with a custom sending domain.
-Deliverability requires the three DNS mechanisms to be published and
+Production mail goes through **Resend** with the custom sending domain
+`roundup.games`. Two SPF scopes exist — keep them straight (all values below
+verified live 2026-11-21):
+
+- **Apex `roundup.games`** — `v=spf1 include:_smtp.udag.de ~all`. This
+  authorizes the **alias-mailbox account's own sending** (United Domains
+  SMTP), not platform mail. Do **not** add Resend's include here: platform
+  mail never uses the apex as envelope-from, so it would only burn a DNS
+  lookup (a documented Resend-setup trap).
+- **`send.roundup.games` (Resend envelope-from)** —
+  `v=spf1 include:amazonses.com -all` plus MX
+  `feedback-smtp.eu-west-1.amazonses.com` (Resend sends via SES; bounces
+  return there). This is the SPF that platform mail is evaluated against.
+
+Deliverability requires the three mechanisms to be published and
 **aligned** (the `From:` domain matches the domain Resend signs and bounces
-for). Walk this checklist whenever the sending domain changes, and record
+for). Walk the checklist whenever the sending domain changes, and record
 the result in the table below (this runbook is the record D288 asks for).
 
 Replace `<sending-domain>` with the production From domain throughout.
@@ -266,7 +279,7 @@ Replace `<sending-domain>` with the production From domain throughout.
 
 | Date | SPF single + verified | DKIM verified + `d=` match | DMARC policy present | Aligned probe mail | Notes |
 | --- | --- | --- | --- | --- | --- |
-| — | ☐ | ☐ | ☐ | ☐ | baseline not yet recorded |
+| 2026-11-21 | ☑ apex (1× udag, alias mailbox) + `send.` (1× amazonses) | ☑ `resend._domainkey` published; `d=roundup.games` by construction | ☑ `p=quarantine`, rua/ruf=service@, ri=172800 | ☐ owner | DNS-side baseline recorded via dig from the repo. Probe-mail confirmation pending: check a recent message in the Resend dashboard (Deliverability → per-message SPF/DKIM/DMARC) and confirm aggregate reports arrive at service@. |
 
 ## 9. Real-Device Push Test — `notifications:push-test` (dev only)
 

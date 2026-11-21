@@ -36,7 +36,7 @@ This Code of Conduct applies within all community spaces, and also applies when 
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement by opening a private GitHub Security Advisory or contacting a maintainer directly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement by opening a private GitHub Security Advisory, emailing [abuse@roundup.games](mailto:abuse@roundup.games), or contacting a maintainer directly.
 
 All complaints will be reviewed and investigated promptly and fairly.
 

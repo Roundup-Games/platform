@@ -76,7 +76,7 @@ return [
     'content_coc_consequences_note' => 'Schwerwiegende Vorfälle überspringen die Stufen — wenn die Sicherheit einer Person auf dem Spiel steht, handeln wir sofort.',
     'heading_coc_report' => 'Wie Du meldest — und Einspruch einlegst',
     'content_coc_report_body' => 'Wenn Du einen Verstoß erlebst oder beobachtest, sag uns Bescheid. Schreib, was passiert ist, wo (die Runde oder das Profil) und wann — das reicht, um zu starten. Und wenn Du unsicher bist, ob es „zählt“: Melde es trotzdem.',
-    'content_coc_report_email_note' => 'Du kannst auch direkt an :email schreiben.',
+    'content_coc_report_email_note' => 'Du kannst auch direkt an :email schreiben. Meldungen von außerhalb der Plattform — zum Beispiel als Veranstaltungsort oder Partner-Community — erreichst Du dasselbe Team unter :abuse.',
     'action_coc_report_contact' => 'Kontakt aufnehmen',
     'content_coc_appeal_body' => 'Wenn eine Entscheidung Dich betrifft und Du nicht einverstanden bist, antworte auf die Nachricht, die Du erhalten hast — jede Entscheidung kann einmal überprüft werden. Wir werden lieber korrigiert als unfair.',
     'action_coc_read_safety_tools' => 'Safety-Tools entdecken',

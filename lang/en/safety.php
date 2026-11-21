@@ -76,7 +76,7 @@ return [
     'content_coc_consequences_note' => 'Serious harm skips the ladder — when someone\'s safety is at stake, we act immediately.',
     'heading_coc_report' => 'How to report — and appeal',
     'content_coc_report_body' => 'If you experience or witness a violation, tell us. Include what happened, where (the game or profile page), and when — that is all we need to get started. And if you are not sure it "counts", report it anyway.',
-    'content_coc_report_email_note' => 'You can also write to :email directly.',
+    'content_coc_report_email_note' => 'You can also write to :email directly. Reporting from outside the platform — for example as a venue or a partner community — :abuse reaches the same team.',
     'action_coc_report_contact' => 'Contact the team',
     'content_coc_appeal_body' => 'If a decision affects you and you disagree, reply to the message you received — every decision can be reviewed once. We would rather be corrected than unfair.',
     'action_coc_read_safety_tools' => 'Explore the safety tools',

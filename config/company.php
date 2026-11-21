@@ -46,6 +46,12 @@ return [
         'legal' => 'legal@roundup.games',
         'privacy' => 'privacy@roundup.games',
         'support' => 'support@roundup.games',
+        // Alternative vulnerability channel (primary is GitHub Security
+        // Advisories — see SECURITY.md). Not published on guest pages.
+        'security' => 'security@roundup.games',
+        // For reports about community members from OUTSIDE the platform
+        // (venues, partner communities) — mentioned on the CoC page.
+        'abuse' => 'abuse@roundup.games',
     ],
 
     /*

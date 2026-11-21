@@ -47,7 +47,9 @@ describe('CodeOfConductPage', function () {
             ->assertSee(route('contact'))
             // The real support address from config, not a placeholder
             ->assertSee(config('company.contact.support'))
-            ->assertSee(__('safety.content_coc_report_email_note', ['email' => config('company.contact.support')]));
+            ->assertSee(__('safety.content_coc_report_email_note', ['email' => config('company.contact.support'), 'abuse' => config('company.contact.abuse')]))
+            // External-reporter channel (venues, partner communities)
+            ->assertSee(config('company.contact.abuse'));
     });
 
     it('cross-links to the safety-tools page', function () {

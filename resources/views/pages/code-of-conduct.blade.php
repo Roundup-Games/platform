@@ -125,7 +125,7 @@
                     {{ __('safety.content_coc_report_body') }}
                 </p>
                 <p class="mt-3 text-sm text-on-surface-variant leading-relaxed">
-                    {{ __('safety.content_coc_report_email_note', ['email' => config('company.contact.support')]) }}
+                    {{ __('safety.content_coc_report_email_note', ['email' => config('company.contact.support'), 'abuse' => config('company.contact.abuse')]) }}
                 </p>
                 <a href="{{ route('contact') }}" wire:navigate
                    class="mt-6 inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm">

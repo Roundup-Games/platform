@@ -6,6 +6,8 @@
 
 Instead, please report them using [GitHub Security Advisories](https://github.com/Roundup-Games/platform/security/advisories/new).
 
+You can also email [security@roundup.games](mailto:security@roundup.games) — it reaches the same maintainers.
+
 ### What to include
 
 - Description of the vulnerability
