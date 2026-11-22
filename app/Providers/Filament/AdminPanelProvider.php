@@ -70,9 +70,29 @@ class AdminPanelProvider extends PanelProvider
             // FrontendAssets' once-guard and suppress this very tag.
             // scripts() has its own once-guard; app pages are untouched
             // (the hook fires only in the panel layout).
+            //
+            // The styles half (2026-11-22, hours later): inject_assets=false
+            // also killed Livewire's auto-injected STYLESHEET — the base
+            // block whose wire:loading rules keep loading indicators
+            // hidden until a request is actually in flight. The app layout
+            // has them ported into app.css (a447e1c6); the panel layout
+            // loads neither app.css nor Livewire's block, so every wire:
+            // loading swirly on admin pages rendered permanently visible
+            // (user-reported: indefinite spinners beside each control,
+            // "like the logged-in layout had"). FrontendAssets::styles()
+            // restores the stock block (loading states, x-cloak, progress
+            // bar); its own once-guard makes double emission impossible.
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => FrontendAssets::styles(),
+            )
             ->renderHook(
                 PanelsRenderHook::SCRIPTS_BEFORE,
                 fn (): string => FrontendAssets::scripts(),
+            )
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => FrontendAssets::styles(),
             )
             ->middleware([
                 EncryptCookies::class,

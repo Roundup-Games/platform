@@ -175,7 +175,17 @@ it('lands five burst joins as one batched notification at window close while a m
     burstBatchingSendJoin($host, $game, $lateJoiners[0]);
     burstBatchingSendJoin($host, $game, $lateJoiners[1]);
 
-    $secondBatch = NotificationBatch::query()->whereNull('processed_at')->sole();
+    // Scoped sole: an unscoped global sole() explodes with
+    // MultipleRecordsFoundException whenever a sibling test in the same
+    // parallel worker leaves a second unprocessed batch behind — the
+    // deterministic order-flake this file hit 3 mirror runs in a row
+    // (2026-11-22). The batch is per-recipient; scoping to this test's
+    // host keeps the assertion identical in isolation and immune to
+    // neighbor state.
+    $secondBatch = NotificationBatch::query()
+        ->where('recipient_id', $host->id)
+        ->whereNull('processed_at')
+        ->sole();
     expect($secondBatch->id)->not->toBe($batch->id)
         ->and($secondBatch->items()->count())->toBe(2)
         ->and($secondBatch->closes_at->eq(Carbon::parse('2026-11-19 12:15:00')))->toBeTrue(
@@ -222,7 +232,7 @@ it('delivers exactly one batched mail across the flush for a mail-enabled recipi
     expect($capturedMails)->toHaveCount(0)
         ->and($host->notifications)->toHaveCount(0);
 
-    $batch = NotificationBatch::query()->sole();
+    $batch = NotificationBatch::query()->where('recipient_id', $host->id)->sole();
     $this->travelTo(Carbon::parse('2026-11-19 12:05:30'));
     (new FlushNotificationBatch($batch->id))
         ->handle(app(NotificationService::class), app(NotificationEngagementCounters::class));

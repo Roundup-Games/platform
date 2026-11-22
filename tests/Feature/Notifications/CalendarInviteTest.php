@@ -293,7 +293,9 @@ it('addresses each campaign session as its own VEVENT UID — including through 
     expect($this->capturedMails)->toHaveCount(0)
         ->and($recipient->notifications)->toHaveCount(0);
 
-    $batch = NotificationBatch::query()->sole();
+    // Scoped sole (order-hardening 2026-11-22): immune to sibling tests'
+    // batches in a shared parallel worker — same assertion in isolation.
+    $batch = NotificationBatch::query()->where('recipient_id', $recipient->id)->sole();
     (new FlushNotificationBatch($batch->id))
         ->handle(app(NotificationService::class), app(NotificationEngagementCounters::class));
 

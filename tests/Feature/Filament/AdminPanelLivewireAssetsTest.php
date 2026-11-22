@@ -54,3 +54,14 @@ it('never loads the app-surface Livewire bundle on panel pages', function () {
 
     expect($html)->not->toContain('build/assets/app-');
 });
+
+it('emits the Livewire base stylesheet so wire:loading indicators stay hidden until in flight', function () {
+    $html = get('/admin')->assertOk()->content();
+
+    // The stock wire:loading display:none block — without it every loading
+    // indicator on panel pages renders permanently visible (the indefinite-
+    // swirlies regression, 2026-11-22). Assert the signature selector
+    // exactly once, plus the x-cloak guard from the same block.
+    expect(substr_count($html, '[wire\\:loading][wire\\:loading]'))->toBe(1)
+        ->and($html)->toContain('[x-cloak=');
+});
