@@ -21,9 +21,12 @@ use Illuminate\Support\Facades\Mail;
  * is still resolved_at-null) or a fresh critical match that was never
  * notified.
  *
- * Also the garbage collector: non-critical unresolved rows whose last
- * sighting is older than 7 days are marked resolved — they are noise that
- * stopped happening, not open incidents.
+ * Also the garbage collector: unresolved rows (critical or not) whose
+ * last sighting is older than 7 days are marked resolved — a condition
+ * that stopped firing for a week is history, not an open incident. Safe
+ * because the tap REOPENS a row on recurrence (resolved_at cleared on the
+ * upsert), which also re-arms the 24h page-freshness window: a critical
+ * pattern that comes back pages again like the first time.
  *
  * Exit code: SUCCESS when the page went out (a page is the alert, not a
  * failure — a FAILURE exit here would stack emailOutputOnFailure on top of
@@ -40,7 +43,7 @@ class ObservabilityScan extends Command
     /** Freshness window: a critical row pages only if it fired within this. */
     private const PAGE_LOOKBACK_HOURS = 24;
 
-    /** Non-critical unresolved rows are resolved when last seen older than this. */
+    /** Unresolved rows (any class) are resolved when last seen older than this; the tap reopens on recurrence. */
     private const RESOLVE_AFTER_DAYS = 7;
 
     /** Bound on the Discord embed's field list (Discord caps embeds at 25). */
@@ -48,7 +51,7 @@ class ObservabilityScan extends Command
 
     public function handle(DiscordAlertWebhook $discord): int
     {
-        $resolvedCount = $this->resolveStaleNonCriticalRows();
+        $resolvedCount = $this->resolveStaleRows();
 
         $candidates = AlertableError::query()
             ->whereNull('last_notified_at')
@@ -103,29 +106,19 @@ class ObservabilityScan extends Command
     }
 
     /**
-     * Retire stale non-critical noise: unresolved rows whose last sighting
-     * is older than {@see RESOLVE_AFTER_DAYS} and whose message matches no
-     * critical pattern. Critical rows stay unresolved forever (until an
-     * operator acts), so the digest keeps surfacing them.
+     * Retire stale rows: unresolved rows (critical or not) whose last
+     * sighting is older than {@see RESOLVE_AFTER_DAYS}. Safe for critical
+     * patterns because the tap clears resolved_at on recurrence — a
+     * returning condition reopens its row and re-pages within the 24h
+     * freshness window (first_seen lineage and the cumulative occurrence
+     * count survive on the same row).
      */
-    private function resolveStaleNonCriticalRows(): int
+    private function resolveStaleRows(): int
     {
-        $stale = AlertableError::query()
+        return AlertableError::query()
             ->whereNull('resolved_at')
             ->where('last_seen_at', '<', now()->subDays(self::RESOLVE_AFTER_DAYS))
-            ->get();
-
-        $retirable = $stale
-            ->filter(fn (AlertableError $row): bool => ! CriticalPatternMatcher::matches($row->message))
-            ->values();
-
-        if ($retirable->isNotEmpty()) {
-            AlertableError::query()
-                ->whereIn('id', $retirable->modelKeys())
-                ->update(['resolved_at' => now()]);
-        }
-
-        return $retirable->count();
+            ->update(['resolved_at' => now()]);
     }
 
     /**

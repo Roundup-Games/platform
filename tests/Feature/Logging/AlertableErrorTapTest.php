@@ -153,6 +153,26 @@ it('stores null context for contextless records', function () {
         ->and(AlertableError::query()->sole()->level)->toBe('CRITICAL');
 });
 
+it('reopens a resolved row when the same message recurs — occurrences continue, digest and pages see it again', function () {
+    $message = 'flapping upstream timeout';
+    $row = AlertableError::factory()->create([
+        'message' => $message,
+        'message_hash' => hash('sha256', $message),
+        'occurrences' => 5,
+        'last_seen_at' => now()->subDays(10),
+        'first_seen_at' => now()->subDays(12),
+        'resolved_at' => now()->subDays(3),
+    ]);
+
+    tapAttachedLogger()->error($message);
+
+    $fresh = $row->fresh();
+    expect($fresh->resolved_at)->toBeNull()
+        ->and($fresh->occurrences)->toBe(6)
+        // first_seen lineage survives on the reopened row
+        ->and($fresh->first_seen_at->format('Y-m-d'))->toBe(now()->subDays(12)->format('Y-m-d'));
+});
+
 it('is fail-safe when the alertable_errors sink is broken — the app keeps logging', function () {
     $logger = tapAttachedLogger();
 

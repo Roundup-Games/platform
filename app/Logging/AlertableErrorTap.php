@@ -160,12 +160,18 @@ class AlertableErrorTap
                 // occurrences ACCUMULATES across sightings; everything else
                 // tracks the latest sighting — except context, which is
                 // deliberately absent from the update list so the first
-                // sighting's context survives.
+                // sighting's context survives. resolved_at is CLEARED so a
+                // recurrence reopens an aged-out row: without this, the
+                // scan's 7-day retirement would permanently silence a
+                // message that came back (digest and pages both filter on
+                // resolved_at IS NULL) — reopening also re-arms the 24h
+                // page-freshness window via the untouched last_notified_at.
                 'occurrences' => DB::raw('alertable_errors.occurrences + 1'),
                 'message' => DB::raw('excluded.message'),
                 'level' => DB::raw('excluded.level'),
                 'channel' => DB::raw('excluded.channel'),
                 'last_seen_at' => DB::raw('excluded.last_seen_at'),
+                'resolved_at' => DB::raw('null'),
             ],
         );
     }

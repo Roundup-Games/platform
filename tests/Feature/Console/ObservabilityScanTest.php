@@ -92,17 +92,20 @@ it('ignores already-resolved rows even when fresh and critical', function () {
     Mail::assertNothingSent();
 });
 
-it('resolves stale non-critical rows after 7 days but leaves critical ones open', function () {
+it('resolves stale rows after 7 days — critical patterns too: silence ages them out, recurrence reopens', function () {
     $staleNoise = AlertableError::factory()->seenLongAgo()->create([
         'message' => 'some stale benign error',
         'message_hash' => hash('sha256', 'some stale benign error'),
     ]);
     $staleCritical = AlertableError::factory()->critical('schedule.health.degraded')->seenLongAgo()->create();
+    // Fresh critical stays open — silence, not criticality, is the retire trigger.
+    $youngCritical = AlertableError::factory()->critical('badges.sweep.user_failed')->create();
 
     $this->artisan(ObservabilityScan::class)->assertSuccessful();
 
     expect($staleNoise->fresh()->resolved_at)->not->toBeNull()
-        ->and($staleCritical->fresh()->resolved_at)->toBeNull();
+        ->and($staleCritical->fresh()->resolved_at)->not->toBeNull()
+        ->and($youngCritical->fresh()->resolved_at)->toBeNull();
 });
 
 it('does not double-resolve rows that are already resolved', function () {
