@@ -192,6 +192,102 @@ describe('GameSystemDetail - eager loaded relationships', function () {
                 return $stats['active_campaigns'] === 1;
             });
     });
+
+    // Counts resolve visibility through VisibleToScope (guests see public
+    // only) so a viewer never counts a campaign the campaigns-discovery CTA
+    // cannot show them.
+    it('counts only campaigns visible to the viewer', function () {
+        $system = GameSystem::factory()->create(['slug' => 'vis-campaign-count']);
+        $owner = User::factory()->create();
+
+        Campaign::factory()->create([
+            'game_system_id' => $system->id,
+            'owner_id' => $owner->id,
+            'status' => 'active',
+            'visibility' => 'public',
+        ]);
+
+        Campaign::factory()->create([
+            'game_system_id' => $system->id,
+            'owner_id' => $owner->id,
+            'status' => 'active',
+            'visibility' => 'protected',
+        ]);
+
+        // Guest: public only — the protected campaign must not inflate the count.
+        Livewire\Livewire::test(GameSystemDetail::class, ['slug' => $system->slug])
+            ->assertSetStrict('sessionCampaignStats', function ($stats) {
+                return $stats['active_campaigns'] === 1;
+            });
+
+        // Owner: public + their own protected campaign.
+        Livewire\Livewire::actingAs($owner)
+            ->test(GameSystemDetail::class, ['slug' => $system->slug])
+            ->assertSetStrict('sessionCampaignStats', function ($stats) {
+                return $stats['active_campaigns'] === 2;
+            });
+    });
+
+    it('links the campaigns CTA to the campaigns discovery surface with the system filter', function () {
+        $system = GameSystem::factory()->create(['slug' => 'cta-campaign-target']);
+        $owner = User::factory()->create();
+
+        Campaign::factory()->create([
+            'game_system_id' => $system->id,
+            'owner_id' => $owner->id,
+            'status' => 'active',
+        ]);
+
+        get("/en/game-systems/{$system->slug}")
+            ->assertOk()
+            ->assertSee(route('discover', ['locale' => 'en', 'mode' => 'campaigns', 'game_system_id' => $system->id]))
+            // The adventures campaign tab lists campaign *sessions* (entities
+            // excluded by design) — it must not be the campaigns CTA target.
+            ->assertDontSee(route('discover.adventures', ['locale' => 'en', 'game_system_id' => $system->id, 'session_type' => 'campaign']));
+    });
+
+    it('hides the campaigns CTA when no visible campaigns remain', function () {
+        $system = GameSystem::factory()->create(['slug' => 'cta-campaign-hidden']);
+        $owner = User::factory()->create();
+
+        Campaign::factory()->create([
+            'game_system_id' => $system->id,
+            'owner_id' => $owner->id,
+            'status' => 'active',
+            'visibility' => 'protected',
+        ]);
+
+        // Guest sees zero campaigns — the button must not render at all.
+        get("/en/game-systems/{$system->slug}")
+            ->assertOk()
+            ->assertDontSee(route('discover', ['locale' => 'en', 'mode' => 'campaigns', 'game_system_id' => $system->id]));
+
+        // The owner still counts and still gets the CTA.
+        Livewire\Livewire::actingAs($owner)
+            ->test(GameSystemDetail::class, ['slug' => $system->slug])
+            ->assertSetStrict('sessionCampaignStats', function ($stats) {
+                return $stats['active_campaigns'] === 1;
+            });
+    });
+
+    it('links the ttrpg sessions CTA to the unscoped adventures feed', function () {
+        $system = GameSystem::factory()->create(['slug' => 'cta-sessions-unscoped', 'type' => 'ttrpg']);
+        $owner = User::factory()->create();
+
+        // An upcoming campaign-session game: counted by active_sessions_count,
+        // hidden by the former session_type=oneshot CTA target.
+        Game::factory()->create([
+            'game_system_id' => $system->id,
+            'owner_id' => $owner->id,
+            'status' => 'scheduled',
+            'visibility' => 'public',
+            'date_time' => now()->addDays(3),
+        ]);
+
+        get("/en/game-systems/{$system->slug}")
+            ->assertOk()
+            ->assertSee(route('discover.adventures', ['locale' => 'en', 'game_system_id' => $system->id]));
+    });
 });
 
 describe('GameSystemDetail - user preference counts', function () {

@@ -53,11 +53,22 @@ class GameSystemDetail extends Component
                     ->orderBy('name'),
             ])
             ->withCount([
+                // D141: this count deliberately stays public+protected for every
+                // viewer (wider than the public-only upcoming-tables module the
+                // landing renders below) — it feeds the discovery CTA for
+                // logged-in users. Do not narrow it to match the module.
                 'games as active_sessions_count' => fn ($q) => $q
                     ->where('status', 'scheduled')
                     ->where('date_time', '>', now())
                     ->where(fn ($q2) => $q2->where('visibility', 'public')->orWhere('visibility', 'protected')),
+                // No D141-style exception here: campaign counts compose the
+                // shared VisibleToScope (counts MUST resolve visibility through
+                // it) so the number a viewer sees equals what the
+                // campaigns-discovery CTA will show them. The former
+                // visibility-blind count promised guests campaigns no surface
+                // could ever show them.
                 'campaigns as active_campaigns_count' => fn ($q) => $q
+                    ->visibleTo(auth()->user())
                     ->where('status', 'active'),
             ])
             ->firstOrFail();
