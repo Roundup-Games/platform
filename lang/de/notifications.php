@@ -227,7 +227,7 @@ return [
     'action_session_added_to_campaign' => 'Runde anzeigen',
     // E-Mail-Betreffs — Bewerbungen
     'subject_new_application' => ':applicant hat sich für „:entity“ beworben',
-    'body_new_application' => '**:applicant** hat sich für die Teilnahme an **:entity** beworben (:entity_type). Prüfe das Profil und antworte.',
+    'body_new_application' => '**:applicant** hat sich für die Teilnahme an deiner :entity_type **:entity** beworben. Prüfe das Profil und antworte.',
     'action_new_application' => 'Bewerbung prüfen',
     'subject_application_approved' => 'Deine Bewerbung für :entity wurde angenommen',
     'body_application_approved' => 'Tolle Neuigkeiten! Deine Bewerbung für **:entity** wurde angenommen. Du bist dabei!',
@@ -235,7 +235,7 @@ return [
     'body_application_rejected' => 'Deine Bewerbung für **:entity** wurde dieses Mal nicht angenommen. Keine Sorge — es gibt noch viele weitere Runden.',
     // E-Mail-Betreffs — Teilnahme
     'subject_participant_joined' => ':participant ist „:entity“ beigetreten',
-    'body_participant_joined' => '**:participant** ist **:entity** beigetreten (:entity_type). Je mehr, desto besser!',
+    'body_participant_joined' => '**:participant** ist deiner :entity_type **:entity** beigetreten. Je mehr, desto besser!',
     'subject_participant_removed' => 'Du wurdest aus :entity entfernt',
     'body_participant_removed' => 'Du wurdest aus **:entity** entfernt. Wenn Du Fragen hast, wende Dich an den Host.',
     'subject_seat_demoted' => 'Dein Platz in :entity wurde zurückgefordert',

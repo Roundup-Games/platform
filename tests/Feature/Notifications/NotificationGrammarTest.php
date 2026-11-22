@@ -163,7 +163,13 @@ describe('gender-safe entity copy', function () {
             ->and($mail->introLines[0])
             ->toContain('**Max Mustermann**')
             ->toContain('**Schatten über Waterdeep**')
-            ->and($mail->introLines[0])->not->toContain('deinem');
+            ->and($mail->introLines[0])->not->toContain('deinem')
+            // Dative agreement (2026-11-21): the type noun rides in the
+            // dative possessive instead of the old (:entity_type) crutch —
+            // both reachable types (Kampagne/Runde) are feminine, so the
+            // fixed article is safe. Pins the agreement, not the wording.
+            ->toContain('deiner '.__('notifications.entity_type_campaign', [], 'de'))
+            ->not->toMatch('/\('.preg_quote(__('notifications.entity_type_campaign', [], 'de'), '/').'\)/');
     });
 
     it('renders a gender-safe German participant-joined mail for a game', function () {
@@ -184,7 +190,11 @@ describe('gender-safe entity copy', function () {
             ->and($mail->introLines[0])
             ->toContain('**Ben Muster**')
             ->toContain('**Waterdeep Dungeon**')
-            ->and($mail->introLines[0])->not->toContain('deinem');
+            ->and($mail->introLines[0])->not->toContain('deinem')
+            // Dative agreement (2026-11-21): same pin as the application
+            // mail — deiner + feminine type label, parenthetical gone.
+            ->toContain('deiner '.__('notifications.entity_type_game', [], 'de'))
+            ->not->toMatch('/\('.preg_quote(__('notifications.entity_type_game', [], 'de'), '/').'\)/');
     });
 
     it('keeps the English application copy unchanged', function () {
