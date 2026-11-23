@@ -1,14 +1,22 @@
 <?php
 
+use App\Console\Commands\FlushNotificationBatches;
 use App\Jobs\FlushNotificationBatch;
+use App\Logging\AlertableErrorTap;
+use App\Models\AlertableError;
 use App\Models\NotificationBatch;
 use App\Models\User;
 use App\Notifications\BatchedNotification;
 use App\Services\NotificationEngagementCounters;
 use App\Services\NotificationService;
+use App\Support\Observability\CriticalPatternMatcher;
 use Carbon\Carbon;
+use Illuminate\Log\Logger as IlluminateLogger;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
+use Monolog\Handler\NullHandler;
+use Monolog\Logger as MonologLogger;
 
 /*
  * Dual-path flush durability (M082/S01/T03, D296): the delayed
@@ -324,4 +332,91 @@ it('marks the batch processed and sends nothing when the recipient was deleted m
 
     expect($batch->refresh()->processed_at)->not->toBeNull()
         ->and(flushedCounterCount())->toBe(0);
+});
+
+/*
+ * Dead-letter paging. A batch past the sweep's attempt bound holds events
+ * its recipient will never receive — until this pin the sweep only counted
+ * it in an info-level summary, which AlertableErrorTap never records, so
+ * the loss was invisible to both the page and the daily digest.
+ */
+
+it('pages the operator when a batch dead-letters — the logged warning matches the configured critical patterns', function () {
+    $this->travelTo(Carbon::parse('2026-11-19 12:00:00'));
+    Queue::fake();
+    $log = Log::spy();
+
+    $recipient = User::factory()->create();
+    $batch = seedFlushBatch($recipient, ['flush_attempts' => 5]);
+    seedFlushItems($batch, ['Actor A']);
+
+    $this->artisan('notifications:flush-batches')->assertSuccessful();
+
+    // Past the bound: no job handed off, so nothing but the page can
+    // surface the loss.
+    Queue::assertNotPushed(FlushNotificationBatch::class);
+
+    $loggedMessage = null;
+    $log->shouldHaveReceived('warning')
+        ->once()
+        ->withArgs(function (string $message, array $context) use (&$loggedMessage, $batch): bool {
+            $loggedMessage = $message;
+
+            return $context['abandoned'] === 1
+                && $context['batch_ids'] === [$batch->id]
+                && $context['batch_ids_truncated'] === false
+                && $context['max_flush_attempts'] === FlushNotificationBatches::MAX_FLUSH_ATTEMPTS;
+        });
+
+    // The REAL logged text — not a hand-typed literal — must be paged by
+    // the production pattern list: the lockstep pin between this command
+    // and config/observability.php.
+    expect($loggedMessage)->toBeString();
+    expect(CriticalPatternMatcher::matches($loggedMessage))->toBeTrue();
+});
+
+it('stays off the warning channel while every closed batch is inside the attempt bound', function () {
+    $this->travelTo(Carbon::parse('2026-11-19 12:00:00'));
+    Queue::fake();
+    $log = Log::spy();
+
+    $batch = seedFlushBatch(User::factory()->create());
+    seedFlushItems($batch, ['Actor A']);
+
+    $this->artisan('notifications:flush-batches')->assertSuccessful();
+
+    Queue::assertPushed(FlushNotificationBatch::class, 1);
+    $log->shouldNotHaveReceived('warning');
+});
+
+it('lands the dead-letter warning in alertable_errors once, where observability:scan pages from', function () {
+    $this->travelTo(Carbon::parse('2026-11-19 12:00:00'));
+    Queue::fake();
+    config(['observability.tap_enabled' => true]);
+    AlertableErrorTap::flushDedupCache();
+
+    // Production shape: facade → Illuminate logger → Monolog with the tap
+    // processor pushed. The NullHandler stands in for the real handlers —
+    // with none at all Monolog drops records before processors run.
+    $monolog = new MonologLogger('stack', [new NullHandler]);
+    (new AlertableErrorTap)(new IlluminateLogger($monolog, app('events')), 'stack');
+    Log::swap(new IlluminateLogger($monolog, app('events')));
+
+    $batch = seedFlushBatch(User::factory()->create(), ['flush_attempts' => 5]);
+    seedFlushItems($batch, ['Actor A']);
+
+    // Two sweeps while the batch sits abandoned: ONE row, not one per
+    // minute — the stable message text is what keeps a lingering backlog
+    // from becoming a page storm.
+    $this->artisan('notifications:flush-batches')->assertSuccessful();
+    $this->artisan('notifications:flush-batches')->assertSuccessful();
+
+    $rows = AlertableError::query()
+        ->where('message_hash', hash('sha256', FlushNotificationBatches::ABANDONED_MESSAGE))
+        ->get();
+
+    expect($rows)->toHaveCount(1)
+        ->and($rows->first()->level)->toBe('WARNING')
+        ->and($rows->first()->channel)->toBe('stack')
+        ->and(CriticalPatternMatcher::matches($rows->first()->message))->toBeTrue();
 });

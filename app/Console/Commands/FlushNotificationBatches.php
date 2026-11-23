@@ -33,6 +33,18 @@ class FlushNotificationBatches extends Command
      */
     public const int MAX_FLUSH_ATTEMPTS = 5;
 
+    /**
+     * Dead-letter page message. Kept stable (no interpolated values) and in
+     * lockstep with the 'notification_batch.abandoned' entry in
+     * config/observability.php critical_patterns — BatchFlushDurabilityTest
+     * asserts the logged text matches the configured patterns, so the two
+     * cannot drift apart silently.
+     */
+    /** Upper bound on batch ids carried in the abandoned-warning context. */
+    public const int ABANDONED_CONTEXT_LIMIT = 20;
+
+    public const string ABANDONED_MESSAGE = 'notification_batch.abandoned: batches past the flush attempt bound hold events their recipients will never receive — reset flush_attempts to 0 to re-dispatch, and find the flush failure that exhausted the bound';
+
     protected $signature = 'notifications:flush-batches';
 
     protected $description = 'Flush closed notification batches whose delayed flush job was lost (burst-window sweep)';
@@ -68,10 +80,31 @@ class FlushNotificationBatches extends Command
                 }
             });
 
-        $abandoned = NotificationBatch::query()
+        $abandonedQuery = NotificationBatch::query()
             ->closedUnprocessed()
-            ->where('flush_attempts', '>=', self::MAX_FLUSH_ATTEMPTS)
-            ->count();
+            ->where('flush_attempts', '>=', self::MAX_FLUSH_ATTEMPTS);
+
+        $abandoned = (clone $abandonedQuery)->count();
+
+        if ($abandoned > 0) {
+            // A batch past the attempt bound holds events its recipient will
+            // never receive — silent notification loss, so this is the one
+            // sweep outcome an operator must be paged about. WARNING (not the
+            // info summary below) is what AlertableErrorTap records, and the
+            // notification_batch.abandoned critical pattern pages it. The
+            // message text is deliberately stable — counts and ids ride in the
+            // context only — so the tap's sha256(message) upsert folds every
+            // minute's re-sighting into ONE row and observability:scan pages
+            // once per freshness window instead of once per sweep.
+            Log::warning(self::ABANDONED_MESSAGE, [
+                'abandoned' => $abandoned,
+                // First-sighting forensics only (the tap keeps the first
+                // context): bounded, and a hint when the backlog is larger.
+                'batch_ids' => (clone $abandonedQuery)->orderBy('id')->limit(self::ABANDONED_CONTEXT_LIMIT)->pluck('id')->all(),
+                'batch_ids_truncated' => $abandoned > self::ABANDONED_CONTEXT_LIMIT,
+                'max_flush_attempts' => self::MAX_FLUSH_ATTEMPTS,
+            ]);
+        }
 
         $this->info("Notification batch sweep: {$dispatched} flush(es) dispatched, {$abandoned} past the attempt bound.");
         Log::info('notification_batch.sweep_complete', [

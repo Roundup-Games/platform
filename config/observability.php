@@ -38,9 +38,10 @@ return [
     | that is not valid regex degrades to a literal substring match).
     |
     | Curated against the platform's known canary messages: sweep failures
-    | (badges/discovery/waitlist), the schedule health gate's degradation
-    | signal, and Paddle's manual-reconciliation warnings. Add a pattern when
-    | a new error log means "an operator must look at this".
+    | (badges/discovery/waitlist), notification batches past the flush attempt
+    | bound (their events are never delivered), the schedule health gate's
+    | degradation signal, and Paddle's manual-reconciliation warnings. Add a
+    | pattern when a new error log means "an operator must look at this".
     |
     */
 
@@ -48,6 +49,7 @@ return [
         'badges.sweep.',
         'discovery.sweep.',
         'waitlist.sweep.',
+        'notification_batch.abandoned',
         'schedule.health.',
         'paddle webhook.*manual reconciliation',
         'needs manual reconciliation',
