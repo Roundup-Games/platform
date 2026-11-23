@@ -9,6 +9,13 @@ use Illuminate\Testing\TestResponse;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\AbstractProvider;
 use Laravel\Socialite\Two\User as SocialiteUser;
+use Tests\Traits\CapturesLogRecords;
+
+uses(CapturesLogRecords::class);
+
+beforeEach(function () {
+    $this->captureLogRecords();
+});
 
 /**
  * Pins the calendar-link OAuth round trip (M083/S02-T02): gate-first
@@ -186,6 +193,15 @@ it('links the calendar on a successful round trip and stores exactly one row', f
         ->and($connection->token_expires_at)->not->toBeNull()
         // One row per user — the connect created the connection, not a second one.
         ->and(GoogleCalendarConnection::count())->toBe(1);
+
+    // The observability line the reconcile/drift tooling keys on, with
+    // the reconnect flag telling a first connect from a re-link.
+    $connected = $this->logRecord('calendar_sync.connected');
+    expect($connected)->not->toBeNull()
+        ->and($connected['context']['user_id'])->toBe($user->id)
+        ->and($connected['context']['connection_id'])->toBe($connection->id)
+        ->and($connected['context']['google_account_email'])->toBe('roundup.tester@gmail.com')
+        ->and($connected['context']['reconnect'])->toBeFalse();
 });
 
 it('reconnect replaces the revoked row instead of accumulating rows and preserves source toggles', function () {
@@ -229,6 +245,13 @@ it('reconnect replaces the revoked row instead of accumulating rows and preserve
             'campaign_sessions' => false,
             'events' => true,
         ]);
+
+    // Same line, flagged as a reconnect — the drift tooling must be able
+    // to tell a re-link from a first connect.
+    $connected = $this->logRecord('calendar_sync.connected');
+    expect($connected)->not->toBeNull()
+        ->and($connected['context']['reconnect'])->toBeTrue()
+        ->and($connected['context']['connection_id'])->toBe($existing->id);
 });
 
 // ── Signed-state rejection ─────────────────────────────
