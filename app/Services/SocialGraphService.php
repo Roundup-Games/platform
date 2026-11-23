@@ -185,6 +185,64 @@ class SocialGraphService
     }
 
     /**
+     * The subset of $candidateIds that stands at 'friend_or_teammate' to $user
+     * — the batch counterpart of isFriendOrTeammate() for lists.
+     *
+     * One query per relationship source regardless of how many candidates
+     * are passed (the per-candidate pair walks up to six queries each, which
+     * is what made PeopleDiscoveryService's privacy filter an N+1). Blocks
+     * are deliberately NOT consulted here: callers batch-screen blocks first
+     * (see blockedUserIdsFor()), and for an unblocked pair isFriend() reduces
+     * to a mutual follow.
+     *
+     * @param  list<string>  $candidateIds
+     * @return list<string>
+     */
+    public function friendOrTeammateIdsAmong(User $user, array $candidateIds): array
+    {
+        if ($candidateIds === []) {
+            return [];
+        }
+
+        $wanted = array_fill_keys($candidateIds, true);
+
+        // Mutual follows — the same two plucks getMutualFollows() intersects.
+        $iFollow = $user->followings()->pluck('related_user_id');
+        $followsMe = $user->followers()->pluck('user_id');
+        $mutualIds = $iFollow->intersect($followsMe);
+
+        $related = [];
+        foreach ($mutualIds as $id) {
+            $stringId = to_string_id($id);
+            if (isset($wanted[$stringId])) {
+                $related[$stringId] = true;
+            }
+        }
+
+        // Teammates — the same team_members shape
+        // getAllowedOwnerIdsForProtectedContent() uses.
+        $myActiveTeamIds = $user->teams()
+            ->wherePivot('status', 'active')
+            ->pluck('teams.id');
+
+        if ($myActiveTeamIds->isNotEmpty()) {
+            $teammateIds = DB::table('team_members')
+                ->whereIn('team_id', $myActiveTeamIds)
+                ->where('status', 'active')
+                ->whereIn('user_id', $candidateIds)
+                ->where('user_id', '!=', $user->id)
+                ->distinct()
+                ->pluck('user_id');
+
+            foreach ($teammateIds as $id) {
+                $related[to_string_id($id)] = true;
+            }
+        }
+
+        return array_keys($related);
+    }
+
+    /**
      * Get the mutual follows for a user (intersection of followers and followings).
      *
      * Returns a collection of User models representing bidirectional follows.

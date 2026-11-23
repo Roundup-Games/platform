@@ -832,6 +832,115 @@ class PeopleDiscoveryServiceTest extends TestCase
             'One-way follow should not add social bonus (not mutual)');
     }
 
+    // ── Phase 3 privacy: list resolution ──
+
+    #[Test]
+    public function it_resolves_privacy_for_a_candidate_list_identically_to_the_per_candidate_reference()
+    {
+        $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
+
+        $friendsOnly = ['location' => 'everyone', 'game_systems' => 'friends', 'vibes' => 'nobody'];
+        $hidden = ['location' => 'nobody'];
+
+        $stranger = $this->createUserWithLocation(self::LAT + 0.001, self::LNG, ['privacy_settings' => $friendsOnly]);
+        $friend = $this->createUserWithLocation(self::LAT + 0.002, self::LNG, ['privacy_settings' => $friendsOnly]);
+        $teammate = $this->createUserWithLocation(self::LAT + 0.003, self::LNG, ['privacy_settings' => $friendsOnly]);
+        $blockedByViewer = $this->createUserWithLocation(self::LAT + 0.004, self::LNG, ['privacy_settings' => $friendsOnly]);
+        $blockedViewer = $this->createUserWithLocation(self::LAT + 0.005, self::LNG, ['privacy_settings' => $friendsOnly]);
+        $defaultsOnly = $this->createUserWithLocation(self::LAT + 0.006, self::LNG, ['privacy_settings' => $hidden]);
+
+        // Mutual follow: friend.
+        UserRelationship::create(['user_id' => $viewer->id, 'related_user_id' => $friend->id, 'type' => RelationshipType::Follow]);
+        UserRelationship::create(['user_id' => $friend->id, 'related_user_id' => $viewer->id, 'type' => RelationshipType::Follow]);
+
+        // Shared active team: teammate (no follow in either direction).
+        $team = Team::factory()->create();
+        $this->attachToTeam($viewer, $team);
+        $this->attachToTeam($teammate, $team);
+
+        // One block in each direction.
+        UserRelationship::create(['user_id' => $viewer->id, 'related_user_id' => $blockedByViewer->id, 'type' => RelationshipType::Block]);
+        UserRelationship::create(['user_id' => $blockedViewer->id, 'related_user_id' => $viewer->id, 'type' => RelationshipType::Block]);
+
+        $owners = [$stranger, $friend, $teammate, $blockedByViewer, $blockedViewer, $defaultsOnly];
+        $resolver = new ProfileVisibilityResolver;
+
+        $bulk = $resolver->profileFieldsVisibleForMany($viewer, $owners);
+
+        $this->assertSame(count($owners), count($bulk), 'One entry per owner');
+
+        // Both viewer states: the guest path is a separate branch, and a
+        // divergence there (friends-only fields leaking to logged-out
+        // viewers) must fail on the reference comparison itself.
+        foreach ([$viewer, null] as $state) {
+            $resolved = $state === null
+                ? $resolver->profileFieldsVisibleForMany(null, $owners)
+                : $bulk;
+
+            $label = $state === null ? 'guest' : 'viewer';
+
+            foreach ($owners as $owner) {
+                $this->assertSame(
+                    $resolver->profileFieldsVisible($state, $owner),
+                    $resolved[(string) $owner->id],
+                    "Bulk and reference disagree for {$owner->id} ({$label})",
+                );
+            }
+        }
+
+        // The fixture must actually exercise every branch — a list of
+        // identical strangers would pass the loop above while proving
+        // nothing about the relationship logic.
+        $this->assertContains('game_systems', $bulk[(string) $friend->id], 'Friend sees friends-only fields');
+        $this->assertContains('game_systems', $bulk[(string) $teammate->id], 'Teammate sees friends-only fields');
+        $this->assertNotContains('game_systems', $bulk[(string) $stranger->id], 'Stranger does not');
+        $this->assertSame([], $bulk[(string) $blockedByViewer->id], 'Blocked by viewer: no fields');
+        $this->assertSame([], $bulk[(string) $blockedViewer->id], 'Blocked viewer: no fields');
+        $this->assertNotContains('location', $bulk[(string) $defaultsOnly->id], 'Owner setting honoured');
+        $this->assertContains('game_systems', $bulk[(string) $defaultsOnly->id], 'Unset fields default to visible');
+
+        // Self and guest are the two viewer states with no relationship
+        // lookups at all.
+        $this->assertSame(
+            [(string) $viewer->id => ProfileVisibilityResolver::FIELDS],
+            $resolver->profileFieldsVisibleForMany($viewer, [$viewer]),
+        );
+        $guestView = $resolver->profileFieldsVisibleForMany(null, [$friend, $defaultsOnly]);
+        $this->assertNotContains('game_systems', $guestView[(string) $friend->id], 'A guest is a stranger');
+    }
+
+    #[Test]
+    public function it_spends_a_constant_number_of_queries_on_privacy_regardless_of_candidate_count()
+    {
+        // Any per-candidate relationship query makes the two counts
+        // differ; a constant count proves the privacy phase is set-based.
+        // Equal counts are the whole assertion — the absolute number is
+        // deliberately not pinned.
+        $queriesFor = function (int $candidateCount): int {
+            $viewer = $this->createUserWithLocation(self::LAT, self::LNG);
+
+            for ($i = 1; $i <= $candidateCount; $i++) {
+                $this->createUserWithLocation(self::LAT + $i * 0.0005, self::LNG, [
+                    'privacy_settings' => ['game_systems' => 'friends'],
+                ]);
+            }
+
+            $count = 0;
+            DB::listen(function () use (&$count): void {
+                $count++;
+            });
+
+            $this->service->computeAndCache($viewer, self::LAT, self::LNG);
+
+            return $count;
+        };
+
+        $small = $queriesFor(4);
+        $large = $queriesFor(24);
+
+        $this->assertSame($small, $large, "Query count grew with the candidate list (4 → {$small}, 24 → {$large})");
+    }
+
     // ── Helper ──
 
     private function findScoreForUser(array $items, User $user): ?float

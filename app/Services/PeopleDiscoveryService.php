@@ -199,6 +199,12 @@ class PeopleDiscoveryService
             ->map(fn (mixed $flag) => $flag instanceof \BackedEnum ? (string) $flag->value : (is_string($flag) ? $flag : ''))->unique()->values()->all();
         $viewerTeamIds = $viewer->teams()->wherePivot('status', 'active')->pluck('teams.id')->filter(fn (mixed $id) => is_string($id))->values()->all();
 
+        // Privacy for every candidate in one pass. The per-candidate
+        // resolver costs up to nine relationship queries EACH (block pair
+        // twice, follows, teams) — ~900 queries at the 100-candidate cap;
+        // the list form answers the same question in a constant three.
+        $visibleFieldsByUserId = $this->visibility->profileFieldsVisibleForMany($viewer, $candidateUsers);
+
         // Build final results with privacy-aware scoring + distance
         $results = [];
         foreach ($scoredRows as $row) {
@@ -214,7 +220,7 @@ class PeopleDiscoveryService
                 continue;
             }
 
-            $visibleFields = $this->visibility->profileFieldsVisible($viewer, $candidate);
+            $visibleFields = $visibleFieldsByUserId[$userId] ?? [];
             if (! in_array('location', $visibleFields, true)) {
                 continue;
             }
