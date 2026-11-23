@@ -24,6 +24,7 @@ use App\Notifications\BelowMinPlayersWarning;
 use App\Notifications\BulletinPosted;
 use App\Notifications\Channels\PushChannel;
 use App\Notifications\CharterAmended;
+use App\Notifications\CharterFullySigned;
 use App\Notifications\CharterPublished;
 use App\Notifications\ConfirmationExpired;
 use App\Notifications\DisputeResolved;
@@ -306,6 +307,7 @@ class NotificationsPushTestCommand extends Command
             NotificationCategory::SessionContent => new BulletinPosted($this->fixtureGame(), $this->fixtureGameOwner(), $this->fixtureBulletin()),
             NotificationCategory::CharterPublished => new CharterPublished($this->fixtureCampaign(), $this->fixtureCharter()),
             NotificationCategory::CharterAmended => new CharterAmended($this->fixtureCampaign(), $this->fixtureCharter(), $this->fixtureCharterVersion(), true),
+            NotificationCategory::CharterFullySigned => new CharterFullySigned($this->fixtureCampaign(), $this->fixtureCharter(), $this->fixtureCharterVersion(), $this->fixtureActor()),
             NotificationCategory::EventRegistration => new EventRegistrationConfirmed($this->fixtureEventRegistration()),
             NotificationCategory::BelowMinPlayers => new BelowMinPlayersWarning($this->fixtureGame(), 1, 2),
             NotificationCategory::ConfirmationExpired => new ConfirmationExpired($this->fixtureGame()),

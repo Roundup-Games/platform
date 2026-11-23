@@ -78,7 +78,7 @@ function corpusNotificationDataset(): array
         'AttendanceNudge', 'AttendanceReported', 'AttendanceResolved',
         'BadgeAwardedNotification', 'BatchedNotification', 'BelowMinPlayersWarning',
         'BulletinPosted',
-        'CharterAmended', 'CharterPublished', 'ConfirmationExpired',
+        'CharterAmended', 'CharterFullySigned', 'CharterPublished', 'ConfirmationExpired',
         'ContentRemoved', 'ContentReportWarning', 'DebriefingAvailable',
         'DisputeResolved', 'EntityCancelled', 'EntityCompleted',
         'EntityInvitation', 'EntityUpdated', 'EventAnnouncementPublished',
@@ -265,6 +265,12 @@ it('renders every defined channel with non-empty payloads in both en and de', fu
                 $fx->charterVersion ??= SessionZeroSurveyVersion::factory()->forSurvey($fx->charter)->create();
 
                 return new $fqcn($fx->campaign, $fx->charter, $fx->charterVersion, true);
+            })(),
+            'CharterFullySigned' => (function () use ($fqcn, $fx) {
+                $fx->charter ??= SessionZeroSurvey::factory()->charter()->create(['campaign_id' => $fx->campaign->id]);
+                $fx->charterVersion ??= SessionZeroSurveyVersion::factory()->forSurvey($fx->charter)->create();
+
+                return new $fqcn($fx->campaign, $fx->charter, $fx->charterVersion, $fx->actor);
             })(),
             'CharterPublished' => new $fqcn(
                 $fx->campaign,

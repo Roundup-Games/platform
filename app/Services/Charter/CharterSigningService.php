@@ -3,6 +3,7 @@
 namespace App\Services\Charter;
 
 use App\Dto\CharterContent;
+use App\Enums\NotificationCategory;
 use App\Enums\ParticipantStatus;
 use App\Models\Campaign;
 use App\Models\CampaignParticipant;
@@ -10,6 +11,8 @@ use App\Models\SessionZeroConfirmation;
 use App\Models\SessionZeroSurvey;
 use App\Models\SessionZeroSurveyVersion;
 use App\Models\User;
+use App\Notifications\CharterFullySigned;
+use App\Services\NotificationService;
 use App\Services\PostHogAnalytics;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
@@ -17,6 +20,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 
 /**
  * Charter signing lifecycle (M070/S02, docs/spec/campaign-charter-concept.md §8):
@@ -190,7 +194,93 @@ class CharterSigningService
             ['campaign_id' => $charter->campaign_id, 'version' => $version->version_number],
         );
 
+        self::notifyOwnerWhenFullySigned($charter, $version, $user);
+
         return $confirmation;
+    }
+
+    /**
+     * Tell the campaign owner the moment the roster completes: every
+     * approved participant has signed $version, which is exactly the state
+     * countersign() waits for — the GM's next (and last) step.
+     *
+     * Transition-only by construction: this runs once per sign() call, and
+     * a signature that completes the roster can only be THE last one (the
+     * (version, user, role) unique index makes every other approved
+     * participant's row a non-completing re-read). Per version: a material
+     * amendment resets the signatures, and the next completion on the new
+     * version notifies again.
+     *
+     * Same predicate as countersign()'s pending check (countersignProgress),
+     * so "the GM was told it is ready" and "countersign is allowed" cannot
+     * drift apart. Silent by design when: the campaign or owner is gone,
+     * the charter is no longer active (archived/cancelled mid-signature),
+     * nobody has signed (an empty roster completes vacuously — silence is
+     * never consent), or the completing signer IS the owner (an owner who
+     * is also a participant needs no notice about their own action).
+     */
+    private static function notifyOwnerWhenFullySigned(SessionZeroSurvey $charter, SessionZeroSurveyVersion $version, User $signer): void
+    {
+        $campaign = $charter->campaign;
+
+        if ($campaign === null || ! $charter->isActive()) {
+            return;
+        }
+
+        /** @var User|null $owner */
+        $owner = $campaign->owner;
+
+        if ($owner === null || $owner->is($signer)) {
+            return;
+        }
+
+        $progress = self::countersignProgress($charter, $version);
+
+        if ($progress['approved'] === 0 || $progress['signed'] < $progress['approved']) {
+            return;
+        }
+
+        app(NotificationService::class)->send(
+            $owner,
+            new CharterFullySigned($campaign, $charter, $version, $signer),
+            NotificationCategory::CharterFullySigned,
+        );
+    }
+
+    /**
+     * The one definition of "ready to countersign": approved participants
+     * on the campaign as the denominator, participant-role SIGNED
+     * confirmations on $version by those participants as the numerator.
+     * Shared by countersign()'s pending gate and the GM's fully-signed
+     * notification, so the two can never disagree.
+     *
+     * Unlocked reads — the accepted race is documented on countersign().
+     *
+     * @return array{approved: int, signed: int}
+     */
+    private static function countersignProgress(SessionZeroSurvey $charter, SessionZeroSurveyVersion $version): array
+    {
+        $campaign = $charter->campaign;
+
+        if ($campaign === null) {
+            throw new InvalidArgumentException('Countersign progress needs a charter that belongs to a campaign.');
+        }
+
+        $approved = $campaign->participants()
+            ->where('status', ParticipantStatus::Approved->value)
+            ->pluck('user_id');
+
+        $signed = $approved->isEmpty() ? 0 : $charter->confirmations()
+            ->where('session_zero_survey_version_id', $version->id)
+            ->where('role', SessionZeroConfirmation::ROLE_PARTICIPANT)
+            ->where('status', SessionZeroConfirmation::STATUS_SIGNED)
+            ->whereIn('user_id', $approved)
+            ->count();
+
+        return [
+            'approved' => $approved->count(),
+            'signed' => $signed,
+        ];
     }
 
     // ── Countersignature ───────────────────────────────
@@ -244,22 +334,15 @@ class CharterSigningService
             ]);
         }
 
-        $approved = $charter->campaign->participants()
-            ->where('status', ParticipantStatus::Approved->value)
-            ->pluck('user_id');
-        $signed = $charter->confirmations()
-            ->where('session_zero_survey_version_id', $version->id)
-            ->where('role', SessionZeroConfirmation::ROLE_PARTICIPANT)
-            ->where('status', SessionZeroConfirmation::STATUS_SIGNED)
-            ->whereIn('user_id', $approved)
-            ->count();
-        if ($approved->isEmpty()) {
+        $progress = self::countersignProgress($charter, $version);
+
+        if ($progress['approved'] === 0) {
             throw ValidationException::withMessages([
                 'charter' => __('charter.error_countersign_no_participants'),
             ]);
         }
 
-        $pending = $approved->count() - $signed;
+        $pending = $progress['approved'] - $progress['signed'];
 
         if ($pending > 0) {
             throw ValidationException::withMessages([

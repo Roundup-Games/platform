@@ -43,6 +43,7 @@ class NotificationQueryService
         'ParticipantRemoved' => 'remover_name',
         'TeamMemberRemoved' => 'remover_name',
         'SessionAddedToCampaign' => 'dm_name',
+        'CharterFullySigned' => 'signer_name',
         // Legacy class names — kept for records created before the
         // consolidate_notification_types migration ran.
         'GameInvitation' => 'inviter_name',
@@ -64,6 +65,7 @@ class NotificationQueryService
         'ParticipantRemoved' => 'removed_user_id',
         'TeamMemberRemoved' => 'removed_user_id',
         'SessionAddedToCampaign' => 'dm_id',
+        'CharterFullySigned' => 'signer_id',
         'GameInvitation' => 'inviter_id',
         'CampaignInvitation' => 'inviter_id',
     ];

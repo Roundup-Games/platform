@@ -80,6 +80,7 @@ enum NotificationCategory: string
     // Campaign charter lifecycle (M070/D234)
     case CharterPublished = 'charter_published';
     case CharterAmended = 'charter_amended';
+    case CharterFullySigned = 'charter_fully_signed';
 
     // Events (M063 — registrant communications)
     case EventRegistration = 'event_registration';
@@ -141,6 +142,7 @@ enum NotificationCategory: string
             self::SessionContent => __('notifications.category_session_content'),
             self::CharterPublished => __('notifications.category_charter_published'),
             self::CharterAmended => __('notifications.category_charter_amended'),
+            self::CharterFullySigned => __('notifications.category_charter_fully_signed'),
             self::EventRegistration => __('notifications.category_event_registration'),
             self::GameSystemRequest => __('notifications.category_game_system_request'),
             self::BelowMinPlayers => __('notifications.category_below_min_players'),
@@ -159,7 +161,8 @@ enum NotificationCategory: string
             self::GameInvitation, self::CampaignInvitation, self::TeamInvitation, self::SessionAddedToCampaign => 'invitations',
             self::NewApplication, self::ApplicationApproved, self::ApplicationRejected => 'applications',
             self::ParticipantJoined, self::ParticipantRemoved, self::SeatDemoted, self::TeamMemberRemoved, self::WaitlistPromoted, self::WaitlistPlacement, self::BenchUpdates, self::AttendanceReported, self::DisputeResolved, self::AttendanceNudge, self::AttendanceResolved => 'participation',
-            self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated, self::SessionContent, self::CharterPublished, self::CharterAmended => 'status',
+            self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated, self::SessionContent, self::CharterPublished, self::CharterAmended,
+            self::CharterFullySigned => 'status',
             self::EventRegistration => 'events',
             self::GameSystemRequest => 'content',
             self::BelowMinPlayers, self::ConfirmationExpired, self::SessionReminder => 'scheduling',
@@ -194,7 +197,8 @@ enum NotificationCategory: string
             ],
             'status' => [
                 'label' => __('common.content_status'),
-                'categories' => [self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated, self::SessionContent, self::CharterPublished, self::CharterAmended],
+                'categories' => [self::GameCancelled, self::GameCompleted, self::CampaignCancelled, self::CampaignCompleted, self::GameUpdated, self::CampaignUpdated, self::SessionContent, self::CharterPublished, self::CharterAmended,
+                    self::CharterFullySigned],
             ],
             'events' => [
                 'label' => __('notifications.group_events'),
@@ -297,6 +301,10 @@ enum NotificationCategory: string
             self::SessionContent,
             self::CharterPublished,
             self::CharterAmended => false,
+
+            // A governance action the GM owes — the one charter notice whose
+            // recipient must DO something next (countersign)
+            self::CharterFullySigned => true,
 
             // Events — a registration confirmation is the receipt for a seat
             // the registrant just paid for or claimed; missing it costs them
@@ -452,6 +460,7 @@ enum NotificationCategory: string
             self::SessionContent => 'Recaps, bulletins and debriefings are ambient reading with no deadline — single posts with no burst shape in v1. Data-gated.',
             self::CharterPublished => 'Governance: the charter is the contract members signed up for — publication ships immediately.',
             self::CharterAmended => 'Governance: an amendment changes the campaign contract — members must see the delta now, not next window.',
+            self::CharterFullySigned => 'Governance: the roster just completed and the GM owes the countersignature that completes the agreement — one recipient, one event, nothing to batch.',
 
             // Events
             self::EventRegistration => 'The receipt for a seat just claimed — confirmation is part of the transaction, not an optimization candidate.',

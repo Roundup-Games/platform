@@ -23,6 +23,7 @@ return [
     // Charter lifecycle (M070/D234)
     'category_charter_published' => 'Charter Published (read & sign)',
     'category_charter_amended' => 'Charter Amended (re-agreement)',
+    'category_charter_fully_signed' => 'Charter Fully Signed (countersign)',
     // Moderation
     'category_review_reported' => 'Review Reported',
     'category_moderation_notice' => 'Moderation Notices (warnings & content removal)',
@@ -86,6 +87,7 @@ return [
     'label_digest_campaign_updated' => 'Campaign updated',
     'label_digest_charter_amended' => 'Charter amended',
     'label_digest_charter_published' => 'Charter published',
+    'label_digest_charter_fully_signed' => 'Charter fully signed',
     'label_digest_confirmation_expired' => 'Confirmation Expired',
     'label_digest_content_removed' => 'Content removed',
     'label_digest_content_report_warning' => 'Content report warning',
@@ -178,6 +180,7 @@ return [
     'verb_team_invitation_plural' => 'invited you to a team',
     'verb_session_added_to_campaign' => 'added a session to your campaign',
     'verb_session_added_to_campaign_plural' => 'added a session to your campaign',
+    'verb_charter_fully_signed' => 'completed the charter signatures for',
     'verb_new_application' => 'applied to join',
     'verb_new_application_plural' => 'applied to join',
     'verb_application_approved' => 'approved your application',
@@ -488,6 +491,14 @@ return [
     'preheader_charter_published' => 'Read it, check your boundaries, and add your signature.',
     'preheader_charter_amended_material' => 'Something material changed — your signature needs a refresh.',
     'preheader_charter_amended_minor' => 'Just a small tweak — your signature still stands.',
+
+    // Every participant has signed — the GM's countersignature is the last step
+    'subject_charter_fully_signed' => 'Every participant has signed the :campaign charter',
+    'body_charter_fully_signed' => 'Every participant has signed the charter for **:campaign**. One step is left to you: countersign it, and it becomes the table\'s agreement.',
+    'action_charter_countersign' => 'Countersign the charter',
+    'push_title_charter_fully_signed' => 'Charter ready to countersign',
+    'push_body_charter_fully_signed' => 'Every participant signed the :campaign charter — your countersignature completes it',
+    'preheader_charter_fully_signed' => 'The whole table has signed — your countersignature completes it.',
     'preheader_confirmation_expired' => 'You slipped to the back of the line — but you are still on it.',
     'preheader_content_removed' => 'See why your content was taken down and what comes next.',
     'preheader_cover_removed' => 'Your :entityType is still live — only the cover image is gone.',

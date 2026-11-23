@@ -23,6 +23,7 @@ return [
     // Charta-Lebenszyklus (M070/D234)
     'category_charter_published' => 'Charta veröffentlicht (lesen & unterschreiben)',
     'category_charter_amended' => 'Charta geändert (Neuzustimmung)',
+    'category_charter_fully_signed' => 'Charta vollständig unterschrieben (gegenzeichnen)',
     'category_review_reported' => 'Bewertung gemeldet',
     'category_moderation_notice' => 'Moderationshinweise (Verwarnungen & Inhaltsentfernungen)',
     // Erfolge (M069)
@@ -83,6 +84,7 @@ return [
     'label_digest_campaign_updated' => 'Kampagne aktualisiert',
     'label_digest_charter_amended' => 'Charta geändert',
     'label_digest_charter_published' => 'Charta veröffentlicht',
+    'label_digest_charter_fully_signed' => 'Charta vollständig unterschrieben',
     'label_digest_confirmation_expired' => 'Bestätigung abgelaufen',
     'label_digest_content_removed' => 'Inhalt entfernt',
     'label_digest_content_report_warning' => 'Inhaltsmeldung — Warnung',
@@ -174,6 +176,7 @@ return [
     'verb_team_invitation_plural' => 'haben Dich in ein Team eingeladen',
     'verb_session_added_to_campaign' => 'hat eine Runde zur Kampagne hinzugefügt',
     'verb_session_added_to_campaign_plural' => 'haben eine Runde zur Kampagne hinzugefügt',
+    'verb_charter_fully_signed' => 'hat die Unterschriften zur Charta vollständig gesammelt',
     'verb_new_application' => 'hat sich beworben',
     'verb_new_application_plural' => 'haben sich beworben',
     'verb_application_approved' => 'hat Deine Bewerbung angenommen',
@@ -486,6 +489,14 @@ return [
     'preheader_charter_published' => 'Lies sie, prüfe Deine Grenzen und unterschreibe.',
     'preheader_charter_amended_material' => 'Es hat sich Wesentliches geändert — Deine Unterschrift wird neu gebraucht.',
     'preheader_charter_amended_minor' => 'Nur eine kleine Anpassung — Deine Unterschrift bleibt gültig.',
+
+    // Alle haben unterschrieben — die Gegenzeichnung des GM ist der letzte Schritt
+    'subject_charter_fully_signed' => 'Alle haben die Charta für :campaign unterschrieben',
+    'body_charter_fully_signed' => 'Alle Teilnehmenden haben die Charta für **:campaign** unterschrieben. Ein Schritt liegt noch bei Dir: Zeichne gegen, und sie wird zur Vereinbarung Eures Tisches.',
+    'action_charter_countersign' => 'Charta gegenzeichnen',
+    'push_title_charter_fully_signed' => 'Charta bereit zur Gegenzeichnung',
+    'push_body_charter_fully_signed' => 'Alle haben die Charta für :campaign unterschrieben — Deine Gegenzeichnung vollendet sie',
+    'preheader_charter_fully_signed' => 'Der ganze Tisch hat unterschrieben — Deine Gegenzeichnung vollendet die Charta.',
     'preheader_confirmation_expired' => 'Du bist ans Ende gerutscht — aber noch dabei.',
     'preheader_content_removed' => 'Sieh, warum Dein Inhalt entfernt wurde und was als Nächstes passiert.',
     'preheader_cover_removed' => 'Dein :entityType bleibt online — nur das Cover wurde entfernt.',
