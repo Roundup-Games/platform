@@ -15,7 +15,7 @@
 return [
 
     // Unlinked "My seat" on-ramp ephemeral buttons (M059/S02)
-    'action_link_discord_to_grab_your_seat' => 'Discord verbinden und Platz sichern',
+    'action_link_discord_to_grab_your_seat' => 'Discord verbinden und mitmachen',
     'action_rsvp_on_roundup' => 'Auf Roundup zusagen',
 
     // Daily calendar thread title (M059/S03)
@@ -46,7 +46,7 @@ return [
     'content_bulletin_read_more' => 'Lies das vollständige Update auf der Rundenseite.',
 
     // Unlinked "My seat" on-ramp ephemeral body (M059/S02)
-    'content_unlinked_onramp_body' => 'Du bist nur einen Klick von Deinem Platz entfernt. Verbinde Dein Discord-Konto und wir setzen Dich direkt auf die Teilnehmerliste — es dauert nur wenige Sekunden. (Beim nächsten Mal meldet Dich dieser Button direkt aus Discord heraus an.)',
+    'content_unlinked_onramp_body' => 'Du möchtest bei dieser Runde dabei sein? Verbinde Dein Discord-Konto und wir bringen Dich direkt zur Runde. Ist ein Platz für Dich frei, nimmst Du automatisch teil; ist sie voll, kannst Du Dich dort auf die Warteliste setzen. Neu bei Roundup? Vorab beantwortest Du ein paar Fragen zu Deinem Profil. (Beim nächsten Mal kannst Du direkt hier in Discord zusagen.)',
 
     // ── Guild settings page (/discord/guilds/{id}) ──
     'content_guild_settings_subtitle' => 'Lege fest, wo Roundup Runden-Karten veröffentlicht, und pausiere die Veröffentlichung jederzeit.',

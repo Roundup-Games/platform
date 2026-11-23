@@ -570,7 +570,7 @@ class DiscordInteractionEndpointTest extends TestCase
         // SECONDARY is the RSVP-on-web fallback.
         $response->assertJsonPath('data.components.0.components.0.url', "{$this->appUrl()}/discord/join/{$gameId}");
         $response->assertJsonPath('data.components.0.components.1.url', "{$this->appUrl()}/games/{$gameId}");
-        $response->assertJsonPath('data.components.0.components.0.label', 'Link Discord to grab your seat');
+        $response->assertJsonPath('data.components.0.components.0.label', __('discord.action_link_discord_to_grab_your_seat', [], 'en'));
 
         Queue::assertNotPushed(ProcessDiscordRsvp::class);
     }

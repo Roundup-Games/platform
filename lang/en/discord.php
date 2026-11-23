@@ -15,7 +15,7 @@
 return [
 
     // Unlinked "My seat" on-ramp ephemeral buttons (M059/S02)
-    'action_link_discord_to_grab_your_seat' => 'Link Discord to grab your seat',
+    'action_link_discord_to_grab_your_seat' => 'Link Discord to join',
     'action_rsvp_on_roundup' => 'RSVP on Roundup',
 
     // Daily calendar thread title (M059/S03)
@@ -45,7 +45,7 @@ return [
     'content_bulletin_read_more' => 'Read the full update on the session page.',
 
     // Unlinked "My seat" on-ramp ephemeral body (M059/S02)
-    'content_unlinked_onramp_body' => "You're one tap from your seat. Link your Discord account and we'll drop you straight onto the roster — you can finish in a few seconds. (Next time, this button RSVPs you straight from Discord.)",
+    'content_unlinked_onramp_body' => "Want a seat at this game? Link your Discord account and we'll take you straight to it. If there's a seat for you, you'll be joined automatically; if it's full, you can join the waitlist from there. New to Roundup? You'll answer a few profile questions first. (Next time, you can RSVP right here in Discord.)",
 
     // ── Guild settings page (/discord/guilds/{id}) ──
     'content_guild_settings_subtitle' => 'Pick where Roundup publishes game cards, and pause posting any time.',
