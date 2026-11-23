@@ -247,7 +247,6 @@ return [
     'field_ended_at' => 'Beendet am',
     'field_full_description' => 'Vollständige Beschreibung',
     'field_gender' => 'Geschlecht',
-    'field_get_started' => 'Loslegen',
     'field_getting_started' => 'Erste Schritte',
     'field_hey_name' => 'Hallo :name,',
     'field_individual_amount' => 'Einzel: :amount',

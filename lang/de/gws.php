@@ -26,8 +26,6 @@ return [
     'heading_recap_due' => 'Fällige Recaps',
     'action_review_publish' => 'Prüfen & veröffentlichen',
     'action_write_recap' => 'Recap schreiben',
-    'content_no_linked_game' => 'Keine verknüpfte Runde',
-    'label_archived' => 'Archiviert',
     // Share-Link-Analytik
     'heading_share_link_analytics' => 'Share-Link-Analytik',
     'heading_top_links' => 'Top-Links',

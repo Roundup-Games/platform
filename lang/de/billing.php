@@ -50,7 +50,6 @@ return [
     'content_refund' => 'Erstatten',
     'content_registration_submitted_payment_instructions_will' => 'Anmeldung eingereicht! Zahlungsanweisungen folgen in Kürze.',
     'content_secure_payments' => 'Sichere Zahlungen',
-    'content_with_your_membership_you_get' => 'Mit Deiner Mitgliedschaft erhältst Du Zugang zu exklusiven Events, vorrangiger Anmeldung und allen Plattformfunktionen.',
     'content_your_subscription_has_been_canceled' => 'Dein Abonnement wurde gekündigt. Du behältst den Zugriff bis zum Ende Deines Abrechnungszeitraums.',
     'content_your_subscription_has_been_resumed_welcome_back' => 'Dein Abonnement wurde fortgesetzt. Willkommen zurück!',
     'error_a_valid_event_is_required_for_payment' => 'Ein gültiges Event ist für die Zahlung erforderlich.',

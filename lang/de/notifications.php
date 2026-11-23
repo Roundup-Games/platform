@@ -131,11 +131,7 @@ return [
     'push_enable_button' => 'Push aktivieren',
     'push_disable_button' => 'Ausschalten',
     // Gemeinsame E-Mail-Texte
-    'email_brand_name' => ':brand',
-    'email_default_subject' => 'Benachrichtigung von :brand',
     'email_unsubscribe' => 'Abbestellen',
-    'email_manage_settings' => 'Benachrichtigungseinstellungen',
-    'email_footer_reason' => 'Du erhältst diese E-Mail, da Du Benachrichtigungen für diese Art von Aktivität aktiviert hast.',
     // Grußformel + CTA-Fallback in der veröffentlichten Mail-Wrapper-Ansicht
     // (siehe email_regards/email_trouble_clicking in lang/en) — die Framework-
     // Originale sind Literal-@lang-Strings, die nur über JSON-Übersetzungen

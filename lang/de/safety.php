@@ -2,7 +2,6 @@
 return [
     'content_custom_safety_note' => 'Eigener Sicherheitshinweis',
     'content_everyone_deserves_to_feel_safe' => 'Jeder verdient es, sich am Tisch sicher und wohl zu fühlen. Safety-Tools sind einfache Methoden, die Gruppen helfen, Grenzen zu kommunizieren und den Spaß im Fokus zu behalten.',
-    'content_for_rpg_campaigns_we_encourage' => 'Für RPG-Kampagnen empfehlen wir Session Zero — ein Vorgespräch über Erwartungen, Grenzen und Spielstil. Es setzt den Rahmen für ein großartiges Erlebnis.',
     'content_have_an_x_card_on_the_table' => 'Lege eine X-Card auf den Tisch',
     'content_learn_more_about_safety_tools' => 'Mehr über Safety-Tools erfahren',
     'content_lines_veils_details' => 'Lines & Veils Details',

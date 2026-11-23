@@ -47,7 +47,6 @@ return [
     'content_schedule_a_new_game_session_for_players_to_join' => 'Plane eine neue Spielrunde, an der Spieler teilnehmen können.',
     'content_share_your_location_to_discover' => 'Teile Deinen Standort, um Spielrunden und Kampagnen in Deiner Nähe zu entdecken.',
     'content_share_your_location_to_see' => 'Teile Deinen Standort, um Spielrunden und Kampagnen in Deiner Nähe zu sehen, die diese Woche stattfinden.',
-    'content_start_a_campaign_organize_a' => '**Starte eine Kampagne** — Organisiere wiederkehrende Runden mit Deiner Gruppe.',
     'content_step_outside_your_comfort_zone' => 'Verlass Deine Komfortzone. Probier ein neues System aus, schließ Dich einer anderen Gruppe an oder verliebe Dich in ein Spiel, von dem Du nie gehört hast.',
     'content_this_is_a_protected_game' => 'Dies ist eine Runde nur für Verbindungen. Deine Bewerbung wird vom Host geprüft, bevor Du beitreten kannst.',
     'content_three_steps_to_your_next_game_night' => 'Drei Schritte zu Deinem nächsten Spieleabend',

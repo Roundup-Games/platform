@@ -2,10 +2,8 @@
 return [
     'action_log_in_to_follow' => 'Anmelden um zu folgen',
     'action_back_to_dashboard' => 'Zurück zum Dashboard',
-    'action_create_account' => 'Konto erstellen',
     'action_create_free_account' => 'Kostenloses Konto erstellen',
     'action_delete_account' => 'Konto löschen',
-    'action_go_to_your_dashboard' => 'Zu Deinem Dashboard',
     'action_manage_your_profile_and_preferences' => 'Verwalte Dein Profil und Spielpräferenzen.',
     'action_manage_privacy_notifications_accounts' => 'Verwalte Deine Privatsphäre, Benachrichtigungen und verknüpften Konten.',
     'action_set_your_preferences' => 'Setze Deine Präferenzen',
@@ -15,7 +13,6 @@ return [
     'content_basic_information' => 'Grundinformationen',
     'content_complete_profile' => 'Profil vervollständigen',
     'content_complete_your_profile' => 'Profil vervollständigen',
-    'content_complete_your_profile_add_your' => '**Vervollständige Dein Profil** — Füge Deine bevorzugten Spielsysteme, Pronomen und ein Profilbild hinzu.',
     'content_dashboard' => 'Dashboard',
     'content_my_profile' => 'Mein Profil',
     'content_organizer_profiles' => 'Organisatoren-Profile',

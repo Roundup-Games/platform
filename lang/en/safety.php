@@ -2,7 +2,6 @@
 return [
     'content_custom_safety_note' => 'Custom Safety Note',
     'content_everyone_deserves_to_feel_safe' => 'Everyone deserves to feel safe and comfortable at the table. Safety tools are simple practices that help groups communicate boundaries and keep the focus on fun.',
-    'content_for_rpg_campaigns_we_encourage' => 'For RPG campaigns, we encourage session zero — a pre-game conversation about expectations, boundaries, and play style. It sets the tone for a great experience.',
     'content_have_an_x_card_on_the_table' => 'Have an X-Card on the Table',
     'content_learn_more_about_safety_tools' => 'Learn more about safety tools',
     'content_lines_veils_details' => 'Lines & Veils Details',

@@ -47,7 +47,6 @@ return [
     'content_schedule_a_new_game_session_for_players_to_join' => 'Schedule a new game for players to join.',
     'content_share_your_location_to_discover' => 'Share your location to discover games and campaigns in your area.',
     'content_share_your_location_to_see' => 'Share your location to see games and campaigns happening this week in your area.',
-    'content_start_a_campaign_organize_a' => '**Start a campaign** — Organize a recurring game with your group.',
     'content_step_outside_your_comfort_zone' => 'Step outside your comfort zone. Try a new system, join a different group, or fall in love with a game you\'d never heard of.',
     'content_this_is_a_protected_game' => 'This is a connections-only game. Your application will be reviewed by the host before you can join.',
     'content_three_steps_to_your_next_game_night' => 'Three steps to your next game night',

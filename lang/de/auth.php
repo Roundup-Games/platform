@@ -1,13 +1,11 @@
 <?php
 return [
-    'content_already_registered' => 'Bereits registriert?',
     'content_forgot_your_password' => 'Passwort vergessen?',
     'content_log_in' => 'Anmelden',
     'content_log_out' => 'Abmelden',
     'content_no_password_set_you_currently' => 'Kein Passwort festgelegt. Du meldest Dich derzeit über einen verknüpften Anbieter an.',
     // M066/S09/T03: ersetzt die generische „Noch heute bei :brand anmelden“-Floskel
     // durch On-Voice-Copy (Audit 03 §5 #10) — Tisch-Sprache wie die Startseiten-Überschrift.
-    'content_register_subtitle' => 'Setz Dich dazu — Dein Tisch wartet schon.',
     'content_remember_me' => 'Angemeldet bleiben',
     'content_sign_in' => 'Anmelden',
     'content_sign_in_to_register' => 'Melde Dich an, um teilzunehmen',
@@ -15,8 +13,6 @@ return [
     'content_sign_up_for_a_session' => 'Tritt einer Runde bei, komm vorbei und hab Spaß. Das war\'s. Keine Beiträge, keine Verpflichtungen, kein Druck. Würfle einfach und schau, was passiert.',
     'content_sign_up_free' => 'Kostenlos registrieren',
     'content_sign_up_to_host' => 'Registrieren zum Ausrichten',
-    'content_sign_up_with_google' => 'Mit Google registrieren',
-    'content_sign_up_with_discord' => 'Mit Discord registrieren',
     'content_this_is_a_secure_area_please_confirm_your_password' => 'Dies ist ein geschützter Bereich. Bitte bestätige Dein Passwort.',
     'content_your_password_is_set_click' => 'Dein Passwort ist festgelegt. Klicke oben auf „Passwort ändern“, um es zu aktualisieren.',
     'field_amount_to_register' => ':amount+ zur Anmeldung',
@@ -53,7 +49,6 @@ return [
     'action_continue' => 'Weiter',
     'hint_new_here' => 'Neu hier? Mit Deiner E-Mail entsteht das Konto — mehr musst Du jetzt nicht entscheiden.',
     'label_or_email' => 'oder mit E-Mail fortfahren',
-    'content_sign_in_sub' => 'Willkommen zurück — gib Dein Passwort ein.',
     'field_change' => 'Ändern',
     'content_oauth_only_sub' => 'Dieses Konto nutzt hier kein Passwort.',
     'hint_oauth_provider' => 'Du meldest Dich üblicherweise mit :provider an — fahre einfach mit der Schaltfläche fort.',
@@ -61,8 +56,6 @@ return [
     'title_create_account' => 'Konto erstellen',
     'content_signup_sub' => 'Zwei Felder, und Du bist am Tisch.',
     'action_create_account' => 'Konto erstellen',
-    'title_check_inbox' => 'Schau in Dein Postfach',
-    'content_link_sent' => 'Wir haben einen Link an :email geschickt.',
     'label_last_used' => 'Zuletzt verwendet',
     'label_guest' => 'Gast',
     'content_new_here_toggle' => 'Neu hier? Konto erstellen',

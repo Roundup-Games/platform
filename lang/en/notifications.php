@@ -135,11 +135,7 @@ return [
     'push_enable_button' => 'Enable Push',
     'push_disable_button' => 'Disable',
     // Common email strings
-    'email_brand_name' => ':brand',
-    'email_default_subject' => 'Notification from :brand',
     'email_unsubscribe' => 'Unsubscribe',
-    'email_manage_settings' => 'Notification Settings',
-    'email_footer_reason' => 'You received this because you have notifications enabled for this type of activity.',
     // Mail wrapper salutation + action fallback subcopy (published
     // notifications/email wrapper). The framework originals are literal
     // @lang strings that only resolve through JSON translation files — which

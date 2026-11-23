@@ -302,8 +302,6 @@ return [
     'action_next' => 'Next',
     'action_back' => 'Back',
     'action_publish' => 'Publish charter',
-    'action_continue_editing' => 'Continue editing',
-    'action_copy_link' => 'Copy link',
 
     // Draft state
     'content_draft_banner' => 'This charter is a draft — only you can see it until you publish.',

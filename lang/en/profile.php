@@ -2,10 +2,8 @@
 return [
     'action_log_in_to_follow' => 'Log in to follow',
     'action_back_to_dashboard' => 'Back to Dashboard',
-    'action_create_account' => 'Create Account',
     'action_create_free_account' => 'Create Free Account',
     'action_delete_account' => 'Delete Account',
-    'action_go_to_your_dashboard' => 'Go to Your Dashboard',
     'action_manage_your_profile_and_preferences' => 'Manage your profile and game preferences.',
     'action_manage_privacy_notifications_accounts' => 'Manage your privacy, notifications, and linked accounts.',
     'action_set_your_preferences' => 'Set your preferences',
@@ -15,7 +13,6 @@ return [
     'content_basic_information' => 'Basic Information',
     'content_complete_profile' => 'Complete Your Profile',
     'content_complete_your_profile' => 'Complete Your Profile',
-    'content_complete_your_profile_add_your' => '**Complete your profile** — Add your preferred game systems, pronouns, and a profile picture.',
     'content_dashboard' => 'Dashboard',
     'content_my_profile' => 'My Profile',
     'content_organizer_profiles' => 'Organizer profiles',
