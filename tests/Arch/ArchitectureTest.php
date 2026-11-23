@@ -212,6 +212,88 @@ it('test code waits only on virtualized time', function () {
 });
 
 /**
+ * The nightly-group deferral is a three-file lockstep (MEM1615): the files
+ * Pest.php binds to the group, the paths CI uses to trigger the group, and
+ * the paths pre-push.sh uses. Drift in ONE file is silent — a newly deferred
+ * test that no trigger path covers runs only in the nightly cron, and a
+ * trigger path for a test that left the group is dead weight that rots.
+ *
+ * All three sets are re-derived from the real files (never a copied list), so
+ * this pins the sources of truth themselves.
+ */
+it('the nightly test group, its CI trigger paths and its pre-push trigger paths stay in lockstep', function () {
+    $ci = deferredTriggerPaths((string) file_get_contents(dirname(__DIR__, 2).'/.github/workflows/ci.yml'));
+    $prePush = deferredTriggerPaths((string) file_get_contents(dirname(__DIR__, 2).'/scripts/git/pre-push.sh'));
+    $bound = nightlyBoundFiles();
+
+    // Only tests/ paths are group members. The app-side paths in the same
+    // trigger set (app/Filament, app/Services/BggClient.php, …) are the
+    // "run the group when its production code changes" triggers — by design.
+    $triggeredTests = array_values(array_filter($ci, fn (string $path): bool => str_starts_with($path, 'tests/')));
+
+    expect($prePush)->toBe($ci, 'pre-push.sh and ci.yml disagree about which paths trigger the deferred (nightly) test groups.')
+        // tests/Pest.php is a trigger path by design (a membership change
+        // must run the group at push time) but is obviously not a group member.
+        ->and(array_values(array_diff($triggeredTests, [...$bound, 'tests/Pest.php'])))->toBe([], 'tests/ trigger paths that are not bound to the nightly group: dead triggers.')
+        ->and(array_values(array_diff($bound, $ci)))->toBe([], 'Nightly-bound files no trigger path covers: editing them runs the group nowhere but the nightly cron.')
+        // Every bound file must exist — a renamed test silently drops out of
+        // the group AND leaves a dead trigger behind.
+        ->and(array_values(array_filter($bound, fn (string $path): bool => ! is_file(dirname(__DIR__, 2).'/'.$path))))->toBe([], 'Nightly-bound files that do not exist.');
+});
+
+/**
+ * The repo-relative paths whose change triggers the deferred test groups —
+ * parsed from either lockstep source. ci.yml carries them on one `git diff
+ * --name-only BASE..HEAD -- a b c` line; pre-push.sh in a `deferred_paths=(…)`
+ * array with shell comments. Sorted, de-duplicated.
+ *
+ * @return list<string>
+ */
+function deferredTriggerPaths(string $source): array
+{
+    if (preg_match('/deferred_paths=\((.*?)^\)/ms', $source, $m) === 1) {
+        $body = preg_replace('/^\s*#.*$/m', '', (string) $m[1]);
+
+        $paths = preg_split('/\s+/', trim((string) $body)) ?: [];
+    } else {
+        // ci.yml: the count behind the deferred=changed probe. The path
+        // list runs from the "--" separator to the first pipe.
+        if (preg_match('/^\s*deferred=\$\(git diff --name-only "\$BASE"\.\.HEAD -- (.+?) \|/m', $source, $m) !== 1) {
+            return [];
+        }
+
+        $paths = preg_split('/\s+/', trim((string) $m[1])) ?: [];
+    }
+
+    $paths = array_values(array_filter($paths, fn (string $path): bool => $path !== ''));
+    sort($paths);
+
+    return array_values(array_unique($paths));
+}
+
+/**
+ * Files Pest.php binds to the 'nightly' group, as repo-relative paths
+ * (Pest.php targets are relative to tests/).
+ *
+ * @return list<string>
+ */
+function nightlyBoundFiles(): array
+{
+    $source = (string) file_get_contents(dirname(__DIR__).'/Pest.php');
+
+    if (preg_match("/uses\(\)->group\('nightly'\)->in\((.*?)^\);/ms", $source, $m) !== 1) {
+        return [];
+    }
+
+    preg_match_all("/'([^']+)'/", (string) $m[1], $quotes);
+
+    $files = array_map(fn (string $target): string => 'tests/'.ltrim($target, '/'), $quotes[1]);
+    sort($files);
+
+    return $files;
+}
+
+/**
  * Direct calls to native sleep functions in test code under tests/, as
  * `relative/path.php:line` entries — a tokenizer pass over every tests/*.php
  * file except tests/bootstrap.php (R093 carve-out). A textual prefilter keeps
