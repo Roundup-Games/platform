@@ -199,6 +199,10 @@ return [
     'type_board_game' => 'Brettspiel',
     'type_ttrpg' => 'TTRPG',
     'type_gathering' => 'Treffen',
+    // Eigenname der Spielart. Kein Formular zeigt ihn (die Auswahl oben
+    // benennt jede Spielart einzeln); ChangedFieldLabels benennt damit die
+    // Spalte in Änderungs-Benachrichtigungen.
+    'field_game_type' => 'Spielart',
     'content_also_offering' => 'Auch geplant',
     'content_n_games_on_offer' => '{1}1 geplante Runde|[2,*]:count geplante Runden',
     'content_what_are_you_playing' => 'Was spielt ihr?',
@@ -212,6 +216,9 @@ return [
     'error_max_game_systems_reached' => 'Du kannst maximal :max Spielsysteme hinzufügen.',
     'content_no_game_systems_added_yet' => 'Noch keine Spielsysteme hinzugefügt.',
     'field_comfort_notes' => 'Wohlfühl-Notizen',
+    // Kein Formular zeigt dieses Feld bisher; ChangedFieldLabels benennt damit
+    // die Spalte in Änderungs-Benachrichtigungen.
+    'field_minimum_requirements' => 'Mindestanforderungen',
     'placeholder_game_description' => 'Beschreibe die Runde…',
     'placeholder_game_name' => 'z.B. Spieleabend',
     'placeholder_comfort_notes' => 'Wohlfühl-Notizen für Spieler?',

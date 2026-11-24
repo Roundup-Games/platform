@@ -245,6 +245,13 @@ class I18nDeadStringsCommand extends Command
             'badges.content_badge_tier_year_5',
             // ChangedFieldLabels: LABEL_KEYS fallback reached through a variable.
             'common.field_details',  // ChangedFieldLabels::LABEL_KEYS fallback
+            // ChangedFieldLabels::LABEL_KEYS (M084/S04/T02): label keys held as
+            // const-map values and resolved through a variable — the same
+            // const indirection as ModerationNoticeLabels above. Only these
+            // two have no other call site: the type picker labels each type
+            // separately and no form renders minimum_requirements.
+            'games.field_game_type',
+            'games.field_minimum_requirements',
         ];
 
         return array_values(array_filter($deadKeys, function ($dead) use ($frameworkDomains, $dynamicDomainPrefixes, $dynamicVariableKeys, $usage) {

@@ -209,6 +209,10 @@ return [
     'type_board_game' => 'Board Game',
     'type_ttrpg' => 'TTRPG',
     'type_gathering' => 'Gathering',
+    // The type's own name. No form shows it (the picker above labels each
+    // type separately); ChangedFieldLabels names the column with it in
+    // entity-update notifications.
+    'field_game_type' => 'Game Type',
     'content_also_offering' => 'Also offering',
     'content_n_games_on_offer' => '{1}1 game on offer|[2,*]:count games on offer',
     'content_what_are_you_playing' => 'What are you playing?',
@@ -222,6 +226,9 @@ return [
     'error_max_game_systems_reached' => 'You can add a maximum of :max game systems.',
     'content_no_game_systems_added_yet' => 'No game systems added yet.',
     'field_comfort_notes' => 'Comfort Notes',
+    // No form renders this field yet; ChangedFieldLabels names the column
+    // with it in entity-update notifications.
+    'field_minimum_requirements' => 'Minimum Requirements',
     'placeholder_game_description' => 'Describe the session…',
     'placeholder_game_name' => 'e.g. Dungeon Crawl Night',
     'placeholder_comfort_notes' => 'Any comfort notes for players?',
