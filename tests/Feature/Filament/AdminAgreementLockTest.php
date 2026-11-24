@@ -75,13 +75,21 @@ function adminLockGame(User $owner, GameSystem $system, GameType $type = GameTyp
     return $game;
 }
 
-function adminLockCampaign(User $owner, GameSystem $system): Campaign
+/**
+ * A campaign owned by $owner, saving clean in the admin form. $attributes
+ * override the fixture (a multi-select can only be CLEARED by a record that
+ * holds a value).
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function adminLockCampaign(User $owner, GameSystem $system, array $attributes = []): Campaign
 {
     $campaign = Campaign::factory()->create([
         'owner_id' => $owner->id,
         'name' => ['en' => 'Agreement lock campaign'],
         'session_duration' => 2,
         'price_per_session' => 0,
+        ...$attributes,
     ]);
 
     $campaign->gameSystems()->sync([$system->id]);
@@ -191,12 +199,18 @@ describe('admin edits of an agreement-locked game', function () {
         $writes = adminLockPivotWrites(fn () => Livewire::actingAs($this->admin)
             ->test(EditGame::class, ['record' => $game->getRouteKey()])
             ->set('data.game_system_id', $intruder->id)
+            // A legitimate correction riding along with the forgery.
+            ->set('data.price', '42.00')
             ->call('save')
             ->assertHasErrors(['data.game_system_id' => __('games.error_agreement_locked')]));
 
         expect($writes)->toBe([])
             ->and(adminLockSystemIds($game))->toBe([$system->id]);
         Notification::assertNothingSent();
+
+        // The refusal is for the whole save: none of it is written or logged.
+        expect((float) $game->fresh()->price)->toBe((float) $game->price);
+        expect(adminLockActivityLogs($game, ActivityType::GameUpdated))->toBeEmpty();
 
         // Logged like every owner-path refusal, with the surface named.
         expect($this->logRecord('edit.rejected_locked')['context'])->toMatchArray([
@@ -298,13 +312,71 @@ describe('admin edits of an agreement-locked game', function () {
         [$system, $replacement] = GameSystem::factory()->count(2)->create();
         $game = adminLockGame($this->owner, $system);
 
+        Notification::fake();
+
         Livewire::actingAs($this->admin)
             ->test(EditGame::class, ['record' => $game->getRouteKey()])
             ->set('data.game_system_id', $replacement->id)
+            ->set('data.price', '5.00')
             ->call('save')
             ->assertHasNoErrors();
 
         expect(adminLockSystemIds($game))->toBe([$replacement->id]);
+        Notification::assertNothingSent();
+
+        // The pivot is not a row column: of the two edits only the price is logged.
+        adminLockAssertLoggedOnce($game, ActivityType::GameUpdated, $this->admin, ['price']);
+    });
+
+    test('each non-identity correction on a locked game is stored, announced once and logged with the admin as actor', function (string $column, mixed $value, callable $isStored) {
+        $game = adminLockGame($this->owner, GameSystem::factory()->create());
+        adminLockConfirmParticipant($game, $this->participant);
+
+        Notification::fake();
+
+        Livewire::actingAs($this->admin)
+            ->test(EditGame::class, ['record' => $game->getRouteKey()])
+            ->set("data.{$column}", $value)
+            ->call('save')
+            ->assertHasNoErrors();
+
+        expect($isStored($game->fresh()))->toBeTrue();
+
+        // Exactly the one column: a real text edit is announced, the empty `de`
+        // key the admin form adds beside it is not.
+        expect(adminLockAnnouncedColumns($this->participant))->toBe([[$column]]);
+        Notification::assertNotSentTo($this->owner, EntityUpdated::class);
+
+        adminLockAssertLoggedOnce($game, ActivityType::GameUpdated, $this->admin, [$column]);
+    })->with(adminLockGameCorrections());
+
+    test('a combined correction on a locked game is announced once, naming every column that changed', function () {
+        $game = adminLockGame($this->owner, GameSystem::factory()->create());
+        adminLockConfirmParticipant($game, $this->participant);
+
+        Notification::fake();
+
+        Livewire::actingAs($this->admin)
+            ->test(EditGame::class, ['record' => $game->getRouteKey()])
+            ->set('data.price', '9.99')
+            ->set('data.language', 'de')
+            ->set('data.visibility', 'protected')
+            ->set('data.date_time', '2035-05-06 18:00:00')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $fresh = $game->fresh();
+
+        expect((float) $fresh->price)->toBe(9.99)
+            ->and($fresh->language)->toBe('de')
+            ->and($fresh->visibility?->value)->toBe('protected');
+
+        $expected = ['date_time', 'language', 'price', 'visibility'];
+
+        expect(adminLockAnnouncedColumns($this->participant))->toBe([$expected]);
+        Notification::assertNotSentTo($this->owner, EntityUpdated::class);
+
+        adminLockAssertLoggedOnce($game, ActivityType::GameUpdated, $this->admin, $expected);
     });
 
     test('a save that changes nothing notifies nobody and logs nothing', function () {
@@ -461,6 +533,29 @@ describe('admin edits of an agreement-locked campaign', function () {
             ->and($logs->first()->properties['changed_fields'])->toBe(['session_duration']);
     });
 
+    test('each non-identity correction on a locked campaign is stored, announced once and logged with the admin as actor', function (string $column, mixed $value, array $fixture, callable $isStored) {
+        $campaign = adminLockCampaign($this->owner, GameSystem::factory()->create(), $fixture);
+        adminLockConfirmParticipant($campaign, $this->participant);
+
+        Notification::fake();
+
+        Livewire::actingAs($this->admin)
+            ->test(EditCampaign::class, ['record' => $campaign->getRouteKey()])
+            ->set("data.{$column}", $value)
+            ->call('save')
+            ->assertHasNoErrors();
+
+        expect($isStored($campaign->fresh()))->toBeTrue();
+
+        // Exactly the one column: clearing flags the campaign held is an edit,
+        // and a real text edit is announced while the empty `de` key the admin
+        // form writes beside it is not.
+        expect(adminLockAnnouncedColumns($this->participant))->toBe([[$column]]);
+        Notification::assertNotSentTo($this->owner, EntityUpdated::class);
+
+        adminLockAssertLoggedOnce($campaign, ActivityType::CampaignUpdated, $this->admin, [$column]);
+    })->with(adminLockCampaignCorrections());
+
     test('saving a locked campaign without touching its systems succeeds and announces nothing', function () {
         $system = GameSystem::factory()->create();
         $campaign = adminLockCampaign($this->owner, $system);
@@ -506,4 +601,88 @@ function adminLockActivityLogs(Game|Campaign $subject, ActivityType $type): Coll
         ->where('subject_id', $subject->getKey())
         ->where('event_type', $type->value)
         ->get();
+}
+
+/**
+ * Assert exactly one activity row of $type was written about $subject, with
+ * $actor as its actor and naming exactly $changedColumns.
+ *
+ * @param  list<string>  $changedColumns
+ */
+function adminLockAssertLoggedOnce(Game|Campaign $subject, ActivityType $type, User $actor, array $changedColumns): void
+{
+    $logs = adminLockActivityLogs($subject, $type);
+
+    expect($logs)->toHaveCount(1)
+        ->and((string) $logs->first()->user_id)->toBe($actor->id)
+        ->and(adminLockSorted($logs->first()->properties['changed_fields']))
+        ->toBe(adminLockSorted($changedColumns));
+}
+
+/**
+ * What was announced to the approved participant: one column list per
+ * EntityUpdated sent to them. WHICH columns were named is the contract, their
+ * order is not, so each list is sorted.
+ *
+ * @return list<list<string>>
+ */
+function adminLockAnnouncedColumns(User $participant): array
+{
+    return Notification::sent($participant, EntityUpdated::class)
+        ->map(fn (EntityUpdated $notification): array => adminLockSorted($notification->changedColumns))
+        ->all();
+}
+
+/** @param  list<string>  $columns  @return list<string> */
+function adminLockSorted(array $columns): array
+{
+    return collect($columns)->sort()->values()->all();
+}
+
+/**
+ * The non-identity columns an admin may still correct on a LOCKED game, each
+ * with the value the admin form submits and the way the stored row proves it.
+ * `date_time` has its own tests (the wall-clock case).
+ *
+ * `name` and `description` are the translatable columns: the admin form
+ * writes each once per locale, so these pin that a REAL text edit is
+ * announced while the empty `de` key written beside it is not.
+ *
+ * @return array<string, array{string, mixed, callable(Game): bool}>
+ */
+function adminLockGameCorrections(): array
+{
+    return [
+        'price' => ['price', '12.50', fn (Game $game): bool => (float) $game->price === 12.50],
+        'language' => ['language', 'de', fn (Game $game): bool => $game->language === 'de'],
+        'visibility' => ['visibility', 'protected', fn (Game $game): bool => $game->visibility?->value === 'protected'],
+        'expected duration' => ['expected_duration', '3', fn (Game $game): bool => (float) $game->expected_duration === 3.0],
+        'description' => ['description', 'Staff corrected the blurb.', fn (Game $game): bool => $game->getTranslation('description', 'en') === 'Staff corrected the blurb.'],
+        'name' => ['name', 'Renamed by staff', fn (Game $game): bool => $game->getTranslation('name', 'en') === 'Renamed by staff'],
+    ];
+}
+
+/**
+ * The non-identity columns an admin may still correct on a LOCKED campaign,
+ * each as [column, submitted value, fixture attributes, proof]. The fixture
+ * attributes give the column something to change FROM: a multi-select can
+ * only be cleared by a campaign that holds flags. `session_duration` has its
+ * own test.
+ *
+ * @return array<string, array{string, mixed, array<string, mixed>, callable(Campaign): bool}>
+ */
+function adminLockCampaignCorrections(): array
+{
+    $blurb = 'Staff corrected the blurb.';
+
+    return [
+        'max players' => ['max_players', '10', ['min_players' => 2, 'max_players' => 6], fn (Campaign $campaign): bool => (int) $campaign->max_players === 10],
+        'price per session' => ['price_per_session', '7.50', [], fn (Campaign $campaign): bool => (float) $campaign->price_per_session === 7.50],
+        'language' => ['language', 'de', [], fn (Campaign $campaign): bool => $campaign->language === 'de'],
+        'visibility' => ['visibility', 'protected', [], fn (Campaign $campaign): bool => $campaign->visibility?->value === 'protected'],
+        'vibe flags replaced' => ['vibe_flags', ['horror'], ['vibe_flags' => ['serious']], fn (Campaign $campaign): bool => $campaign->vibe_flags === ['horror']],
+        'vibe flags cleared' => ['vibe_flags', [], ['vibe_flags' => ['serious']], fn (Campaign $campaign): bool => in_array($campaign->vibe_flags, [[], null], true)],
+        'description' => ['description', $blurb, [], fn (Campaign $campaign): bool => $campaign->getTranslation('description', 'en') === $blurb],
+        'name' => ['name', 'Renamed by staff', [], fn (Campaign $campaign): bool => $campaign->getTranslation('name', 'en') === 'Renamed by staff'],
+    ];
 }

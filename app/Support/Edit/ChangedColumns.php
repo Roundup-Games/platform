@@ -9,8 +9,16 @@ use App\Models\Game;
  * The columns a just-saved game or campaign edit really changed — the list
  * an edit announcement names (M084, decision D316).
  *
- * Eloquent keeps the last save's changes on the model (`getChanges()`), and
- * that list is the input here. Two things are dropped from it:
+ * Eloquent keeps two records of the last save on the model, and this needs
+ * both. `getChanges()` names the columns that save wrote. `getPrevious()`
+ * holds each of those columns' raw stored value from BEFORE the save:
+ * `syncChanges()` captures it while the originals are still the old row,
+ * and `finishSave()` only then syncs them to the new values. So in any
+ * after-save hook, `getOriginal()` / `getRawOriginal()` is NOT a "before"
+ * — each already is the new value, and a before/after comparison read from
+ * them compares the new value with itself and calls every column unchanged.
+ *
+ * Three things are dropped from the candidate list:
  *
  *  - `updated_at`: every save touches it; it is bookkeeping, not content.
  *  - A translatable column whose translations did not actually change. The
@@ -19,9 +27,10 @@ use App\Models\Game;
  *    empty `de` key to `name` / `description` / `seo_*`. That is a storage
  *    artifact — the text a person reads is identical in every locale — and
  *    must never be announced as a "name changed" edit.
- *  - A JSON column that went from null to the empty document (or back). An
+ *  - A JSON column that went from null to the empty document ({} / []) or back. An
  *    empty multi-select submits `[]`, so the first save of a record whose
  *    `vibe_flags` is null rewrites it as `[]`: the same "nothing selected".
+ *    Emptying a column that HELD something is a real edit and is announced.
  *
  * Classifies only: reads the model, writes nothing, knows no lock and no
  * tiers (that is FieldTiers) and resolves no labels (that is
@@ -36,12 +45,15 @@ final class ChangedColumns
     {
         $changed = array_keys(array_diff_key($record->getChanges(), ['updated_at' => true]));
 
+        $storedBeforeSave = $record->getPrevious();
+
         $translatable = $record->getTranslatableAttributes();
 
         return array_values(array_filter(
             $changed,
-            fn (string $column): bool => ! (in_array($column, $translatable, true) && self::sameTranslations($record, $column))
-                && ! self::isEmptyJsonArtifact($record, $column),
+            fn (string $column): bool => ! (in_array($column, $translatable, true)
+                && self::sameTranslations($storedBeforeSave[$column] ?? null, $record, $column))
+                && ! self::isEmptyJsonArtifact($storedBeforeSave[$column] ?? null, $record, $column),
         ));
     }
 
@@ -49,8 +61,10 @@ final class ChangedColumns
      * Whether a JSON column is reported as changed only because it went from
      * null to the empty document ({} / []) or back — only for columns cast to
      * array/json, where those three values all mean "nothing set".
+     *
+     * @param  mixed  $storedBeforeSave  The column's raw stored value before the save.
      */
-    private static function isEmptyJsonArtifact(Game|Campaign $record, string $column): bool
+    private static function isEmptyJsonArtifact(mixed $storedBeforeSave, Game|Campaign $record, string $column): bool
     {
         $cast = $record->getCasts()[$column] ?? null;
 
@@ -58,7 +72,7 @@ final class ChangedColumns
             return false;
         }
 
-        return self::isEmptyJson($record->getRawOriginal($column))
+        return self::isEmptyJson($storedBeforeSave)
             && self::isEmptyJson($record->getAttributes()[$column] ?? null);
     }
 
@@ -75,11 +89,12 @@ final class ChangedColumns
      * Whether a translatable column's text is the same before and after the
      * save, locale by locale, with empty translations (null, '' or a missing
      * locale) read as "not translated".
+     *
+     * @param  mixed  $storedBeforeSave  The column's raw stored value (a JSON locale map) before the save.
      */
-    private static function sameTranslations(Game|Campaign $record, string $column): bool
+    private static function sameTranslations(mixed $storedBeforeSave, Game|Campaign $record, string $column): bool
     {
-        $before = $record->getOriginal($column);
-        $before = is_string($before) ? json_decode($before, true) : $before;
+        $before = is_string($storedBeforeSave) ? json_decode($storedBeforeSave, true) : $storedBeforeSave;
 
         return self::translationMap($before) === self::translationMap($record->getTranslations($column));
     }
