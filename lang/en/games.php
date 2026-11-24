@@ -421,4 +421,12 @@ return [
     // price, capacity decrease, min players, bench mode, language, public→private —
     // lock once someone has joined. Shown where the save is refused.
     'error_agreement_locked' => 'This can’t be changed since someone joined. To change the game, cancel it and create a new one.',
+    // Owner edit mode on the detail page (D315/D314, M084/S03)
+    'action_edit_game' => 'Edit game',
+    'action_save_game_changes' => 'Save changes',
+    'action_save_cover_image' => 'Save cover image',
+    'content_current_cover_image' => 'Current cover image',
+    // WHY the Tier-1 fields are read-only: shown once at the top of the edit form.
+    'content_agreement_locked' => 'Locked since someone joined on :date. To change the game, date or price, cancel it and create a new game.',
+    'error_cover_image_upload_failed' => 'The cover image could not be saved. Please try again.',
 ];

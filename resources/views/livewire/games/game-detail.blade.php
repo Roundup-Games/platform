@@ -1,13 +1,28 @@
 <div>
     {{-- Back link --}}
     <div class="bg-surface-container-low border-b border-outline-variant">
-        <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
             <a href="{{ route('dashboard') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
                 {{ __('profile.action_back_to_dashboard') }}
             </a>
+            {{-- Owner edit mode (M084/S03, D315): only for a user who passes GamePolicy::update,
+                 only while the game is Scheduled. The edit component re-checks both itself. --}}
+            @if($canEditGame && !$editing)
+                <button type="button" wire:click="startEditing"
+                        class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+                    <span class="material-symbols-outlined text-base" aria-hidden="true">edit</span>
+                    {{ __('games.action_edit_game') }}
+                </button>
+            @endif
         </div>
     </div>
+
+    @if($editing)
+        {{-- Edit mode: the owner's edit form replaces the read-only hero, description and body.
+             The form announces game-edit-saved / game-edit-cancelled and this flag returns to false. --}}
+        <livewire:games.edit-game :game="$game" :key="$game->id" />
+    @else
 
     {{-- Hero --}}
     @include('livewire.games.partials._game-header')
@@ -324,4 +339,6 @@
     </div>
 
     @include('livewire.games.partials._mobile-cta')
+
+    @endif
 </div>

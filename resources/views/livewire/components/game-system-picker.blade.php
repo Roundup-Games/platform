@@ -22,7 +22,8 @@
         <input
             type="text"
             id="{{ $fieldId }}-search"
-            {{ $attributes->merge(['class' => 'w-full pl-10 pr-10 rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors']) }}
+            @disabled($disabled)
+            {{ $attributes->merge(['class' => 'w-full pl-10 pr-10 rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors' . ($disabled ? ' opacity-60 cursor-not-allowed' : '')]) }}
             placeholder="{{ __('games.placeholder_search_game_systems_picker') }}"
             autocomplete="off"
             wire:model.live.debounce.300ms="search"
@@ -34,7 +35,7 @@
         />
 
         {{-- Clear button --}}
-        @if($value)
+        @if($value && ! $disabled)
             <button
                 type="button"
                 wire:click="clearSelection"
@@ -43,7 +44,7 @@
             >
                 <span class="material-symbols-outlined text-lg" aria-hidden="true">close</span>
             </button>
-        @elseif(strlen($search) > 0)
+        @elseif(! $disabled && strlen($search) > 0)
             <button
                 type="button"
                 wire:click="clearSelection"
@@ -79,7 +80,7 @@
     @endif
 
     {{-- Dropdown: Search Results --}}
-    @if($isOpen && strlen($search) >= 2)
+    @if(! $disabled && $isOpen && strlen($search) >= 2)
         @php($results = $this->searchResults)
 
         <div
@@ -143,7 +144,7 @@
         </div>
 
     {{-- Dropdown: Favorites (when search is empty or minimal) --}}
-    @elseif($isOpen && strlen($search) < 2)
+    @elseif(! $disabled && $isOpen && strlen($search) < 2)
         @php($favorites = $this->favoriteSystems)
 
         @if($favorites->isNotEmpty())
@@ -189,7 +190,7 @@
     @endif
 
     {{-- Expansion Sub-Picker --}}
-    @if($showExpansionPicker)
+    @if($showExpansionPicker && ! $disabled)
         @php($expansionOptions = $this->expansionOptions)
 
         <div class="mt-3 bg-surface-container rounded-lg border border-outline/20 overflow-hidden">

@@ -45,6 +45,7 @@ use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
@@ -120,6 +121,14 @@ class GameDetail extends Component
 
     /** @var int|null Host-edited max_players input (wire:model target). */
     public ?int $capacityNewMax = null;
+
+    /**
+     * The owner's in-page edit mode (M084/S03, D315): while true the page
+     * renders the EditGame form in place of the read-only hero and body.
+     * Owned by this component, not the child: the child only announces
+     * `game-edit-saved` / `game-edit-cancelled` and this flag returns to false.
+     */
+    public bool $editing = false;
 
     public function mount(string $id): void
     {
@@ -896,6 +905,47 @@ class GameDetail extends Component
         return ($id = $this->viewerId()) !== null && $this->game->owner_id === $id;
     }
 
+    /**
+     * The Edit game button: a user who passes GamePolicy::update, on a game
+     * that is still Scheduled (a completed or cancelled game has no edit
+     * mode). The component itself re-checks both on mount and on save.
+     */
+    #[Computed]
+    public function canEditGame(): bool
+    {
+        $user = Auth::user();
+
+        return $user !== null
+            && $user->can('update', $this->game)
+            && $this->game->status === GameStatus::Scheduled;
+    }
+
+    /** Enter the in-page edit mode (D315). */
+    public function startEditing(): void
+    {
+        $this->authorize('update', $this->game);
+
+        if (! $this->canEditGame()) {
+            return;
+        }
+
+        $this->editing = true;
+    }
+
+    /** The edit form saved (or stored a cover): back to the read-only page. */
+    #[On('game-edit-saved')]
+    public function stopEditing(): void
+    {
+        $this->editing = false;
+    }
+
+    /** The edit form was cancelled: back to the read-only page, nothing written. */
+    #[On('game-edit-cancelled')]
+    public function cancelEditing(): void
+    {
+        $this->editing = false;
+    }
+
     #[Computed]
     public function isParticipant(): bool
     {
@@ -1203,6 +1253,7 @@ class GameDetail extends Component
         return view('livewire.games.game-detail', [
             'game' => $this->game,
             'isOwner' => $this->isOwner(),
+            'canEditGame' => $this->canEditGame(),
             'isParticipant' => $this->isParticipant(),
             'isApprovedParticipant' => $this->isApprovedParticipant(),
             'userInvitation' => $this->userInvitation(),

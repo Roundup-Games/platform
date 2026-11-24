@@ -404,3 +404,50 @@ describe('Game Type Parameter', function () {
     });
 
 });
+
+// ═══════════════════════════════════════════════════════════
+// READ-ONLY (disabled prop)
+// ═══════════════════════════════════════════════════════════
+
+// The game edit mode (M084/S03) renders the picker read-only for a Tier-1
+// locked game system (D314). Every other surface relies on the default, so
+// one case pins both states.
+
+describe('Read-Only', function () {
+    it('goes read-only (disabled search input, no clear button or dropdown, the selected system still shown) only when the disabled prop is passed', function () {
+        $user = pickerCreateUser();
+        $system = pickerCreateBaseGame(['name' => ['en' => 'Wingspan']]);
+        $mount = ['value' => $system->id];
+
+        $readOnlyHtml = Livewire::actingAs($user)
+            ->test(GameSystemPicker::class, $mount + ['disabled' => true])
+            ->assertSet('disabled', true)
+            ->set('search', 'Wing')
+            ->html();
+
+        $editableHtml = Livewire::actingAs($user)
+            ->test(GameSystemPicker::class, $mount)
+            ->assertSet('disabled', false)
+            ->set('search', 'Wing')
+            ->html();
+
+        $searchInput = '/<input[^>]*\bid="game-system-search"[^>]*\bdisabled/';
+        $dropdown = 'role="listbox"';
+
+        expect($readOnlyHtml)
+            ->toMatch($searchInput)
+            ->not->toContain('wire:click="clearSelection"')
+            ->not->toContain($dropdown);
+
+        expect($editableHtml)
+            ->not->toMatch($searchInput)
+            ->toContain('wire:click="clearSelection"')
+            ->toContain($dropdown);
+
+        // The search text is not the system's full name, so in the read-only
+        // rendering (no dropdown) the name can only come from the
+        // selected-system indicator.
+        expect($readOnlyHtml)->toContain('Wingspan');
+        expect($editableHtml)->toContain('Wingspan');
+    });
+});

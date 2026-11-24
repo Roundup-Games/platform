@@ -422,4 +422,12 @@ return [
     // Kapazitätssenkung, Mindestspielerzahl, Ersatzbank-Modus, Sprache, öffentlich→privat —
     // sperren sich, sobald jemand beigetreten ist. Wird dort gezeigt, wo das Speichern abgelehnt wird.
     'error_agreement_locked' => 'Das lässt sich seit einem Zusagenden nicht mehr ändern. Um die Runde zu ändern, sag sie ab und leg eine neue an.',
+    // Eigentümer-Bearbeitungsmodus auf der Detailseite (D315/D314, M084/S03)
+    'action_edit_game' => 'Runde bearbeiten',
+    'action_save_game_changes' => 'Änderungen speichern',
+    'action_save_cover_image' => 'Titelbild speichern',
+    'content_current_cover_image' => 'Aktuelles Titelbild',
+    // WARUM die Tier-1-Felder schreibgeschützt sind: einmal oben im Formular gezeigt.
+    'content_agreement_locked' => 'Seit einem Zusagenden am :date gesperrt. Um Runde, Datum oder Preis zu ändern, sag die Runde ab und leg eine neue an.',
+    'error_cover_image_upload_failed' => 'Das Titelbild konnte nicht gespeichert werden. Bitte versuch es erneut.',
 ];
