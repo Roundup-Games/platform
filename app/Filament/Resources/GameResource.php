@@ -48,6 +48,13 @@ class GameResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
+        // D316: staff are bound by the agreement lock on the IDENTITY fields
+        // (the game system(s) and the game type) — disabled once the game has
+        // ever had a confirmed non-owner participant. The disabled state is
+        // courtesy only (bypassable from the client): EditGame refuses a
+        // forged change server-side in mutateFormDataBeforeSave().
+        $isAgreementLocked = fn ($record): bool => $record instanceof Game && $record->isAgreementLocked();
+
         return $schema
             ->components([
                 Section::make('Game Details')
@@ -75,7 +82,12 @@ class GameResource extends Resource
                                     ->options(fn (): array => GameSystem::labelOptions())
                                     ->getOptionLabelUsing(fn ($value): ?string => is_string($value) && $value !== '' ? (GameSystem::labelsForIds([$value])[$value] ?? null) : null)
                                     ->required()
-                                    ->visible(fn ($get): bool => $get('game_type') !== GameType::Gathering->value),
+                                    ->visible(fn ($get): bool => $get('game_type') !== GameType::Gathering->value)
+                                    ->disabled($isAgreementLocked)
+                                    // ->disabled() also drops the field from the
+                                    // saved data; ->saved() AFTER it keeps the
+                                    // unchanged value in the payload.
+                                    ->saved(),
                                 Select::make('gameSystems')
                                     ->label('Game Systems (Gathering)')
                                     // Multi-system picker for Gatherings — mirrors the
@@ -91,7 +103,17 @@ class GameResource extends Resource
                                     ->visible(fn ($get): bool => $get('game_type') === GameType::Gathering->value)
                                     ->getSearchResultsUsing(fn (string $search): array => GameSystem::labelOptions($search))
                                     ->options(fn (): array => GameSystem::labelOptions())
-                                    ->getOptionLabelsUsing(fn (array $values): array => GameSystem::labelsForIds($values)),
+                                    ->getOptionLabelsUsing(fn (array $values): array => GameSystem::labelsForIds($values))
+                                    // Deliberately NOT ->saved() when disabled. A
+                                    // multiple relationship Select is synced from
+                                    // the raw form state inside getState() — BEFORE
+                                    // mutateFormDataBeforeSave() — and the admin
+                                    // panel has no DB transaction to undo that
+                                    // sync with. Disabled-without-saved is never
+                                    // synced, so a forged id list cannot reach the
+                                    // pivot of a locked Gathering; the page then
+                                    // refuses it explicitly.
+                                    ->disabled($isAgreementLocked),
                                 Select::make('campaign_id')
                                     ->label('Campaign')
                                     // campaigns.name is JSONB and campaigns has json-typed
@@ -105,7 +127,9 @@ class GameResource extends Resource
                                     ->label('Game Type')
                                     ->options(collect(GameType::cases())->mapWithKeys(fn (GameType $t) => [$t->value => $t->label()]))
                                     ->default('board_game')
-                                    ->required(),
+                                    ->required()
+                                    ->disabled($isAgreementLocked)
+                                    ->saved(),
                                 // R089: stored UTC instants, entered/displayed on the
                                 // admin's wall clock (Filament converts both ways).
                                 DateTimePicker::make('date_time')

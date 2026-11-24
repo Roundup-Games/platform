@@ -500,9 +500,14 @@ class AgreementEditService
      * fan-out runs after the write committed and can never fail the edit: a
      * dispatch error is logged and the loop ends there.
      *
+     * Public for the Filament admin edit pages (decision D316): Filament has
+     * already written the row when their afterSave() runs, so they announce
+     * through this one fan-out instead of routing their save through apply()
+     * — one loop, one set of log keys, for the owner and the admin path alike.
+     *
      * @param  list<string>  $changedFields
      */
-    private function notifyParticipants(Game|Campaign $entity, array $changedFields): void
+    public function notifyParticipants(Game|Campaign $entity, array $changedFields): void
     {
         $isGame = $entity instanceof Game;
 

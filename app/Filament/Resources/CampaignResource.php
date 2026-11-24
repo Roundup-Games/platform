@@ -45,6 +45,11 @@ class CampaignResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
+        // D316: staff are bound by the agreement lock on the identity field
+        // (the offered game systems). Disabled-without-saved on purpose — see
+        // the note on the field; EditCampaign refuses a forged change.
+        $isAgreementLocked = fn ($record): bool => $record instanceof Campaign && $record->isAgreementLocked();
+
         return $schema
             ->components([
                 Section::make('Campaign Details')
@@ -70,7 +75,17 @@ class CampaignResource extends Resource
                                     ->preload()
                                     ->getSearchResultsUsing(fn (string $search): array => GameSystem::labelOptions($search))
                                     ->options(fn (): array => GameSystem::labelOptions())
-                                    ->getOptionLabelsUsing(fn (array $values): array => GameSystem::labelsForIds($values)),
+                                    ->getOptionLabelsUsing(fn (array $values): array => GameSystem::labelsForIds($values))
+                                    // Deliberately NOT ->saved() when disabled. A
+                                    // multiple relationship Select is synced from
+                                    // the raw form state inside getState() — BEFORE
+                                    // mutateFormDataBeforeSave() — and the admin
+                                    // panel has no DB transaction to undo that
+                                    // sync with. Disabled-without-saved is never
+                                    // synced, so a forged id list cannot reach the
+                                    // pivot of a locked campaign; the page then
+                                    // refuses it explicitly.
+                                    ->disabled($isAgreementLocked),
                                 Select::make('recurrence')
                                     ->options(collect(Recurrence::cases())->mapWithKeys(fn (Recurrence $r) => [$r->value => $r->label()])),
                                 TextInput::make('session_duration')
