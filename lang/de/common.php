@@ -394,6 +394,7 @@ return [
     'content_source_short_link' => 'Kurzlink',
     'content_source_discord' => 'Discord',
     'content_source_mcp_agent' => 'MCP-Agent',
+    'content_source_roster_reinvite' => 'Erneute Einladung aus der vorherigen Runde',
     /*
     |--------------------------------------------------------------------------
     | Policy Update Notice

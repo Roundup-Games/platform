@@ -401,6 +401,7 @@ return [
     'content_source_short_link' => 'Short Link',
     'content_source_discord' => 'Discord',
     'content_source_mcp_agent' => 'MCP Agent',
+    'content_source_roster_reinvite' => 'Previous roster re-invite',
     /*
     |--------------------------------------------------------------------------
     | Policy Update Notice
