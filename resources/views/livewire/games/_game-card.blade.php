@@ -94,6 +94,22 @@
                     severity="destructive"
                     confirm-icon="cancel"
                 />
+                {{-- "Recreate with changes" (linked recreate, D318/D319): cancel this game and
+                     open the create form pre-filled from it. It needs its own confirm id —
+                     the confirm component shows the one instance the host opened. --}}
+                <x-confirm-action
+                    action="recreateGame('{{ $game->id }}')"
+                    id="recreate-game-{{ $game->id }}"
+                    :icon="'replay'"
+                    :trigger-label="__('games.action_recreate_game')"
+                    trigger-class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors"
+                    :confirm-label="__('games.action_recreate_game')"
+                    :cancel-label="__('common.action_keep')"
+                    :message="__('games.confirm_recreate')"
+                    variant="inline"
+                    severity="caution"
+                    confirm-icon="replay"
+                />
             </div>
         @else
             <div class="border-t border-outline-variant/20 px-4 sm:px-5 py-2.5 flex flex-wrap gap-1">

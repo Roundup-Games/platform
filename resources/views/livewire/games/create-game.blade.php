@@ -16,6 +16,15 @@
             </p>
         </div>
 
+        {{-- Linked recreate (D318/D319): why this form is pre-filled. Rendered only while ?recreate=
+             still names the cancelled game being republished, so it is gone once the replacement is saved. --}}
+        @if($recreatingGame !== null)
+            <div class="mb-6 rounded-xl bg-surface-container-high border border-outline-variant/40 p-4 flex items-start gap-3" role="status">
+                <span class="material-symbols-outlined text-on-surface-variant shrink-0" aria-hidden="true">replay</span>
+                <p class="text-sm text-on-surface">{{ __('games.content_recreating_from', ['name' => $recreatingGame->name]) }}</p>
+            </div>
+        @endif
+
         {{-- Step 1: Type Selector --}}
         @if($step === 'type')
             <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-5 sm:p-6">

@@ -261,15 +261,78 @@ class GamesPage extends Component
 
     public function cancelGame(string $id): void
     {
+        $game = $this->scheduledGameForCancellation($id);
+
+        if ($game === null) {
+            return;
+        }
+
+        $this->cancelScheduledGame($game);
+    }
+
+    /**
+     * "Recreate with changes" (linked recreate, D318/D319): the host declares
+     * the recreate, the game is cancelled exactly like {@see cancelGame}, and
+     * the host lands on the create form pre-filled from the cancelled game,
+     * with ?recreate= carrying the link.
+     *
+     * The declaration is the host's explicit choice — it is never inferred
+     * from a later clone — and it is stamped before the cancellation so it is
+     * on record when the late-cancel offence is recorded. The offence itself
+     * is recorded exactly as today; AttendanceService::resolveLinkedRecreate()
+     * neutralises it only once the replacement is published.
+     */
+    public function recreateGame(string $id): void
+    {
+        $game = $this->scheduledGameForCancellation($id);
+
+        if ($game === null) {
+            return;
+        }
+
+        // Stamped in memory first: the cancellation's own save persists the
+        // declaration in the SAME write as the status flip, so a declared
+        // game can never be left un-cancelled and the model's saved hooks run
+        // once, exactly as they do for a plain cancel.
+        $game->recreate_declared_at = now();
+
+        $this->cancelScheduledGame($game);
+
+        Log::info('recreate.declared', [
+            'game_id' => $game->id,
+            'host_id' => $game->owner_id,
+        ]);
+
+        $this->redirect(route('games.create', ['recreate' => $game->id]), navigate: true);
+    }
+
+    /**
+     * The guards every cancel-path action shares: the game must exist, the
+     * user must pass GamePolicy::update, and only a scheduled game can be
+     * cancelled. Returns null once refused, with the reason flashed.
+     */
+    private function scheduledGameForCancellation(string $id): ?Game
+    {
         $game = Game::findOrFail($id);
         $this->authorize('update', $game);
 
         if ($game->status !== GameStatus::Scheduled) {
             session()->flash('error', __('games.error_game_not_scheduled'));
 
-            return;
+            return null;
         }
 
+        return $game;
+    }
+
+    /**
+     * Cancel a scheduled game: the status flip, the host late-cancel offence,
+     * the waitlist/bench cascade and the participant notifications. This is
+     * the one cancellation body — cancelGame() and recreateGame() both call
+     * it, so the two paths cannot drift.
+     */
+    private function cancelScheduledGame(Game $game): void
+    {
         $game->status = GameStatus::Canceled;
         $game->save();
 

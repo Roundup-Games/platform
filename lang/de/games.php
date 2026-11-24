@@ -108,6 +108,10 @@ return [
     'flash_game_completed' => 'Runde als abgeschlossen markiert.',
     'error_game_not_scheduled' => 'Nur geplante Runden können geändert werden.',
     'confirm_cancel_game' => 'Bist Du sicher, dass Du diese Runde absagen möchtest?',
+    // "Mit Änderungen neu anlegen" (D318/D319, M084/S05): absagen + vorausgefülltes Formular aus der Runde
+    'action_recreate_game' => 'Mit Änderungen neu anlegen',
+    'confirm_recreate' => 'Diese Runde absagen und aus ihren Angaben eine neue anlegen? Dein Vermerk für eine späte Absage entfällt, sobald die neue Runde veröffentlicht ist. Spieler werden nicht übernommen — Du lädst sie erneut ein.',
+    'content_recreating_from' => 'Du legst :name mit Änderungen neu an. Veröffentliche die neue Runde, damit Dein Vermerk für eine späte Absage entfällt.',
     // GamesPage — priorisierte Bereiche
     'heading_needs_your_attention' => 'Braucht Deine Aufmerksamkeit',
     'heading_upcoming_hosting' => 'Anstehend — Du leitest',

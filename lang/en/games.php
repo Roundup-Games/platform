@@ -119,6 +119,10 @@ return [
     'flash_game_completed' => 'Game marked as completed.',
     'error_game_not_scheduled' => 'Only scheduled games can be modified.',
     'confirm_cancel_game' => 'Are you sure you want to cancel this game?',
+    // "Recreate with changes" (D318/D319, M084/S05): cancel + create form pre-filled from the game
+    'action_recreate_game' => 'Recreate with changes',
+    'confirm_recreate' => 'Cancel this game and start a new one from its details? Your late-cancellation mark is waived once the new game is published. Players are not carried over — you invite them again.',
+    'content_recreating_from' => 'You’re recreating :name. Publish to waive the late-cancellation mark.',
     // GamesPage — priority board sections
     'heading_needs_your_attention' => 'Needs your attention',
     'heading_upcoming_hosting' => 'Upcoming — you\'re hosting',

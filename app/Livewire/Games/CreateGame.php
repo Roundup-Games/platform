@@ -194,7 +194,27 @@ class CreateGame extends Component
 
     /**
      * Resolve ?recreate={id} to the cancelled predecessor this form may link
-     * to, or null when the param is absent or fails validation.
+     * to, or null when the param is absent or fails validation — in which case
+     * the param is dropped as well, so no link is ever persisted from it.
+     *
+     * Anything invalid is dropped silently (never a 403/404/500): a tampered
+     * id must not create a link. Runs on mount AND again in save(), because a
+     * #[Url] property is client-writable between requests.
+     */
+    protected function resolveRecreateTarget(): ?Game
+    {
+        $target = $this->validatedRecreateTarget();
+
+        if ($target === null) {
+            $this->recreate = null;
+        }
+
+        return $target;
+    }
+
+    /**
+     * ?recreate={id} checked against every condition a link requires, without
+     * touching the param: null when it is absent or fails validation.
      *
      * A target is accepted only when EVERY condition holds:
      *  - it is a real game the authenticated user owns (GamePolicy::clone),
@@ -204,15 +224,13 @@ class CreateGame extends Component
      *    cancelled game, which is what keeps the same former roster from being
      *    re-invited to several games.
      *
-     * Anything else drops the param silently (never a 403/404/500): a tampered
-     * id must not create a link. Runs on mount AND again in save(), because a
-     * #[Url] property is client-writable between requests.
+     * Shared by resolveRecreateTarget() and the recreate notice above the
+     * form: the notice is checked on every render, so it can never name a
+     * game the save would not link to.
      */
-    protected function resolveRecreateTarget(): ?Game
+    protected function validatedRecreateTarget(): ?Game
     {
         if ($this->recreate === null || $this->recreate === '' || ! Str::isUuid($this->recreate)) {
-            $this->recreate = null;
-
             return null;
         }
 
@@ -223,8 +241,6 @@ class CreateGame extends Component
             || $target->status !== GameStatus::Canceled
             || $target->recreate_declared_at === null
             || $target->recreatedBy()->exists()) {
-            $this->recreate = null;
-
             return null;
         }
 
@@ -537,6 +553,10 @@ class CreateGame extends Component
             },
         );
 
+        // The linked recreate is consumed — the replacement is published. Drop
+        // the param so the recreate notice cannot outlive the save.
+        $this->recreate = null;
+
         session()->flash('success', __('games.flash_game_name_created_successfully', ['name' => $game->name]));
 
         $this->redirect(route('games.show', $game), navigate: true);
@@ -546,6 +566,9 @@ class CreateGame extends Component
     {
         return view('livewire.games.create-game', [
             'isGM' => authenticatedUser()->isGM(),
+            // The cancelled game ?recreate= names, behind the notice above the
+            // form. Null — no notice — once the param is gone or no longer validates.
+            'recreatingGame' => $this->validatedRecreateTarget(),
         ]);
     }
 
