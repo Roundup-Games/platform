@@ -3,6 +3,7 @@
 namespace App\Livewire\Games;
 
 use App\Dto\CapacityUpdateResult;
+use App\Dto\RosterReinviteResult;
 use App\Enums\AttendanceStatus;
 use App\Enums\GameStatus;
 use App\Enums\JoinSource;
@@ -65,6 +66,8 @@ use Livewire\Component;
  * @property Collection<int, ShortLink> $getShortLinks
  * @property bool $hasShareLink
  * @property string|null $shareLinkUrl
+ * @property bool $canReinviteRoster
+ * @property int $reinvitableRosterCount
  */
 #[Layout('layouts.app')]
 class GameDetail extends Component
@@ -129,6 +132,13 @@ class GameDetail extends Component
      * `game-edit-saved` / `game-edit-cancelled` and this flag returns to false.
      */
     public bool $editing = false;
+
+    /**
+     * Hides the roster-reinvite banner (D320): once the host acted on it, or dismissed it.
+     * Component state only — a reload offers the banner again while someone is still left
+     * to invite, because nobody is invited until the host does it.
+     */
+    public bool $rosterReinviteBannerDismissed = false;
 
     public function mount(string $id): void
     {
@@ -946,6 +956,90 @@ class GameDetail extends Component
         $this->editing = false;
     }
 
+    // ── Roster re-invite (D320, D321) ─────────────────
+
+    /**
+     * Whether this game replaces a cancelled one and the viewer may invite its roster:
+     * the link exists, its predecessor is cancelled, the game is still Scheduled, and
+     * the viewer passes GamePolicy::update. ParticipantService::inviteFormerRoster()
+     * re-checks every one of these.
+     */
+    #[Computed]
+    public function canReinviteRoster(): bool
+    {
+        // loadMissing: the model is re-hydrated on every request, and strict mode
+        // forbids the lazy load a bare ->recreates would trigger before render().
+        $this->game->loadMissing('recreates');
+
+        $predecessor = $this->game->recreates;
+
+        return $predecessor !== null
+            && $predecessor->status === GameStatus::Canceled
+            && $this->game->status === GameStatus::Scheduled
+            && Auth::user()?->can('update', $this->game) === true;
+    }
+
+    /**
+     * How many former players the banner can offer to invite right now. 0 hides it:
+     * the host dismissed it or already acted on it, nobody is left to invite, or
+     * there is no free seat.
+     */
+    #[Computed]
+    public function reinvitableRosterCount(): int
+    {
+        if ($this->rosterReinviteBannerDismissed || ! $this->canReinviteRoster()) {
+            return 0;
+        }
+
+        return $this->participantService()->countReinvitableFormerRoster($this->game);
+    }
+
+    /**
+     * Invite the previous roster: one click, and every former player decides for themselves.
+     * The flash reports the two counts plus the reason anyone was left out, so it never
+     * blames a full game for a player who had simply joined already.
+     */
+    public function reinviteRoster(): void
+    {
+        $this->authorize('update', $this->game);
+
+        if (! $this->canReinviteRoster()) {
+            session()->flash('error', __('games.error_roster_reinvite_unavailable'));
+
+            return;
+        }
+
+        $result = $this->participantService()->inviteFormerRoster($this->game, authenticatedUser());
+
+        $this->rosterReinviteBannerDismissed = true;
+
+        session()->flash('success', $this->rosterReinviteFlash($result));
+    }
+
+    /**
+     * Hide the banner for this page view. It returns on the next load while someone is
+     * still left to invite.
+     */
+    public function dismissRosterReinviteBanner(): void
+    {
+        $this->rosterReinviteBannerDismissed = true;
+    }
+
+    private function rosterReinviteFlash(RosterReinviteResult $result): string
+    {
+        $message = __('games.flash_roster_reinvite', ['invited' => $result->invited, 'skipped' => $result->skipped()]);
+
+        if ($result->skippedCapacity > 0) {
+            $message .= ' '.__('games.flash_roster_reinvite_reason_capacity');
+        }
+
+        if ($result->skippedAlready > 0) {
+            $message .= ' '.__('games.flash_roster_reinvite_reason_already');
+        }
+
+        return $message;
+    }
+
     #[Computed]
     public function isParticipant(): bool
     {
@@ -1243,7 +1337,7 @@ class GameDetail extends Component
             'owner', 'campaign', 'recapEntry', 'event',
             'gameSystems.categories', 'gameSystems.mechanics',
             'gameSystems.publishers', 'gameSystems.baseGame', 'gameSystems.expansions',
-            'linkedLocation',
+            'linkedLocation', 'recreates',
         ]);
         $this->game->load(['participants.user', 'applications.user']);
 
@@ -1254,6 +1348,9 @@ class GameDetail extends Component
             'game' => $this->game,
             'isOwner' => $this->isOwner(),
             'canEditGame' => $this->canEditGame(),
+            'canReinviteRoster' => $this->canReinviteRoster(),
+            'reinvitableRosterCount' => $this->reinvitableRosterCount(),
+            'replacedGameName' => $this->game->recreates?->name,
             'isParticipant' => $this->isParticipant(),
             'isApprovedParticipant' => $this->isApprovedParticipant(),
             'userInvitation' => $this->userInvitation(),

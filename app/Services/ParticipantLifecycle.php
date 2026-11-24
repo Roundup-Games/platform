@@ -25,6 +25,7 @@ use App\Notifications\EntityInvitation;
 use App\Notifications\ParticipantJoined;
 use App\Notifications\ParticipantRemoved;
 use App\Notifications\PromotedFromBench;
+use App\Notifications\RosterReinviteInvitation;
 use App\Services\Calendar\CalendarSyncDispatcher;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -1084,6 +1085,12 @@ class ParticipantLifecycle
             $invitationType = EntityInvitation::class;
             $dataKey = $meta->isCampaign() ? 'campaign_id' : 'game_id';
             $this->notificationService->markReadByType($user, $invitationType, $entity->id, $dataKey);
+
+            // A roster re-invitation (D320/D321) is its own class and its payload binds
+            // entity_id: accepting it clears that bell row exactly like an ordinary invite.
+            if ($entity instanceof Game) {
+                $this->notificationService->markReadByType($user, RosterReinviteInvitation::class, $entity->id, 'entity_id');
+            }
         } catch (\Throwable $e) {
             Log::error('notification.mark_read_on_accept_failed', [
                 'entity_type' => $meta->type,

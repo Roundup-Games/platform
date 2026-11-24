@@ -224,6 +224,17 @@ return [
     'subject_session_added_to_campaign' => 'Neue Runde zu :campaign hinzugefügt',
     'body_session_added_to_campaign' => 'Eine neue Runde wurde zur Kampagne **:campaign** hinzugefügt. Prüfe die Details und notiere Dir den Termin.',
     'action_session_added_to_campaign' => 'Runde anzeigen',
+    // Erneutes Einladen des vorherigen Kaders (M084, D320/D321) — wer für eine
+    // abgesagte Runde angemeldet war, wird zu ihrem Ersatz eingeladen und liest,
+    // was sich geändert hat. Das *_unchanged-Paar ist die Variante ohne Unterschiede:
+    // Der Text behauptet nie Änderungen, die der Aufrufer nicht gefunden hat.
+    'subject_roster_reinvite' => ':game ersetzt eine abgesagte Runde — wieder dabei?',
+    'body_roster_reinvite' => ':inviter hat **:replaced** abgesagt und dafür **:game** angelegt. Einiges hat sich geändert — sieh Dir die Änderungen an und entscheide, ob die Runde weiterhin zu Dir passt.',
+    'body_roster_reinvite_unchanged' => ':inviter hat **:replaced** abgesagt und dafür **:game** mit denselben Details angelegt. Sieh Dir die Runde an und entscheide, ob Du wieder dabei bist.',
+    'action_roster_reinvite_view' => 'Runde ansehen',
+    'preheader_roster_reinvite' => 'Gleicher Tisch, ein paar Dinge haben sich geändert.',
+    'preheader_roster_reinvite_unchanged' => 'Gleicher Tisch, gleiche Runde — wieder dabei?',
+    'content_roster_reinvite_changed_heading' => 'Was sich geändert hat',
     // E-Mail-Betreffs — Bewerbungen
     'subject_new_application' => ':applicant hat sich für „:entity“ beworben',
     'body_new_application' => '**:applicant** hat sich für die Teilnahme an deiner :entity_type **:entity** beworben. Prüfe das Profil und antworte.',

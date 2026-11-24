@@ -441,4 +441,12 @@ return [
     // WARUM die Tier-1-Felder schreibgeschützt sind: einmal oben im Formular gezeigt.
     'content_agreement_locked' => 'Seit einem Zusagenden am :date gesperrt. Um Runde, Datum oder Preis zu ändern, sag die Runde ab und leg eine neue an.',
     'error_cover_image_upload_failed' => 'Das Titelbild konnte nicht gespeichert werden. Bitte versuch es erneut.',
+    // Erneute Einladung bei einer Runde, die eine abgesagte ersetzt (D320/D321, M084/S06):
+    // Spielende werden eingeladen, nie übernommen — jede und jeder entscheidet selbst.
+    'content_roster_reinvite' => '{1} :count Spielende aus :replaced kann zu dieser Runde eingeladen werden. Diese Person wird nicht automatisch übernommen — sie entscheidet selbst.|[2,*] :count Spielende aus :replaced können zu dieser Runde eingeladen werden. Sie werden nicht automatisch übernommen — jede und jeder entscheidet selbst.',
+    'action_roster_reinvite' => 'Spielende der vorherigen Runde einladen',
+    'flash_roster_reinvite' => 'Vorherige Runde: :invited eingeladen, :skipped nicht eingeladen.',
+    'flash_roster_reinvite_reason_capacity' => 'Die Runde ist voll.',
+    'flash_roster_reinvite_reason_already' => 'Sie sind bereits Teil dieser Runde.',
+    'error_roster_reinvite_unavailable' => 'Die Spielenden der vorherigen Runde können nicht mehr eingeladen werden.',
 ];

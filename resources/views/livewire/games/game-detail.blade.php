@@ -18,6 +18,32 @@
         </div>
     </div>
 
+    {{-- Roster re-invite (M084/S06, D320/D321): the host of a game that replaces a cancelled one
+         invites its players back in one click. Players are never carried over — each one is invited
+         and decides. The banner only exists while someone is left to invite and a seat is free. --}}
+    @if(! $editing && $reinvitableRosterCount > 0)
+        <div class="bg-surface-container-low border-b border-outline-variant">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center gap-3">
+                <span class="material-symbols-outlined text-primary shrink-0" aria-hidden="true">group_add</span>
+                <p class="text-sm text-on-surface flex-1 min-w-0">
+                    {{ trans_choice('games.content_roster_reinvite', $reinvitableRosterCount, ['count' => $reinvitableRosterCount, 'replaced' => $replacedGameName]) }}
+                </p>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" wire:click="reinviteRoster" wire:loading.attr="disabled"
+                            class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-colors disabled:opacity-60">
+                        <span class="material-symbols-outlined text-base" aria-hidden="true">send</span>
+                        {{ __('games.action_roster_reinvite') }}
+                    </button>
+                    <button type="button" wire:click="dismissRosterReinviteBanner"
+                            class="p-1 rounded-lg text-on-surface-variant hover:bg-on-surface/5 transition-colors"
+                            aria-label="{{ __('common.action_close') }}">
+                        <span class="material-symbols-outlined text-xl" aria-hidden="true">close</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
     @if($editing)
         {{-- Edit mode: the owner's edit form replaces the read-only hero, description and body.
              The form announces game-edit-saved / game-edit-cancelled and this flag returns to false. --}}

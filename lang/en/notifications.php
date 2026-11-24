@@ -228,6 +228,17 @@ return [
     'subject_session_added_to_campaign' => 'New session added to :campaign',
     'body_session_added_to_campaign' => 'A new session was added to the campaign **:campaign**. Check the details and mark your calendar.',
     'action_session_added_to_campaign' => 'View Game',
+    // Roster re-invitation (M084, D320/D321) — a cancelled game's former
+    // participants are invited to its replacement and told what changed. The
+    // *_unchanged pair is the diff-free variant: the copy never claims changes
+    // the caller did not find.
+    'subject_roster_reinvite' => ':game replaces a cancelled game — join again?',
+    'body_roster_reinvite' => ':inviter cancelled **:replaced** and set up **:game** in its place. Some details changed — take a look and decide whether this is still your game.',
+    'body_roster_reinvite_unchanged' => ':inviter cancelled **:replaced** and set up **:game** in its place with the same details. Take a look and decide whether to join again.',
+    'action_roster_reinvite_view' => 'View the game',
+    'preheader_roster_reinvite' => 'Same table, a few things changed.',
+    'preheader_roster_reinvite_unchanged' => 'Same table, same game — join again?',
+    'content_roster_reinvite_changed_heading' => 'What changed',
     // Email subjects — Applications
     'subject_new_application' => ':applicant applied to join your :entity',
     'body_new_application' => '**:applicant** applied to join your :entity_type **:entity**. Review their profile and respond.',

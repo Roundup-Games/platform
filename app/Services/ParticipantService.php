@@ -6,6 +6,8 @@ use App\Contracts\Participant;
 use App\Dto\EntityMeta;
 use App\Dto\InviteBatchResult;
 use App\Dto\ParticipantResult;
+use App\Dto\RosterReinviteResult;
+use App\Enums\GameStatus;
 use App\Enums\JoinSource;
 use App\Enums\NotificationCategory;
 use App\Enums\ParticipantRole;
@@ -18,12 +20,18 @@ use App\Models\GameParticipant;
 use App\Models\SuppressedInviteEmail;
 use App\Models\User;
 use App\Notifications\EntityInvitation;
+use App\Notifications\RosterReinviteInvitation;
+use App\Support\Edit\FieldTiers;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
+use LogicException;
 
 class ParticipantService
 {
@@ -128,6 +136,182 @@ class ParticipantService
         }
 
         return new InviteBatchResult($invitedCount, $skippedCount);
+    }
+
+    // ── Roster re-invite ───────────────────────────────
+
+    /**
+     * Re-invite the roster of the cancelled game a replacement stands in for (D320, D321).
+     *
+     * THE LINK IS THE AUTHORITY. Nobody hands this method a user id: the invitees are the
+     * APPROVED non-owner participants of $replacement->recreates, read here. A participant the
+     * host removed before cancelling carries status `removed` and is never invited. The host
+     * is the predecessor's owner (enforced below), so the inviter is never a candidate either.
+     *
+     * Why this bypasses the join intake (ParticipantLifecycle::createOrReactivate): every
+     * invite path does. inviteFriends(), inviteByEmail() and this method create Pending/Invited
+     * rows directly, and a row enters ParticipantLifecycle when the invitee accepts
+     * (acceptInvitation()). Nothing is carried over — each former participant opts in again.
+     *
+     * No friendship check, on purpose. inviteFriends()' mutual-follow rule (R017) protects
+     * people from invitations by strangers; someone who already accepted this host's game is
+     * no stranger to them, and a roster is rarely a mutual-follow set. That difference is why
+     * this is a separate entry point rather than a flag on inviteFriends().
+     *
+     * Capacity: a pending invitation reserves no seat — acceptInvitation() is the gate that
+     * enforces it — so the cap here keeps a smaller replacement from collecting more pending
+     * invitations than it has seats. Seats are counted once, at call time, as every other
+     * invite path does; the (game_id, user_id) unique constraint is what makes a lost race
+     * harmless.
+     *
+     * @throws LogicException When the game is not a Scheduled game linked to a cancelled one — a programming
+     *                        error, never a user error: the banner only offers the action where it applies.
+     * @throws AuthorizationException When the predecessor is not cancelled, the inviter is not its host, or may
+     *                                not update the replacement.
+     */
+    public function inviteFormerRoster(Game $replacement, User $inviter): RosterReinviteResult
+    {
+        // loadMissing: a strict-mode model (dev, tests) must never lazy-load inside a service.
+        $replacement->loadMissing('recreates');
+
+        $predecessor = $replacement->recreates;
+
+        if ($predecessor === null || $replacement->status !== GameStatus::Scheduled) {
+            throw new LogicException(sprintf(
+                'Game [%s] cannot re-invite a roster: it is not a Scheduled game linked to a cancelled predecessor.',
+                $replacement->id,
+            ));
+        }
+
+        if ($predecessor->status !== GameStatus::Canceled
+            || $predecessor->owner_id !== $inviter->id
+            || ! $inviter->can('update', $replacement)) {
+            throw new AuthorizationException('Only the host of the cancelled game may re-invite its roster.');
+        }
+
+        $changedFields = self::changedAgreementFields($predecessor, $replacement);
+        $remaining = $this->remainingSeats($replacement);
+
+        $invited = 0;
+        $skippedCapacity = 0;
+        $skippedAlready = 0;
+        $skippedMissing = 0;
+
+        foreach ($this->formerRoster($predecessor)->with('user')->get() as $former) {
+            $targetUser = $former->user;
+
+            if ($targetUser === null) {
+                $skippedMissing++;
+                Log::warning('game roster re-invite skipped: user not found', [
+                    'game_id' => $replacement->id,
+                    'predecessor_id' => $predecessor->id,
+                    'participant_id' => $former->id,
+                ]);
+
+                continue;
+            }
+
+            if ($replacement->participants()->whereBelongsTo($targetUser)->exists()) {
+                $skippedAlready++;
+
+                continue;
+            }
+
+            if ($invited >= $remaining) {
+                $skippedCapacity++;
+
+                continue;
+            }
+
+            try {
+                // One savepoint per insert: absorbing the violation caught below must
+                // never poison a transaction a caller wrapped around this call.
+                DB::transaction(fn () => $replacement->participants()->create([
+                    'user_id' => $targetUser->id,
+                    'role' => ParticipantRole::Invited->value,
+                    'status' => ParticipantStatus::Pending->value,
+                    'join_source' => JoinSource::RosterReinvite,
+                ]));
+            } catch (QueryException $e) {
+                // Only the race is absorbed: a concurrent invitation won the
+                // (game_id, user_id) unique constraint, so the person is already in.
+                // Anything else — a constraint the schema does not know, a vanished
+                // account — is a real failure and must surface, not count as a skip.
+                if (! self::isUniqueViolation($e)) {
+                    throw $e;
+                }
+
+                $skippedAlready++;
+                Log::info('game roster re-invite skipped: duplicate caught by unique constraint', [
+                    'game_id' => $replacement->id,
+                    'predecessor_id' => $predecessor->id,
+                    'invited_user_id' => $targetUser->id,
+                    'invited_by' => $inviter->id,
+                ]);
+
+                continue;
+            }
+
+            Log::info('game participant reinvited', [
+                'game_id' => $replacement->id,
+                'predecessor_id' => $predecessor->id,
+                'invited_user_id' => $targetUser->id,
+                'invited_by' => $inviter->id,
+            ]);
+
+            $this->sendRosterReinviteNotification($replacement, $targetUser, $inviter, $predecessor->name, $changedFields);
+
+            $invited++;
+        }
+
+        $result = new RosterReinviteResult($invited, $skippedCapacity, $skippedAlready, $skippedMissing, $changedFields);
+
+        // One structured line per call, counts only — the slice's observability contract.
+        Log::info('reinvite.roster', [
+            'game_id' => $replacement->id,
+            'predecessor_id' => $predecessor->id,
+            'invited' => $result->invited,
+            'skipped_capacity' => $result->skippedCapacity,
+            'skipped_already' => $result->skippedAlready,
+            'skipped_missing' => $result->skippedMissing,
+            'changed_fields' => $changedFields,
+        ]);
+
+        // Counts only; the helper is a no-op without consent and never throws.
+        app(PostHogAnalytics::class)->capture($inviter, 'game.roster_reinvited', [
+            'game_id' => $replacement->id,
+            'invited' => $result->invited,
+            'skipped_capacity' => $result->skippedCapacity,
+        ]);
+
+        return $result;
+    }
+
+    /**
+     * How many former players "Invite the previous roster" can invite right now: those not yet
+     * part of the replacement, capped by its free seats. 0 whenever there is nothing to offer —
+     * an unlinked game, a full one, or a roster that has already been invited — which is what
+     * hides the banner. inviteFormerRoster() decides what really happens; this only counts.
+     */
+    public function countReinvitableFormerRoster(Game $replacement): int
+    {
+        $replacement->loadMissing('recreates');
+
+        $predecessor = $replacement->recreates;
+
+        if ($predecessor === null || $predecessor->status !== GameStatus::Canceled) {
+            return 0;
+        }
+
+        $notYetInvited = $this->formerRoster($predecessor)
+            ->whereNotExists(fn ($query) => $query
+                ->select(DB::raw(1))
+                ->from('game_participants as current')
+                ->whereColumn('current.user_id', 'game_participants.user_id')
+                ->where('current.game_id', $replacement->id))
+            ->count();
+
+        return min($notYetInvited, $this->remainingSeats($replacement));
     }
 
     // ── Invite by Email ────────────────────────────────
@@ -502,5 +686,175 @@ class ParticipantService
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Send the roster re-invitation down the ordinary GameInvitation path (D320).
+     *
+     * @param  list<string>  $changedFields
+     */
+    private function sendRosterReinviteNotification(
+        Game $replacement,
+        User $target,
+        User $inviter,
+        string $replacedGameName,
+        array $changedFields,
+    ): void {
+        try {
+            $this->notificationService->send(
+                $target,
+                new RosterReinviteInvitation($replacement, $inviter, $replacedGameName, $changedFields),
+                NotificationCategory::GameInvitation,
+            );
+        } catch (\Throwable $e) {
+            Log::error('notification.roster_reinvite_dispatch_failed', [
+                'game_id' => $replacement->id,
+                'target_user_id' => $target->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * The eligible set of a roster re-invite: the cancelled game's approved participants who
+     * are not its owner (the inviter) and have an account — an invitee-by-email row has a
+     * NULL user_id, which `<>` rejects too. Earliest approval first: the fairest order when
+     * seats run out.
+     *
+     * @return HasMany<GameParticipant, Game>
+     */
+    private function formerRoster(Game $predecessor): HasMany
+    {
+        return $predecessor->participants()
+            ->where('status', ParticipantStatus::Approved->value)
+            ->where('user_id', '<>', $predecessor->owner_id)
+            ->orderBy('approved_at')
+            ->orderBy('created_at')
+            ->orderBy('id');
+    }
+
+    /**
+     * Seats still free on the game — PHP_INT_MAX when max_players is 0 or null, which
+     * HasCapacity reads as unlimited (a naive `0 - approved` would invite nobody).
+     */
+    private function remainingSeats(Game $game): int
+    {
+        if ($game->max_players === null || $game->max_players === 0) {
+            return PHP_INT_MAX;
+        }
+
+        return max(0, $game->max_players - $this->getApprovedParticipantCount($game));
+    }
+
+    /**
+     * The Tier-1 fields that really differ between a cancelled game and its replacement —
+     * what every roster re-invitation states (D320). Tier 1 is what a participant agreed
+     * to (D313); max_players joins them whenever its tier changes (a decrease locks, an
+     * increase notifies).
+     *
+     * Values decide, never names. Both rows are re-read so the comparison sees STORED
+     * values rather than whatever a caller's in-memory copy carries, and two spellings of
+     * one value — null and 0 for a free price, or for unlimited capacity — are the same.
+     * The offered game system is a pivot, so it is compared by id.
+     *
+     * @return list<string> Machine column names, in FieldTiers::GAME_TIERS order, max_players last.
+     */
+    private static function changedAgreementFields(Game $predecessor, Game $replacement): array
+    {
+        $before = $predecessor->fresh();
+        $after = $replacement->fresh();
+
+        if ($before === null || $after === null) {
+            return [];
+        }
+
+        $changed = [];
+
+        foreach (array_keys(FieldTiers::GAME_TIERS) as $field) {
+            // game_system_id is the same pivot as game_systems, compared once with it.
+            if ($field === 'game_system_id' || FieldTiers::tierOf(Game::class, $field) !== FieldTiers::TIER_LOCKED) {
+                continue;
+            }
+
+            if ($field === 'game_systems') {
+                $systemChange = self::gameSystemChange($before, $after);
+
+                if ($systemChange !== null) {
+                    $changed[] = $systemChange;
+                }
+
+                continue;
+            }
+
+            if (! self::sameStoredValue($field, $before->getRawOriginal($field), $after->getRawOriginal($field))) {
+                $changed[] = $field;
+            }
+        }
+
+        $beforeMaxPlayers = (int) self::asNumber($before->getRawOriginal('max_players'));
+        $afterMaxPlayers = (int) self::asNumber($after->getRawOriginal('max_players'));
+
+        if (FieldTiers::maxPlayersTier($beforeMaxPlayers, $afterMaxPlayers) !== FieldTiers::TIER_FREE) {
+            $changed[] = 'max_players';
+        }
+
+        return $changed;
+    }
+
+    /**
+     * The game-system key whose value changed between two games, or null when both offer
+     * the same systems: `game_system_id` when the representative (first, by slug) system
+     * differs, `game_systems` when only a Gathering's wider set does.
+     */
+    private static function gameSystemChange(Game $before, Game $after): ?string
+    {
+        $beforeSystems = $before->gameSystems()->pluck('game_systems.id')->all();
+        $afterSystems = $after->gameSystems()->pluck('game_systems.id')->all();
+
+        if (($beforeSystems[0] ?? null) !== ($afterSystems[0] ?? null)) {
+            return 'game_system_id';
+        }
+
+        $sorted = fn (array $ids): array => collect($ids)->map(fn ($id): string => (string) $id)->sort()->values()->all();
+
+        return $sorted($beforeSystems) !== $sorted($afterSystems) ? 'game_systems' : null;
+    }
+
+    /**
+     * Whether two stored Tier-1 values are one value. Numeric columns compare as numbers
+     * with null read as 0; everything else (enum backing values, timestamps, booleans,
+     * the language) compares as stored.
+     */
+    private static function sameStoredValue(string $field, mixed $before, mixed $after): bool
+    {
+        if (in_array($field, ['expected_duration', 'price', 'min_players'], true)) {
+            return self::asNumber($before) === self::asNumber($after);
+        }
+
+        return self::asText($before) === self::asText($after);
+    }
+
+    /**
+     * A stored value as a number: null — and nothing else is ever stored in these
+     * columns — counts as 0.
+     */
+    private static function asNumber(mixed $value): float
+    {
+        return is_numeric($value) ? (float) $value : 0.0;
+    }
+
+    /** A stored scalar as text, null included: two nulls read as the same value. */
+    private static function asText(mixed $value): ?string
+    {
+        return is_scalar($value) ? (string) $value : null;
+    }
+
+    /**
+     * Whether a failed insert hit a unique index (Postgres SQLSTATE 23505).
+     */
+    private static function isUniqueViolation(QueryException $exception): bool
+    {
+        return ($exception->errorInfo[0] ?? null) === '23505'
+            || $exception->getCode() === '23505';
     }
 }

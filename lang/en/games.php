@@ -440,4 +440,12 @@ return [
     // WHY the Tier-1 fields are read-only: shown once at the top of the edit form.
     'content_agreement_locked' => 'Locked since someone joined on :date. To change the game, date or price, cancel it and create a new game.',
     'error_cover_image_upload_failed' => 'The cover image could not be saved. Please try again.',
+    // Roster re-invite on a game that replaces a cancelled one (D320/D321, M084/S06): players are
+    // invited back, never carried over — each one decides.
+    'content_roster_reinvite' => '{1} :count player from :replaced can be invited to this game. They are not added automatically — each one decides.|[2,*] :count players from :replaced can be invited to this game. They are not added automatically — each one decides.',
+    'action_roster_reinvite' => 'Invite the previous roster',
+    'flash_roster_reinvite' => 'Previous roster: :invited invited, :skipped not invited.',
+    'flash_roster_reinvite_reason_capacity' => 'The game is full.',
+    'flash_roster_reinvite_reason_already' => 'They are already part of this game.',
+    'error_roster_reinvite_unavailable' => 'The previous roster can no longer be invited.',
 ];
