@@ -117,6 +117,7 @@ return [
     'activity_scheduled_session' => 'hat eine neue Runde geplant',
     // Kampagne bearbeiten
     'heading_edit_campaign' => 'Kampagne bearbeiten',
+    'action_edit_campaign' => 'Kampagne bearbeiten',
     'flash_campaign_updated' => 'Kampagne erfolgreich aktualisiert.',
     // Bisher in der Kampagne — der vom GM veröffentlichte
     // Rekrutierungszusammenfassungs-Block auf der öffentlichen
@@ -143,4 +144,7 @@ return [
     // Agreement lock (D313/D314, M084): Tier-1-Felder sperren sich, sobald jemand beigetreten ist.
     // Wird dort gezeigt, wo das Speichern abgelehnt wird.
     'error_agreement_locked' => 'Das lässt sich seit einem Zusagenden nicht mehr ändern. Um die Kampagne zu ändern, sag sie ab und leg eine neue an.',
+    // Bearbeitungsmodus der Detailseite (D314/D317): WARUM die Tier-1-Felder des Formulars
+    // schreibgeschützt sind. Einmal über dem Formular gezeigt, mit dem Sperrdatum. Du-Form gemäß Datei-Kanon.
+    'content_agreement_locked' => 'Seit einem Zusagenden am :date gesperrt. Um Kampagne, Termin oder Preis zu ändern, sag die Kampagne ab und leg eine neue an.',
 ];

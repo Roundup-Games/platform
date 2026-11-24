@@ -34,6 +34,7 @@ use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
@@ -68,6 +69,14 @@ class CampaignDetail extends Component
 
     public ?string $confirmingAction = null;
 
+    /**
+     * The owner's in-page edit mode (M084/S03, D317): while true the page
+     * renders the EditCampaign form in place of the read-only hero and body.
+     * Owned by this component, not the child: the child only announces
+     * `campaign-edit-saved` / `campaign-edit-cancelled` and this flag returns to false.
+     */
+    public bool $editing = false;
+
     public function mount(string $id): void
     {
         $campaign = Campaign::findOrFail($id);
@@ -88,6 +97,49 @@ class CampaignDetail extends Component
     public function getEntity(): Campaign
     {
         return $this->campaign;
+    }
+
+    // ── Edit mode (D317) ────────────────────────────────
+
+    /**
+     * The Edit campaign button: a user who passes CampaignPolicy::update, on a
+     * campaign that is still Active (a completed or cancelled campaign has no
+     * edit mode). The edit component itself re-checks both on mount and on save.
+     */
+    #[Computed]
+    public function canEditCampaign(): bool
+    {
+        $user = Auth::user();
+
+        return $user !== null
+            && $user->can('update', $this->campaign)
+            && $this->campaign->status === CampaignStatus::Active;
+    }
+
+    /** Enter the in-page edit mode (D317). */
+    public function startEditing(): void
+    {
+        $this->authorize('update', $this->campaign);
+
+        if (! $this->canEditCampaign()) {
+            return;
+        }
+
+        $this->editing = true;
+    }
+
+    /** The edit form saved (or stored a cover): back to the read-only page. */
+    #[On('campaign-edit-saved')]
+    public function stopEditing(): void
+    {
+        $this->editing = false;
+    }
+
+    /** The edit form was cancelled: back to the read-only page, nothing written. */
+    #[On('campaign-edit-cancelled')]
+    public function cancelEditing(): void
+    {
+        $this->editing = false;
     }
 
     // ── Share Link Management ──────────────────────────
@@ -520,6 +572,7 @@ class CampaignDetail extends Component
         return view('livewire.campaigns.campaign-detail', [
             'campaign' => $this->campaign,
             'isOwner' => $this->isOwner(),
+            'canEditCampaign' => $this->canEditCampaign(),
             'participantCharter' => $this->participantCharter(),
             'isParticipant' => $this->isParticipant(),
             'userInvitation' => $this->userInvitation(),
