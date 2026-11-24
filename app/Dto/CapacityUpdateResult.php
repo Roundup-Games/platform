@@ -17,6 +17,9 @@ use App\Services\CapacityService;
  * by the service, so the component carries no capacity logic. Error and
  * flash payloads are lang KEYS (plus params), not translated strings:
  * translation stays at the presentation edge.
+ *
+ * The consumer's match must name every outcome: an unnamed one falls to its
+ * default arm, which reports an APPLIED change.
  */
 class CapacityUpdateResult
 {
@@ -38,6 +41,9 @@ class CapacityUpdateResult
     /** Refused on terminal game state (completed / attendance resolved). */
     public const string REFUSED = 'refused';
 
+    /** Decrease refused — the game is agreement-locked (D313 Tier 1). */
+    public const string LOCKED = 'locked';
+
     /** newMax failed validation — field error against capacityNewMax. */
     public const string INVALID_MAX = 'invalid_max';
 
@@ -50,7 +56,7 @@ class CapacityUpdateResult
      * @param  int  $promotedCount  Waitlisted players auto-promoted to Pending (INCREASED only).
      * @param  int  $demotedCount  Players demoted to Waitlisted (DEMOTED only).
      * @param  DemotionPreview|null  $preview  Displacement preview (NEEDS_CONFIRMATION only) — the confirm-modal data.
-     * @param  string|null  $errorKey  Lang key of the error message (REFUSED, INVALID_MAX, INVALID_REASON).
+     * @param  string|null  $errorKey  Lang key of the error message (REFUSED, LOCKED, INVALID_MAX, INVALID_REASON).
      * @param  string|null  $flashKey  Lang key of the success flash (INCREASED, DECREASED, DEMOTED).
      * @param  array<string, int|string>  $flashParams  Replacement params for $flashKey.
      */

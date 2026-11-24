@@ -245,6 +245,9 @@
                         </div>
 
                         <form wire:submit="saveGameEdit" class="space-y-4">
+                            {{-- The agreement lock (D314): AgreementEditService refuses a Tier-1 change on a game somebody has joined under this key — without this block the refusal is silent. --}}
+                            @error('edit') <p role="alert" class="mb-3 text-sm text-error">{{ $message }}</p> @enderror
+
                             <div>
                                 <label for="edit-game-name" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.field_name') }}</label>
                                 <input type="text" id="edit-game-name" wire:model="edit_name"

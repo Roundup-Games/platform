@@ -445,7 +445,8 @@ class GameDetail extends Component
     /**
      * Host-driven max_players change — pure orchestration over
      * {@see CapacityService::update()}, which owns the validation rules,
-     * the terminal-state guard, and the three-way branch (increase /
+     * the terminal-state guard, the agreement lock (a decrease is refused once
+     * anyone has joined, D314), and the three-way branch (increase /
      * silent decrease / two-phase-confirm demotion).
      *
      * This method keeps ONLY the Livewire surface effects: authorize,
@@ -480,8 +481,13 @@ class GameDetail extends Component
             CapacityUpdateResult::INVALID_MAX => $this->applyCapacityError($result, clearConfirm: true),
             CapacityUpdateResult::INVALID_REASON => $this->applyCapacityError($result, clearConfirm: false),
 
-            // Terminal-state refusal (completed / attendance resolved).
+            // Refusals that carry no field: the terminal state (completed /
+            // attendance resolved) and the agreement lock (a decrease on a game
+            // someone has joined — D314). Both flash the service's reason. The
+            // LOCKED arm is spelled out on purpose: a fall-through to the
+            // default arm below would announce an APPLIED change.
             CapacityUpdateResult::REFUSED => $this->refuseCapacityChange($result),
+            CapacityUpdateResult::LOCKED => $this->refuseCapacityChange($result),
 
             // Applied changes (increased / decreased / demoted) — refresh
             // computed props and flash the service-chosen message.
@@ -512,7 +518,8 @@ class GameDetail extends Component
     }
 
     /**
-     * Surface a terminal-state refusal (error flash, confirm state cleared).
+     * Surface a refusal that carries no field — terminal state or agreement
+     * lock (error flash, confirm state cleared).
      */
     private function refuseCapacityChange(CapacityUpdateResult $result): void
     {

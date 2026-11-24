@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Campaigns;
 
-use App\Enums\ActivityType;
 use App\Enums\CampaignStatus;
 use App\Enums\NotificationCategory;
 use App\Enums\ParticipantStatus;
@@ -11,8 +10,7 @@ use App\Models\Campaign;
 use App\Models\CampaignParticipant;
 use App\Notifications\EntityCancelled;
 use App\Notifications\EntityCompleted;
-use App\Notifications\EntityUpdated;
-use App\Services\ActivityLogService;
+use App\Services\Edit\AgreementEditService;
 use App\Services\MyCampaignsBoardService;
 use App\Services\NotificationService;
 use App\Services\ParticipantLifecycle;
@@ -21,6 +19,7 @@ use App\Traits\EditsVenueLocation;
 use App\Traits\HandlesInvitations;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -110,6 +109,15 @@ class CampaignsPage extends Component
 
     // Venue search/address actions provided by EditsVenueLocation trait
 
+    /**
+     * Save the inline edit modal. Validation, the public-visibility gate and
+     * the no-op filter run here; the write itself goes through
+     * {@see AgreementEditService::apply()} — the one place that decides what a
+     * change is worth to the participants (D313) and whether the agreement lock
+     * refuses it (D314). This method carries no tier logic of its own.
+     *
+     * @throws ValidationException From $this->validate(), or from the edit service when a Tier-1 change (here: session_duration, or public → private) hits an agreement-locked campaign — under the `edit` key the modal renders.
+     */
     public function saveCampaignEdit(): void
     {
         if ($this->editingCampaignId === null) {
@@ -162,47 +170,12 @@ class CampaignsPage extends Component
             return;
         }
 
-        $campaign->fill($changes)->save();
-
-        // Log activity
-        app(ActivityLogService::class)->log(
-            ActivityType::CampaignUpdated,
-            authenticatedUser(),
-            $campaign,
-            ['changed_fields' => array_keys($changes)],
-        );
-
-        Log::info('Campaign updated', [
-            'campaign_id' => $campaign->id,
-            'owner_id' => $campaign->owner_id,
-            'changed_fields' => array_keys($changes),
-        ]);
-
-        // Notify participants (excluding owner) — every change surfaces now,
-        // including arrival-instruction edits, which previously notified nobody.
-        try {
-            $participants = $campaign->participants()
-                ->where('status', 'approved')
-                ->where('user_id', '!=', $campaign->owner_id)
-                ->with('user')
-                ->get();
-
-            foreach ($participants as $participant) {
-                if ($participant->user === null) {
-                    continue;
-                }
-                app(NotificationService::class)->send(
-                    $participant->user,
-                    new EntityUpdated($campaign, array_keys($changes)),
-                    NotificationCategory::CampaignUpdated,
-                );
-            }
-        } catch (\Throwable $e) {
-            Log::error('notification.campaign_updated_dispatch_failed', [
-                'campaign_id' => $campaign->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
+        // The ONE write path for owner field changes. It is deliberately NOT
+        // wrapped in a try/catch: when a Tier-1 change hits an agreement-locked
+        // campaign it throws a ValidationException that Livewire places in the
+        // error bag — the modal stays open and renders the reason, and nothing
+        // below runs, so a refused edit never flashes a success.
+        app(AgreementEditService::class)->apply($campaign, $changes, authenticatedUser());
 
         $this->cancelEdit();
         session()->flash('success', __('campaigns.flash_campaign_updated'));

@@ -3,6 +3,7 @@
 use App\Enums\ActivityType;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Enums\Visibility;
 use App\Livewire\Campaigns\CampaignsPage;
 use App\Models\ActivityLog;
 use App\Models\Campaign;
@@ -103,5 +104,101 @@ describe('Save Campaign Edit', function () {
             EntityUpdated::class,
             fn (EntityUpdated $notification) => in_array('name', $notification->changedColumns, true)
         );
+    });
+});
+
+describe('agreement lock', function () {
+    it('refuses a session-duration edit on an agreement-locked campaign and renders the lock reason in the edit modal', function () {
+        $campaign = createOwnedCampaign($this->owner, $this->gameSystem);
+        CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => User::factory()->create()->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+        expect($campaign->isAgreementLocked())->toBeTrue();
+
+        Livewire::actingAs($this->owner)->test(CampaignsPage::class)
+
+            ->call('editCampaign', $campaign->id)
+            ->set('edit_session_duration', '4')
+            ->set('edit_name', 'Not applied either')
+            ->call('saveCampaignEdit')
+            ->assertHasErrors(['edit' => fn ($rules, $messages) => $messages === [__('campaigns.error_agreement_locked')]])
+            ->assertSee(__('campaigns.error_agreement_locked'))
+            // Rendered by the modal's own `edit` block — the reason, as an alert.
+            ->assertSeeHtml('<p role="alert" class="mb-3 text-sm text-error">'.e(__('campaigns.error_agreement_locked')).'</p>')
+            ->assertDontSee(__('campaigns.flash_campaign_updated'))
+            // The modal stays open so the reason stays on screen.
+            ->assertSet('editingCampaignId', $campaign->id);
+
+        // Nothing was written — not the Tier-3 name either.
+        expect((float) $campaign->fresh()->session_duration)->toBe(3.0)
+            ->and($campaign->fresh()->name)->toBe('Test Campaign');
+        // ... and nothing was logged as an update.
+        expect(ActivityLog::where('subject_type', (new Campaign)->getMorphClass())
+            ->where('subject_id', $campaign->id)
+            ->where('event_type', ActivityType::CampaignUpdated)
+            ->count())->toBe(0);
+    });
+
+    it('refuses a public → private visibility switch on an agreement-locked campaign', function () {
+        $campaign = createOwnedCampaign($this->owner, $this->gameSystem, ['visibility' => 'public']);
+        CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => User::factory()->create()->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+
+        Livewire::actingAs($this->owner)->test(CampaignsPage::class)
+
+            ->call('editCampaign', $campaign->id)
+            ->set('edit_visibility', 'private')
+            ->call('saveCampaignEdit')
+            ->assertHasErrors(['edit'])
+            ->assertSee(__('campaigns.error_agreement_locked'))
+            ->assertDontSee(__('campaigns.flash_campaign_updated'));
+
+        expect($campaign->fresh()->visibility)->toBe(Visibility::Public);
+    });
+
+    it('allows a private → public visibility switch on an agreement-locked campaign', function () {
+        $owner = User::factory()->create(['can_create_public_entries' => true]);
+        $campaign = createOwnedCampaign($owner, $this->gameSystem, ['visibility' => 'private']);
+        CampaignParticipant::create([
+            'campaign_id' => $campaign->id,
+            'user_id' => User::factory()->create()->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+
+        Livewire::actingAs($owner)->test(CampaignsPage::class)
+
+            ->call('editCampaign', $campaign->id)
+            ->set('edit_visibility', 'public')
+            ->call('saveCampaignEdit')
+            ->assertHasNoErrors()
+            ->assertDontSee(__('campaigns.error_agreement_locked'))
+            ->assertSee(__('campaigns.flash_campaign_updated'));
+
+        expect($campaign->fresh()->visibility)->toBe(Visibility::Public);
+    });
+
+    it('still applies a session-duration edit while nobody has joined', function () {
+        $campaign = createOwnedCampaign($this->owner, $this->gameSystem);
+        expect($campaign->isAgreementLocked())->toBeFalse();
+
+        Livewire::actingAs($this->owner)->test(CampaignsPage::class)
+
+            ->call('editCampaign', $campaign->id)
+            ->set('edit_session_duration', '4')
+            ->call('saveCampaignEdit')
+            ->assertHasNoErrors()
+            ->assertDontSee(__('campaigns.error_agreement_locked'))
+            ->assertSee(__('campaigns.flash_campaign_updated'))
+            ->assertSet('editingCampaignId', null);
+
+        expect((float) $campaign->fresh()->session_duration)->toBe(4.0);
     });
 });
