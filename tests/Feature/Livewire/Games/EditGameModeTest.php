@@ -12,12 +12,19 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
+use App\Notifications\EntityUpdated;
 use App\Services\OwnerParticipantService;
 use App\Support\Edit\FieldTiers;
 use Carbon\Carbon;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use League\Flysystem\Config;
+use League\Flysystem\Filesystem as Flysystem;
+use League\Flysystem\Local\LocalFilesystemAdapter;
+use League\Flysystem\UnableToWriteFile;
+use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 
 //
@@ -81,6 +88,42 @@ function editGameModeLock(Game $game): GameParticipant
     ]);
 }
 
+/**
+ * A LOCKED board game whose stored document carries comfort notes — the
+ * payload a forced ttrpg type would drop. Its expected_duration is the ttrpg
+ * type default, so a forced selectType('ttrpg') changes the type and nothing
+ * else.
+ *
+ * @return array{0: User, 1: Game, 2: GameParticipant}
+ */
+function editGameModeLockedBoardGame(): array
+{
+    $owner = editGameModeOwner();
+    $game = editGameModeGame($owner, [
+        'expected_duration' => 3,
+        'safety_rules' => ['comfort_notes' => 'Bring snacks'],
+    ]);
+
+    return [$owner, $game, editGameModeLock($game)];
+}
+
+/** The `changed_fields` of every GameUpdated activity entry for the game, oldest first. */
+function editGameModeChangedFields(Game $game): array
+{
+    return ActivityLog::query()
+        ->where('subject_type', $game->getMorphClass())
+        ->where('subject_id', $game->getKey())
+        ->where('event_type', ActivityType::GameUpdated->value)
+        ->orderBy('created_at')
+        ->get()
+        ->map(function (ActivityLog $log): array {
+            $properties = is_string($log->properties) ? json_decode($log->properties, true) : $log->properties;
+
+            return $properties['changed_fields'] ?? [];
+        })
+        ->all();
+}
+
 /** The wall-clock string the datetime-local input carries for a stored instant (viewer zone). */
 function editGameModeWall(Carbon $instant): string
 {
@@ -97,6 +140,28 @@ function editGameModeMounted(Game $game, ?User $as = null)
 {
     return Livewire::actingAs($as ?? $game->owner)
         ->test(EditGame::class, ['game' => $game]);
+}
+
+/**
+ * Swap the public disk — the media library's disk — for one whose writes fail
+ * the way a full or unreachable storage fails: every write throws
+ * UnableToWriteFile. Reads are untouched, and the Livewire temporary upload
+ * lives on another disk.
+ */
+function editGameModeUnwritablePublicDisk(): void
+{
+    Storage::fake('public');
+    $fake = Storage::disk('public');
+
+    $adapter = new class($fake->path('')) extends LocalFilesystemAdapter
+    {
+        public function writeStream(string $path, $contents, Config $config): void
+        {
+            throw UnableToWriteFile::atLocation($path, 'public disk is unwritable in this test');
+        }
+    };
+
+    Storage::set('public', new FilesystemAdapter(new Flysystem($adapter), $adapter, $fake->getConfig()));
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -395,6 +460,34 @@ describe('EditGame — locked game, free fields', function () {
         expect($game->fresh()->getFirstMedia('cover'))->not->toBeNull()
             ->and($game->fresh()->name)->toBe('Board night');
     });
+
+    it('keeps the form open on the cover error when the upload fails during a full save, and still saves the columns', function () {
+        editGameModeUnwritablePublicDisk();
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner);
+        editGameModeLock($game);
+
+        $component = editGameModeMounted($game)
+            ->set('name', 'Renamed night')
+            ->set('cover_image', UploadedFile::fake()->image('cover.jpg', 800, 600))
+            ->call('save')
+            ->assertHasErrors(['cover_image'])
+            ->assertNotDispatched('game-edit-saved');
+
+        // The columns went through the service; only the cover failed. The owner
+        // keeps the form (and the picked upload) to retry or drop it — no
+        // success flash closes the form over an error nobody would see.
+        expect($game->fresh()->getTranslation('name', 'en'))->toBe('Renamed night')
+            ->and(editGameModeChangedFields($game))->toBe([['name']])
+            ->and(session('success'))->toBeNull();
+
+        // The retry succeeds once the disk is back.
+        Storage::fake('public');
+
+        $component->call('saveCover')->assertDispatched('game-edit-saved');
+
+        expect($game->fresh()->getFirstMedia('cover'))->not->toBeNull();
+    });
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -434,20 +527,7 @@ describe('EditGame — translatable fields', function () {
 
         // The one GameUpdated entry reports only the price: name and description
         // were never changed columns (the participant announcement reads the same list).
-        $changedFields = ActivityLog::query()
-            ->where('subject_type', $game->getMorphClass())
-            ->where('subject_id', $game->getKey())
-            ->where('event_type', ActivityType::GameUpdated->value)
-            ->orderBy('created_at')
-            ->get()
-            ->map(function (ActivityLog $log): array {
-                $properties = is_string($log->properties) ? json_decode($log->properties, true) : $log->properties;
-
-                return $properties['changed_fields'] ?? [];
-            })
-            ->all();
-
-        expect($changedFields)->toBe([['price']]);
+        expect(editGameModeChangedFields($game))->toBe([['price']]);
     });
 
     it('keeps the English name when only the German name changes', function () {
@@ -524,6 +604,78 @@ describe('EditGame — locked gathering', function () {
         $component->call('save')->assertHasNoErrors();
 
         expect($game->fresh()->gameSystems->pluck('id')->sort()->values()->all())->toBe($offeredIds);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// FORGED GAME TYPE — NOT SWITCHABLE IN THE EDIT MODE
+// ═══════════════════════════════════════════════════════════
+
+describe('EditGame — game type is not switchable', function () {
+    it('refuses a request-supplied game_type outright: the property is locked', function () {
+        [, $game] = editGameModeLockedBoardGame();
+
+        expect(fn () => editGameModeMounted($game)->set('game_type', 'ttrpg'))
+            ->toThrow(CannotUpdateLockedPropertyException::class);
+
+        expect($game->fresh()->getRawOriginal('game_type'))->toBe('board_game');
+    });
+
+    it('composes a save with the STORED type when the inherited selectType action forced another one', function () {
+        Notification::fake();
+        [, $game, $member] = editGameModeLockedBoardGame();
+        $storedRules = $game->fresh()->getRawOriginal('safety_rules');
+
+        editGameModeMounted($game)
+            ->assertSet('game_type', 'board_game')
+            ->assertSet('comfort_notes', 'Bring snacks')
+            ->call('selectType', 'ttrpg')
+            ->assertSet('game_type', 'ttrpg')
+            ->set('name', 'Renamed night')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertDispatched('game-edit-saved')
+            ->assertSet('game_type', 'board_game');
+
+        // The write was composed as a board game: the comfort notes survive
+        // byte-identical and no participant is told about a safety-rules edit
+        // the owner never made in the form.
+        $fresh = $game->fresh();
+        expect($fresh->getRawOriginal('game_type'))->toBe('board_game')
+            ->and($fresh->getRawOriginal('safety_rules'))->toBe($storedRules)
+            ->and($fresh->getTranslation('name', 'en'))->toBe('Renamed night')
+            ->and(editGameModeChangedFields($game))->toBe([['name']]);
+
+        Notification::assertSentTo(
+            $member->user,
+            EntityUpdated::class,
+            fn (EntityUpdated $notification) => $notification->changedColumns === ['name'],
+        );
+        Notification::assertNotSentTo(
+            $member->user,
+            EntityUpdated::class,
+            fn (EntityUpdated $notification) => in_array('safety_rules', $notification->changedColumns, true),
+        );
+    });
+
+    it('writes nothing when the inherited changeType action emptied the form: the cleared system fails the cross-field guard', function () {
+        Notification::fake();
+        [, $game, $member] = editGameModeLockedBoardGame();
+        $storedRules = $game->fresh()->getRawOriginal('safety_rules');
+
+        editGameModeMounted($game)
+            ->call('changeType', 'ttrpg')
+            ->assertSet('game_type', 'ttrpg')
+            ->set('name', 'Renamed night')
+            ->call('save')
+            ->assertHasErrors(['game_system_id'])
+            ->assertNotDispatched('game-edit-saved');
+
+        expect($game->fresh()->getTranslation('name', 'en'))->toBe('Board night')
+            ->and($game->fresh()->getRawOriginal('safety_rules'))->toBe($storedRules)
+            ->and(editGameModeChangedFields($game))->toBe([]);
+
+        Notification::assertNothingSentTo($member->user);
     });
 });
 

@@ -39,7 +39,8 @@ use Throwable;
  * Game type is deliberately NOT switchable here: the type switcher is
  * create-only chrome, a type change re-shapes the whole form, and a wrong
  * type on an unlocked game is fixed by cancel + recreate (no offence on an
- * empty roster). This component therefore never sends `game_type`.
+ * empty roster). This component therefore never sends `game_type`, and
+ * save() always restores the stored type before it reads the form.
  *
  * @property-read bool $canCreatePublic
  * @property-read bool $isLocked
@@ -58,6 +59,8 @@ class EditGame extends Component
     #[Locked]
     public Game $game;
 
+    /** The game's stored type — locked, so no request can switch it (see the class note). */
+    #[Locked]
     public ?string $game_type = null;
 
     public string $date_time = '';
@@ -152,10 +155,7 @@ class EditGame extends Component
         // system and block every save on "select a game system").
         $game->load('gameSystems');
 
-        $storedType = $game->getRawOriginal('game_type');
-        $this->game_type = is_string($storedType) && GameType::tryFrom($storedType) instanceof GameType
-            ? $storedType
-            : GameType::BoardGame->value;
+        $this->game_type = self::storedType($game);
         $this->step = 'form';
 
         $this->language = $game->language;
@@ -332,6 +332,12 @@ class EditGame extends Component
         $this->authorize('update', $this->game);
         $this->guardScheduled($this->game);
 
+        // Game type is not switchable in the edit mode: the STORED type decides
+        // which fields this form edits — never a value that came from the request.
+        // #[Locked] refuses a forged property update; the trait's selectType /
+        // changeType actions are still callable, so the type is restored here too.
+        $this->game_type = self::storedType($this->game);
+
         $validated = $this->validate();
 
         if ($this->guardCrossFieldSessionRules($validated)) {
@@ -394,7 +400,13 @@ class EditGame extends Component
             }
         }
 
-        $this->storeCover();
+        // A failed cover upload must stay visible: the columns are saved at this
+        // point, but the form stays open on the `cover_image` error with the picked
+        // upload kept for a retry — the same contract as saveCover(). Closing the
+        // form on a success flash would drop an error the owner never sees.
+        if (! $this->storeCover()) {
+            return;
+        }
 
         session()->flash('success', __('games.flash_game_updated'));
         $this->dispatch('game-edit-saved');
@@ -589,6 +601,19 @@ class EditGame extends Component
 
         // Copy first: Carbon is mutable and the model's attribute must not shift timezone.
         return $instant->copy()->timezone(viewer_timezone())->format(self::DATETIME_LOCAL_FORMAT);
+    }
+
+    /**
+     * The game's stored game type — the only type an edit composes a write
+     * with. A game from before the column existed reads as a board game.
+     */
+    private static function storedType(Game $game): string
+    {
+        $stored = $game->getRawOriginal('game_type');
+
+        return is_string($stored) && GameType::tryFrom($stored) instanceof GameType
+            ? $stored
+            : GameType::BoardGame->value;
     }
 
     /** A Tier-1 game-system change on a locked game: the service's refusal, logged the same way. */
