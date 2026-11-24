@@ -417,4 +417,8 @@ return [
     'action_add_to_calendar' => 'Add to calendar',
     'content_add_to_calendar_hint' => 'Save this session to your calendar',
     'action_calendar_feed_settings' => 'Subscribe to all your sessions',
+    // Agreement lock (D313/D314, M084): Tier-1 fields — game system, date, duration,
+    // price, capacity decrease, min players, bench mode, language, public→private —
+    // lock once someone has joined. Shown where the save is refused.
+    'error_agreement_locked' => 'This can’t be changed since someone joined. To change the game, cancel it and create a new one.',
 ];

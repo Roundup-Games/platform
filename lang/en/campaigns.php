@@ -139,4 +139,7 @@ return [
     'placeholder_session_description' => 'Describe this session…',
     'placeholder_session_location' => 'Venue name, address, or meeting details',
     'placeholder_session_name' => 'e.g. Session 3 — The Lost Temple',
+    // Agreement lock (D313/D314, M084): Tier-1 fields lock once someone has joined.
+    // Shown where the save is refused.
+    'error_agreement_locked' => 'This can’t be changed since someone joined. To change the campaign, cancel it and create a new one.',
 ];

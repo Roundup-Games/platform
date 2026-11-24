@@ -140,4 +140,7 @@ return [
     'placeholder_session_description' => 'Beschreibe diese Runde…',
     'placeholder_session_location' => 'Veranstaltungsort, Adresse oder Details zum Treffpunkt',
     'placeholder_session_name' => 'z. B. Runde 3 — Der verlorene Tempel',
+    // Agreement lock (D313/D314, M084): Tier-1-Felder sperren sich, sobald jemand beigetreten ist.
+    // Wird dort gezeigt, wo das Speichern abgelehnt wird.
+    'error_agreement_locked' => 'Das lässt sich seit einem Zusagenden nicht mehr ändern. Um die Kampagne zu ändern, sag sie ab und leg eine neue an.',
 ];

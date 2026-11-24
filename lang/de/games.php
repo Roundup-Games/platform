@@ -418,4 +418,8 @@ return [
     'action_add_to_calendar' => 'Zum Kalender hinzufügen',
     'content_add_to_calendar_hint' => 'Diese Runde in Deinem Kalender speichern',
     'action_calendar_feed_settings' => 'Alle Deine Runden abonnieren',
+    // Agreement lock (D313/D314, M084): Tier-1-Felder — Spielsystem, Datum, Dauer, Preis,
+    // Kapazitätssenkung, Mindestspielerzahl, Ersatzbank-Modus, Sprache, öffentlich→privat —
+    // sperren sich, sobald jemand beigetreten ist. Wird dort gezeigt, wo das Speichern abgelehnt wird.
+    'error_agreement_locked' => 'Das lässt sich seit einem Zusagenden nicht mehr ändern. Um die Runde zu ändern, sag sie ab und leg eine neue an.',
 ];
