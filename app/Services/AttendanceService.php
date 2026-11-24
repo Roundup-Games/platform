@@ -536,6 +536,131 @@ class AttendanceService
         }
     }
 
+    /**
+     * Resolve a declared linked recreate (D318/D319): turn the host's
+     * late-cancel offence on the cancelled predecessor into a neutral
+     * cancelled_early once the replacement is actually published.
+     *
+     * recordHostCancellationOffence() records the offence exactly as it always
+     * did when the game is cancelled. Neutrality is granted only here, on the
+     * positive act of publishing the replacement: a declared recreate that is
+     * never published leaves the offence standing, and a recreate is never
+     * inferred from an unrelated later clone.
+     *
+     * BOTH rows are flipped because each alone is wrong — the participant row
+     * alone leaves a LateCancel report a later recompute could resurrect, the
+     * report alone leaves the participant's stored weight stale.
+     *
+     * Idempotent: a second call on an already-flipped offence changes nothing
+     * and still returns true. A cancel that recorded no offence (more than 24h
+     * out) also returns true — there is simply nothing to flip.
+     *
+     * @return bool True when the pair is a valid declared linked recreate, whether or not an offence existed; false when a precondition fails, in which case nothing is changed.
+     */
+    public function resolveLinkedRecreate(Game $old, Game $new): bool
+    {
+        if (! $this->isDeclaredLinkedRecreate($old, $new)) {
+            return false;
+        }
+
+        $resolved = false;
+        $offenceFlipped = false;
+
+        DB::transaction(function () use ($old, $new, &$resolved, &$offenceFlipped): void {
+            // Canonical lock order (entity row first, then participant rows), so
+            // two replacements racing for the same predecessor serialise here
+            // instead of both finding the offence still standing.
+            /** @var Game|null $predecessor */
+            $predecessor = Game::query()->whereKey($old->getKey())->lockForUpdate()->first();
+
+            // Re-checked on the locked row — the caller's copy may be stale.
+            if ($predecessor === null || ! $this->isDeclaredLinkedRecreate($predecessor, $new)) {
+                return;
+            }
+
+            $resolved = true;
+
+            /** @var GameParticipant|null $hostParticipant */
+            $hostParticipant = $predecessor->participants()
+                ->where('user_id', $predecessor->owner_id)
+                ->lockForUpdate()
+                ->first();
+
+            $reportsFlipped = $predecessor->attendanceReports()
+                ->where('reporter_id', $predecessor->owner_id)
+                ->where('reported_id', $predecessor->owner_id)
+                ->where('status', AttendanceStatus::LateCancel->value)
+                ->update([
+                    'status' => AttendanceStatus::CancelledEarly->value,
+                    'weight_applied' => ReliabilityScoreService::WEIGHTS['cancelled_early'],
+                ]);
+
+            $participantFlipped = false;
+
+            if ($hostParticipant !== null && $hostParticipant->attendance_status === AttendanceStatus::LateCancel) {
+                // attendance_reported_at is deliberately left alone: it still
+                // records WHEN the host cancelled.
+                $hostParticipant->forceFill([
+                    'attendance_status' => AttendanceStatus::CancelledEarly->value,
+                    'attendance_weight' => ReliabilityScoreService::WEIGHTS['cancelled_early'],
+                ])->save();
+
+                $participantFlipped = true;
+            }
+
+            if (! $participantFlipped && $reportsFlipped === 0) {
+                return;
+            }
+
+            $offenceFlipped = true;
+
+            if ($hostParticipant !== null) {
+                $this->reliabilityService->recomputeAfterAttendance($hostParticipant);
+            }
+        });
+
+        if (! $resolved) {
+            return false;
+        }
+
+        Log::info('recreate.resolved', [
+            'old_game_id' => $old->id,
+            'new_game_id' => $new->id,
+            'host_id' => $old->owner_id,
+            'offence_flipped' => $offenceFlipped,
+        ]);
+
+        // Forward the resolved recreate to product analytics. Ids only — no
+        // participant data. A no-op without consent; never throws.
+        $host = $new->owner;
+
+        if ($host instanceof User) {
+            app(PostHogAnalytics::class)->capture($host, 'game.recreated', [
+                'old_game_id' => $old->id,
+                'new_game_id' => $new->id,
+            ]);
+        }
+
+        return true;
+    }
+
+    /**
+     * Do these two games form a declared linked recreate? Every condition
+     * must hold — a failure means the offence stands and nothing is changed.
+     *
+     *  - the new game carries the explicit link to the predecessor
+     *  - the host declared "Recreate with changes" when cancelling
+     *  - both games have the same owner (the offence belongs to that host)
+     *  - the predecessor really is cancelled
+     */
+    private function isDeclaredLinkedRecreate(Game $old, Game $new): bool
+    {
+        return $new->recreates_game_id === $old->getKey()
+            && $old->recreate_declared_at !== null
+            && $old->owner_id === $new->owner_id
+            && $old->status === GameStatus::Canceled;
+    }
+
     // ── 5. Read-only query methods ─────────────────────────────
 
     /**
