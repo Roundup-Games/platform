@@ -62,6 +62,8 @@ use Spatie\Translatable\HasTranslations;
  * @property Carbon|null $attendance_window_opens_at
  * @property Carbon|null $attendance_window_closes_at
  * @property Carbon|null $attendance_resolved_at
+ * @property string|null $recreates_game_id
+ * @property Carbon|null $recreate_declared_at
  * @property GameType|null $game_type
  * @property Visibility|null $visibility
  * @property GameStatus|null $status
@@ -168,6 +170,10 @@ class Game extends Model implements HasMedia, TicketSubject
         // (Game::create(['game_system_id' => $id]) and factory overrides)
         // continues to work.
         'game_system_id', 'game_systems',
+        // Linked recreate (D318/D319): the replacement's link to its cancelled
+        // predecessor, and the predecessor's pending "Recreate with changes"
+        // declaration stamped at cancel time.
+        'recreates_game_id', 'recreate_declared_at',
     ];
 
     protected function casts(): array
@@ -197,6 +203,7 @@ class Game extends Model implements HasMedia, TicketSubject
             'attendance_resolved_at' => 'datetime',
             'attendance_resolution_method' => 'string',
             'signup_cutoff_at' => 'datetime',
+            'recreate_declared_at' => 'datetime',
         ];
     }
 
@@ -373,6 +380,38 @@ class Game extends Model implements HasMedia, TicketSubject
                 $this->pendingGameSystemIds[] = $id;
             }
         }
+    }
+
+    /**
+     * The cancelled predecessor this game replaces (linked recreate, D318/
+     * D319). Carried by the NEW game; null for every unlinked game. The FK is
+     * nullOnDelete, so deleting the predecessor detaches rather than fails.
+     *
+     * @return BelongsTo<Game, $this>
+     */
+    public function recreates(): BelongsTo
+    {
+        return $this->belongsTo(Game::class, 'recreates_game_id');
+    }
+
+    /**
+     * The published replacement of this cancelled game — the inverse of
+     * recreates(). Null until a replacement is published from the "Recreate
+     * with changes" flow, and null for every game that was plain-cancelled.
+     *
+     * At most one replacement per cancelled game is enforced by the create
+     * flow (recreates_game_id is deliberately not UNIQUE, so a second publish
+     * from the same link degrades to an unlinked game instead of a 500); the
+     * relation therefore matches at most one row. latest('created_at') keeps
+     * the pick deterministic if that backstop is ever widened (same shape as
+     * recapEntry()).
+     *
+     * @return HasOne<Game, $this>
+     */
+    public function recreatedBy(): HasOne
+    {
+        return $this->hasOne(Game::class, 'recreates_game_id')
+            ->latest('created_at');
     }
 
     /**
