@@ -889,6 +889,131 @@ describe('EditGame — content-language change moves the baseline', function () 
 });
 
 // ═══════════════════════════════════════════════════════════
+// AN UNTOUCHED SAVE OF A ONE-LANGUAGE GAME WRITES NOTHING (M084/S08-T04, D326)
+// ═══════════════════════════════════════════════════════════
+
+//
+// A game with text in ONE language, saved through the edit mode without a
+// single touch, stored a duplicate of that text under the other locale
+// ({"en": X, "de": X}) and reported name and description in changed_fields —
+// so approved participants were told the name and description changed when
+// they did not (D326). loadTranslatableValues() fills a locale the game has
+// no text for with spatie's fallback copy of the primary text, and that copy
+// then read as a change. The edit mode prunes it from mount on
+// (pruneUnstoredTranslations): an untouched save of a one-language game
+// writes nothing and reports nothing.
+//
+
+describe('EditGame — one-language game (D326)', function () {
+    it('writes nothing and reports nothing on an untouched save', function () {
+        Notification::fake();
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner, [
+            'name' => ['en' => 'Board night'],
+            'description' => ['en' => 'A friendly board night.'],
+        ]);
+        $member = editGameModeLock($game);
+        $stored = editGameModeStoredTranslations($game);
+
+        editGameModeMounted($game)
+            ->assertSet('isLocked', true)
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertDispatched('game-edit-saved');
+
+        // Writes nothing: no `de` key appears — the English text was not duplicated
+        // under German.
+        expect(editGameModeStoredTranslations($game))->toBe($stored)
+            ->and(array_keys($game->fresh()->getTranslations('name')))->toBe(['en'])
+            ->and(array_keys($game->fresh()->getTranslations('description')))->toBe(['en']);
+
+        // Reports nothing: no GameUpdated entry, and not one participant is told
+        // the name and description changed.
+        expect(editGameModeChangedFields($game))->toBe([]);
+
+        Notification::assertNothingSentTo($member->user);
+    });
+
+    it('reports only the field the owner touched', function () {
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner, [
+            'name' => ['en' => 'Board night'],
+            'description' => ['en' => 'A friendly board night.'],
+        ]);
+        $stored = editGameModeStoredTranslations($game);
+
+        // Price is Tier 1, so the agreement is open for this save.
+        editGameModeMounted($game)
+            ->assertSet('isLocked', false)
+            ->set('price', '15')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertDispatched('game-edit-saved');
+
+        // The one GameUpdated entry reports only the price — never the name and
+        // description the form re-submitted untouched.
+        expect(editGameModeChangedFields($game))->toBe([['price']])
+            ->and(editGameModeStoredTranslations($game))->toBe($stored)
+            ->and($game->fresh()->price)->toBe(15.0);
+    });
+
+    it('shows the German tab empty and stores German text the owner types', function () {
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner, [
+            'name' => ['en' => 'Board night'],
+            'description' => ['en' => 'A friendly board night.'],
+        ]);
+        $stored = editGameModeStoredTranslations($game);
+
+        // The game has no German, so the German tab is EMPTY — it no longer opens
+        // on a copy of the English text the owner never wrote.
+        editGameModeMounted($game)
+            ->assertSet('pendingTranslations.de.name', '')
+            ->assertSet('pendingTranslations.de.description', '')
+            ->call('switchLocale', 'de')
+            ->assertSet('activeLocale', 'de')
+            ->set('pendingTranslations.de.name', 'Neuer Spieleabend')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertDispatched('game-edit-saved');
+
+        // Exactly what the owner typed is stored: the German name, and no German
+        // description (that field stayed empty on the tab).
+        expect($game->fresh()->getTranslations('name'))->toEqual(['en' => 'Board night', 'de' => 'Neuer Spieleabend'])
+            ->and($game->fresh()->getRawOriginal('description'))->toBe($stored['description'])
+            ->and(editGameModeChangedFields($game))->toBe([['name']]);
+    });
+
+    it('writes nothing and reports nothing on an untouched save of a German-primary game', function () {
+        Notification::fake();
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner, [
+            'language' => 'de',
+            'name' => ['de' => 'Brettspielabend'],
+            'description' => ['de' => 'Ein gemütlicher Spieleabend.'],
+        ]);
+        $member = editGameModeLock($game);
+        $stored = editGameModeStoredTranslations($game);
+
+        editGameModeMounted($game)
+            ->assertSet('baselineFieldsLocale', 'de')
+            ->assertSet('name', 'Brettspielabend')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertDispatched('game-edit-saved');
+
+        // Reports nothing: not one participant is told the name and description
+        // changed — they did not.
+        Notification::assertNothingSentTo($member->user);
+
+        // Writes nothing: no `en` key appears — the German text was not duplicated
+        // under English — and no GameUpdated entry exists.
+        expect(editGameModeStoredTranslations($game))->toBe($stored)
+            ->and(editGameModeChangedFields($game))->toBe([]);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
 // (14) LIFECYCLE GUARD
 // ═══════════════════════════════════════════════════════════
 

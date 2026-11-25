@@ -351,6 +351,57 @@ trait BuildsTranslatableFormFields
     }
 
     /**
+     * Empty the pending slots of every SECONDARY locale the model has no
+     * stored translation for — so an untouched save of a one-language entity
+     * writes nothing and reports nothing (M084/S08, decision D326).
+     *
+     * loadTranslatableValues() fills pendingTranslations for each secondary
+     * locale with $model->getTranslation($field, $locale), and spatie answers
+     * that with the PRIMARY text when the locale has none — never null.
+     * buildTranslatableValues() then submits [baseline => text, secondary =>
+     * copy], which reads as a change: the copy is stored under the other
+     * locale, the fields land in changed_fields, and approved participants are
+     * told they changed when they did not. With the slot empty, the build drops
+     * it ("only non-empty secondary values") and the service compares the
+     * stored map against itself: its no-op path.
+     *
+     * hasTranslation() is the only authority here — it reads the STORED map,
+     * with no fallback. Never getTranslation(): it answers the fallback copy,
+     * which is exactly the value being pruned. The baseline locale is never
+     * touched: its text is real and sits in the fields the owner is editing.
+     *
+     * Opt-in: call it from an EDIT component's mount(), directly after
+     * loadTranslatableValues(). The other consumers of this trait (the create
+     * forms, ManageEvent, EventAnnouncements, the team components) keep the
+     * fallback copy until follow-up R111. An owner sees the difference on the
+     * other locale's tab of a one-language entity: it now opens EMPTY instead
+     * of on a copy of the primary text — copyFromBaseline() still copies on an
+     * explicit click.
+     *
+     * @param  array<int, string>  $fields  Translatable field names
+     */
+    protected function pruneUnstoredTranslations(Model $model, array $fields): void
+    {
+        assert(method_exists($model, 'hasTranslation'));
+
+        foreach ($this->getSecondaryLocalesFor($this->baselineFieldsLocale) as $locale) {
+            foreach ($fields as $field) {
+                if ($model->hasTranslation($field, $locale)) {
+                    continue;
+                }
+
+                data_set($this, "pendingTranslations.{$locale}.{$field}", '');
+
+                // Legacy: the component's `{field}_{locale}` property, where it declares one.
+                $legacyProperty = "{$field}_{$locale}";
+                if (property_exists($this, $legacyProperty)) {
+                    data_set($this, $legacyProperty, '');
+                }
+            }
+        }
+    }
+
+    /**
      * Generate validation rules for secondary locale fields.
      * Supports both legacy _de properties and the new pendingTranslations store.
      *

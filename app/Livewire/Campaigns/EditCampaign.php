@@ -137,6 +137,10 @@ class EditCampaign extends Component
         // only, renders the other locale's tab empty, and the next save would
         // drop the stored translation.
         $this->loadTranslatableValues($campaign, ['name', 'description']);
+        // loadTranslatableValues() fills a locale the campaign has no text for with a
+        // fallback copy of the primary text, which an untouched save would then
+        // store under that locale and report as a change (D326): prune it.
+        $this->pruneUnstoredTranslations($campaign, ['name', 'description']);
 
         // Schedule. time_of_day is a plain `H:i` varchar on campaigns: a
         // wall-clock time with no timezone conversion, unlike a game's date_time.

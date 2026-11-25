@@ -163,6 +163,10 @@ class EditGame extends Component
         // only, renders the other locale's tab empty, and the next save would
         // drop the stored translation.
         $this->loadTranslatableValues($game, ['name', 'description']);
+        // loadTranslatableValues() fills a locale the game has no text for with a
+        // fallback copy of the primary text, which an untouched save would then
+        // store under that locale and report as a change (D326): prune it.
+        $this->pruneUnstoredTranslations($game, ['name', 'description']);
 
         $this->date_time = self::toWallClock($game->date_time) ?? '';
         $this->originalDateTime = $this->date_time;

@@ -781,6 +781,128 @@ describe('EditCampaign — content-language change moves the baseline', function
 });
 
 // ═══════════════════════════════════════════════════════════
+// AN UNTOUCHED SAVE OF A ONE-LANGUAGE CAMPAIGN WRITES NOTHING (M084/S08-T04, D326)
+// ═══════════════════════════════════════════════════════════
+
+//
+// The campaign twin of the one-language block in EditGameModeTest.php. A
+// campaign with text in ONE language, saved through the edit mode without a
+// single touch, stored a duplicate of that text under the other locale and
+// reported name and description in changed_fields — so approved participants
+// were told they changed when they did not (D326). The edit mode prunes
+// spatie's fallback copy from mount on (pruneUnstoredTranslations): an
+// untouched save of a one-language campaign writes nothing and reports nothing.
+// Notifications are faked for the whole file (beforeEach above).
+//
+
+describe('EditCampaign — one-language campaign (D326)', function () {
+    it('writes nothing and reports nothing on an untouched save', function () {
+        $owner = editCampaignModeOwner();
+        $campaign = editCampaignModeCampaign($owner, [
+            'name' => ['en' => 'Shadows of Waterdeep'],
+            'description' => ['en' => 'A weekly intrigue campaign.'],
+        ]);
+        $member = editCampaignModeLock($campaign);
+        $stored = editCampaignModeStoredTranslations($campaign);
+
+        editCampaignModeMounted($campaign)
+            ->assertSet('isLocked', true)
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertDispatched('campaign-edit-saved');
+
+        // Writes nothing: no `de` key appears — the English text was not duplicated
+        // under German.
+        expect(editCampaignModeStoredTranslations($campaign))->toBe($stored)
+            ->and(array_keys($campaign->fresh()->getTranslations('name')))->toBe(['en'])
+            ->and(array_keys($campaign->fresh()->getTranslations('description')))->toBe(['en']);
+
+        // Reports nothing: no CampaignUpdated entry, and not one participant is told
+        // the name and description changed.
+        expect(editCampaignModeChangedFields($campaign))->toBe([]);
+
+        Notification::assertNothingSentTo($member->user);
+    });
+
+    it('reports only the field the owner touched', function () {
+        $owner = editCampaignModeOwner();
+        $campaign = editCampaignModeCampaign($owner, [
+            'name' => ['en' => 'Shadows of Waterdeep'],
+            'description' => ['en' => 'A weekly intrigue campaign.'],
+        ]);
+        $stored = editCampaignModeStoredTranslations($campaign);
+
+        // Recurrence is Tier 1, so the agreement is open for this save.
+        editCampaignModeMounted($campaign)
+            ->assertSet('isLocked', false)
+            ->set('recurrence', 'bi-weekly')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertDispatched('campaign-edit-saved');
+
+        // The one CampaignUpdated entry reports only the recurrence — never the name
+        // and description the form re-submitted untouched.
+        expect(editCampaignModeChangedFields($campaign))->toBe([['recurrence']])
+            ->and(editCampaignModeStoredTranslations($campaign))->toBe($stored)
+            ->and($campaign->fresh()->recurrence)->toBe('bi-weekly');
+    });
+
+    it('shows the German tab empty and stores German text the owner types', function () {
+        $owner = editCampaignModeOwner();
+        $campaign = editCampaignModeCampaign($owner, [
+            'name' => ['en' => 'Shadows of Waterdeep'],
+            'description' => ['en' => 'A weekly intrigue campaign.'],
+        ]);
+        $stored = editCampaignModeStoredTranslations($campaign);
+
+        // The campaign has no German, so the German tab is EMPTY — it no longer opens
+        // on a copy of the English text the owner never wrote.
+        editCampaignModeMounted($campaign)
+            ->assertSet('pendingTranslations.de.name', '')
+            ->assertSet('pendingTranslations.de.description', '')
+            ->call('switchLocale', 'de')
+            ->assertSet('activeLocale', 'de')
+            ->set('pendingTranslations.de.name', 'Schatten von Tiefwasser')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertDispatched('campaign-edit-saved');
+
+        // Exactly what the owner typed is stored: the German name, and no German
+        // description (that field stayed empty on the tab).
+        expect($campaign->fresh()->getTranslations('name'))->toEqual(['en' => 'Shadows of Waterdeep', 'de' => 'Schatten von Tiefwasser'])
+            ->and($campaign->fresh()->getRawOriginal('description'))->toBe($stored['description'])
+            ->and(editCampaignModeChangedFields($campaign))->toBe([['name']]);
+    });
+
+    it('writes nothing and reports nothing on an untouched save of a German-primary campaign', function () {
+        $owner = editCampaignModeOwner();
+        $campaign = editCampaignModeCampaign($owner, [
+            'language' => 'de',
+            'name' => ['de' => 'Schatten von Tiefwasser'],
+            'description' => ['de' => 'Ein wöchentliches Intrigen-Abenteuer.'],
+        ]);
+        $member = editCampaignModeLock($campaign);
+        $stored = editCampaignModeStoredTranslations($campaign);
+
+        editCampaignModeMounted($campaign)
+            ->assertSet('baselineFieldsLocale', 'de')
+            ->assertSet('name', 'Schatten von Tiefwasser')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertDispatched('campaign-edit-saved');
+
+        // Reports nothing: not one participant is told the name and description
+        // changed — they did not.
+        Notification::assertNothingSentTo($member->user);
+
+        // Writes nothing: no `en` key appears — the German text was not duplicated
+        // under English — and no CampaignUpdated entry exists.
+        expect(editCampaignModeStoredTranslations($campaign))->toBe($stored)
+            ->and(editCampaignModeChangedFields($campaign))->toBe([]);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
 // (10) LIFECYCLE GUARD
 // ═══════════════════════════════════════════════════════════
 
@@ -840,6 +962,16 @@ describe('EditCampaign — descriptors for every game type', function () {
                 // Both are Tier 3: the agreement lock never disables a descriptor.
                 ->and(editCampaignModeFieldDisabled($html, $id))->toBeFalse("field [{$id}] should stay enabled");
         }
+
+        // The form is a real <form wire:submit> with a submit button, so the BROWSER validates
+        // before Livewire sees anything. The autofill writes a two-decimal BGG weight
+        // (2.37, 2.15 …): on a coarser step grid the input is invalid and the submit event
+        // never fires — Save would do nothing but show a native tooltip (verified on the
+        // game twin in a browser: step="0.25" + 2.37 → 0 submits). min/max mirror the rule
+        // 'nullable|numeric|min:1|max:5'.
+        expect(editCampaignModeFieldTag($html, 'campaign-complexity'))->toContain('step="0.01"')
+            ->toContain('min="1"')
+            ->toContain('max="5"');
     })->with([
         'board game' => [GameType::BoardGame, false],
         'locked board game' => [GameType::BoardGame, true],
