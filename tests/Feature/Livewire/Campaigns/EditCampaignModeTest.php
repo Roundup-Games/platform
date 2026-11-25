@@ -108,6 +108,23 @@ function editCampaignModeChangedFields(Campaign $campaign): array
         ->all();
 }
 
+/**
+ * The RAW JSON of the two translatable columns — the bytes the database
+ * holds, not the locale-resolved text. Captured before an edit, it is what a
+ * "keeps both translations" case compares the row against afterwards: a
+ * translation re-labelled under another locale key shows up here even when
+ * the text itself is unchanged.
+ *
+ * @return array{name: mixed, description: mixed}
+ */
+function editCampaignModeStoredTranslations(Campaign $campaign): array
+{
+    return [
+        'name' => $campaign->fresh()->getRawOriginal('name'),
+        'description' => $campaign->fresh()->getRawOriginal('description'),
+    ];
+}
+
 // ═══════════════════════════════════════════════════════════
 // (1) MOUNT — PRE-FILL
 // ═══════════════════════════════════════════════════════════
@@ -375,6 +392,208 @@ describe('EditCampaign — translatable fields', function () {
         expect($campaign->fresh()->getTranslations('name'))->toEqual(['en' => 'Shadows of Waterdeep', 'de' => 'Schatten von Tiefwasser'])
             ->and($campaign->fresh()->getTranslations('description'))->toEqual(['en' => 'A weekly intrigue campaign.', 'de' => 'Ein wöchentliches Intrigen-Abenteuer.'])
             ->and(editCampaignModeChangedFields($campaign))->toBe([['host_note']]);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// CONTENT-LANGUAGE CHANGE MOVES THE BASELINE (M084/S07, D324)
+// ═══════════════════════════════════════════════════════════
+
+//
+// On an EDIT form a content-language change moves the baseline; it never
+// re-labels text. Before this, `language` en → de left the English text in
+// the fields while getBaselineLocale() already answered 'de', so the save
+// stored {"de":"Shadows of Waterdeep","en":"Shadows of Waterdeep"} and
+// destroyed the German translation. "Byte-identical" below is the RAW JSON of
+// both columns, captured before the edit (editCampaignModeStoredTranslations()).
+//
+
+describe('EditCampaign — content-language change moves the baseline', function () {
+    it('keeps both stored translations byte-identical when the content language changes en → de', function () {
+        $owner = editCampaignModeOwner();
+        $campaign = editCampaignModeCampaign($owner);
+        $stored = editCampaignModeStoredTranslations($campaign);
+
+        editCampaignModeMounted($campaign)
+            ->assertSet('baselineFieldsLocale', 'en')
+            ->set('language', 'de')
+            ->assertSet('name', 'Schatten von Tiefwasser')
+            ->assertSet('description', 'Ein wöchentliches Intrigen-Abenteuer.')
+            ->assertSet('pendingTranslations.en.name', 'Shadows of Waterdeep')
+            ->assertSet('pendingTranslations.en.description', 'A weekly intrigue campaign.')
+            ->assertSet('activeLocale', 'de')
+            ->assertSet('baselineFieldsLocale', 'de')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertDispatched('campaign-edit-saved');
+
+        expect($campaign->fresh()->language)->toBe('de')
+            ->and(editCampaignModeStoredTranslations($campaign))->toBe($stored)
+            ->and(editCampaignModeChangedFields($campaign))->toBe([['language']]);
+    });
+
+    it('keeps both byte-identical when the change and the save travel in ONE request', function () {
+        $owner = editCampaignModeOwner();
+        $campaign = editCampaignModeCampaign($owner);
+        $stored = editCampaignModeStoredTranslations($campaign);
+
+        // Livewire applies every property update first and runs the updated*
+        // hooks before the method, so the baseline has moved when save() reads
+        // the fields — also when `language` rides along in the save request.
+        editCampaignModeMounted($campaign)
+            ->update(calls: [['method' => 'save', 'params' => [], 'path' => '']], updates: ['language' => 'de'])
+            ->assertHasNoErrors()
+            ->assertDispatched('campaign-edit-saved');
+
+        expect($campaign->fresh()->language)->toBe('de')
+            ->and(editCampaignModeStoredTranslations($campaign))->toBe($stored)
+            ->and(editCampaignModeChangedFields($campaign))->toBe([['language']]);
+    });
+
+    it('moves the baseline back de → en and keeps both byte-identical', function () {
+        $owner = editCampaignModeOwner();
+        $campaign = editCampaignModeCampaign($owner, ['language' => 'de']);
+        $stored = editCampaignModeStoredTranslations($campaign);
+
+        editCampaignModeMounted($campaign)
+            ->assertSet('name', 'Schatten von Tiefwasser')
+            ->set('language', 'en')
+            ->assertSet('name', 'Shadows of Waterdeep')
+            ->assertSet('description', 'A weekly intrigue campaign.')
+            ->assertSet('pendingTranslations.de.name', 'Schatten von Tiefwasser')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        expect($campaign->fresh()->language)->toBe('en')
+            ->and(editCampaignModeStoredTranslations($campaign))->toBe($stored)
+            ->and(editCampaignModeChangedFields($campaign))->toBe([['language']]);
+    });
+
+    it('reports the content language next to only the fields the owner touched', function () {
+        $owner = editCampaignModeOwner();
+        $campaign = editCampaignModeCampaign($owner);
+        $stored = editCampaignModeStoredTranslations($campaign);
+
+        editCampaignModeMounted($campaign)
+            ->set('recurrence', 'monthly')
+            ->set('language', 'de')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        expect($campaign->fresh()->recurrence)->toBe('monthly')
+            ->and($campaign->fresh()->language)->toBe('de')
+            ->and(editCampaignModeStoredTranslations($campaign))->toBe($stored)
+            ->and(editCampaignModeChangedFields($campaign))->toBe([['recurrence', 'language']]);
+    });
+
+    it('saves text edited after the change under the NEW locale', function () {
+        $owner = editCampaignModeOwner();
+        $campaign = editCampaignModeCampaign($owner);
+        $stored = editCampaignModeStoredTranslations($campaign);
+
+        editCampaignModeMounted($campaign)
+            ->set('language', 'de')
+            ->set('name', 'Neue Kampagne')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        expect($campaign->fresh()->getTranslations('name'))->toEqual(['en' => 'Shadows of Waterdeep', 'de' => 'Neue Kampagne'])
+            ->and($campaign->fresh()->getRawOriginal('description'))->toBe($stored['description'])
+            ->and(editCampaignModeChangedFields($campaign))->toBe([['name', 'language']]);
+    });
+
+    it('moves the baseline STRICTLY: an English-only campaign switched to German shows empty fields, keeps its English, and is refused until the German name is typed', function () {
+        $owner = editCampaignModeOwner();
+        $campaign = editCampaignModeCampaign($owner, [
+            'name' => ['en' => 'Shadows of Waterdeep'],
+            'description' => ['en' => 'A weekly intrigue campaign.'],
+        ]);
+        $stored = editCampaignModeStoredTranslations($campaign);
+
+        // Nothing is copied across locale keys: the German fields are EMPTY
+        // because the campaign has no German — the English stays where it was.
+        $component = editCampaignModeMounted($campaign)
+            ->set('language', 'de')
+            ->assertSet('name', '')
+            ->assertSet('description', '')
+            ->assertSet('pendingTranslations.en.name', 'Shadows of Waterdeep')
+            ->assertSet('pendingTranslations.en.description', 'A weekly intrigue campaign.');
+
+        // name is required: an empty German baseline never reaches the service.
+        $component
+            ->call('save')
+            ->assertHasErrors(['name'])
+            ->assertNotDispatched('campaign-edit-saved');
+
+        expect($campaign->fresh()->language)->toBe('en')
+            ->and(editCampaignModeStoredTranslations($campaign))->toBe($stored)
+            ->and(editCampaignModeChangedFields($campaign))->toBe([]);
+
+        $component
+            ->set('name', 'Schatten von Tiefwasser')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        expect($campaign->fresh()->language)->toBe('de')
+            ->and($campaign->fresh()->getTranslations('name'))->toEqual(['en' => 'Shadows of Waterdeep', 'de' => 'Schatten von Tiefwasser'])
+            ->and($campaign->fresh()->getRawOriginal('description'))->toBe($stored['description'])
+            ->and(editCampaignModeChangedFields($campaign))->toBe([['name', 'language']]);
+    });
+
+    it('restores the exact prior state on en → de → en and fabricates no translation', function () {
+        $owner = editCampaignModeOwner();
+        $campaign = editCampaignModeCampaign($owner, [
+            'name' => ['en' => 'Shadows of Waterdeep'],
+            'description' => ['en' => 'A weekly intrigue campaign.'],
+        ]);
+        $stored = editCampaignModeStoredTranslations($campaign);
+
+        editCampaignModeMounted($campaign)
+            ->set('language', 'de')
+            ->assertSet('name', '')
+            ->set('language', 'en')
+            ->assertSet('name', 'Shadows of Waterdeep')
+            ->assertSet('description', 'A weekly intrigue campaign.')
+            ->assertSet('activeLocale', 'en')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        // No `de` key appears: the detour through the empty German baseline
+        // left not a trace in either column.
+        expect($campaign->fresh()->language)->toBe('en')
+            ->and(editCampaignModeStoredTranslations($campaign))->toBe($stored)
+            ->and(editCampaignModeChangedFields($campaign))->toBe([]);
+    });
+
+    it('refuses a forged language change on a LOCKED campaign and writes nothing', function () {
+        $owner = editCampaignModeOwner();
+        $campaign = editCampaignModeCampaign($owner);
+        editCampaignModeLock($campaign);
+        $stored = editCampaignModeStoredTranslations($campaign);
+
+        // The select is disabled once the agreement is locked, but a request
+        // can still send the property: the hook swaps the fields in memory
+        // only, and language is Tier 1 — the gate stays with the service.
+        editCampaignModeMounted($campaign)
+            ->set('language', 'de')
+            ->call('save')
+            ->assertHasErrors(['edit'])
+            ->assertNotDispatched('campaign-edit-saved');
+
+        expect($campaign->fresh()->language)->toBe('en')
+            ->and(editCampaignModeStoredTranslations($campaign))->toBe($stored)
+            ->and(editCampaignModeChangedFields($campaign))->toBe([]);
+    });
+
+    it('binds the content-language select LIVE so the fields swap the moment it changes', function () {
+        $owner = editCampaignModeOwner();
+        $campaign = editCampaignModeCampaign($owner);
+
+        // Deferred, the select's value would only travel with the NEXT request
+        // — together with text typed into fields that still show the previous
+        // locale. The create form keeps the deferred binding (pinned by
+        // CreateCampaignFormRenderTest): its select re-labels the typed text.
+        editCampaignModeMounted($campaign)->assertSeeHtml('wire:model.live="language"');
     });
 });
 

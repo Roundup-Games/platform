@@ -183,6 +183,19 @@ class EditCampaign extends Component
         }
     }
 
+    /**
+     * A content-language change MOVES the baseline; it never re-labels the
+     * text in the fields (M084/S07, decision D324). Without this hook the
+     * select already answers the new locale when save() runs, so
+     * buildTranslatableValues() would label the English text as German and
+     * overwrite the stored German translation. The campaign is passed along so
+     * the move re-fills from what the new locale has STORED, not from a fallback copy.
+     */
+    public function updatedLanguage(): void
+    {
+        $this->moveBaselineTo($this->language, $this->campaign);
+    }
+
     // ── Lock state (D314) ─────────────────────────────────
 
     /** When the agreement locked: the earliest confirmed non-owner participant. */
