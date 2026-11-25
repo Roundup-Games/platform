@@ -17,7 +17,8 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  *    GameSystem, plus an 'og' (1200x630, Fit::Crop) for social-share cards.
  *  - resolveCoverUrl(): the deterministic fallback chain every image consumer
  *    should call instead of hand-rolling a representative-system lookup:
- *      1. host-uploaded cover media (verified present on disk)
+ *      1. host-uploaded cover media (verified present on disk; while a requested
+ *         rendition is still queued, the stored original stands in)
  *      2. the entity's first offered GameSystem cover (representative)
  *      3. the bundled images/og-default.jpg static asset
  *
@@ -87,6 +88,15 @@ trait ResolvesCoverImage
      *     exists on disk (defends against a moderation takedown or a stale
      *     media row whose source file was deleted). Mirrors
      *     GameSystem::coverImageUrl().
+     *
+     *     A requested rendition whose file does not exist YET is not that
+     *     case: the thumb / og / hero renditions are produced by a queued job,
+     *     so between the upload and the worker's run the original is on disk
+     *     and the rendition is not. The original then stands in for rung 1
+     *     (M084/S08-T05). Before, the chain dropped to rung 2 or 3 for that
+     *     window — the detail page re-rendered right after a cover save showed
+     *     the system cover or the default asset behind its success message,
+     *     warned on every render, and showed the new cover only after a reload.
      *  2. The first offered GameSystem's cover (the representative image for a
      *     session/campaign that didn't upload its own). Reads the gameSystems
      *     BelongsToMany relation (S06) — callers should eager-load it
@@ -115,9 +125,28 @@ trait ResolvesCoverImage
                     : $media->getUrl();
             }
 
-            // Structured log when a media row exists but its file is missing —
-            // surfaces moderation takedowns and storage drift in production.
-            // Values are stored uncast; the logger accepts mixed context.
+            // The rendition is not on disk yet while the original is: the job
+            // that generates it is still queued. The owner's own cover is the
+            // right image to show until it lands — never a lower rung.
+            if ($conversion !== '') {
+                $originalPath = $media->getPath();
+
+                if ($originalPath !== '' && file_exists($originalPath)) {
+                    // Worker lag, not an incident: INFO, so it is visible without paging.
+                    Log::info('cover.conversion_pending', [
+                        'entity_type' => static::class,
+                        'entity_id' => $this->getKey(),
+                        'media_id' => $media->getKey(),
+                        'conversion' => $conversion,
+                    ]);
+
+                    return $media->getUrl();
+                }
+            }
+
+            // Structured log when a media row exists but its ORIGINAL file is
+            // missing — surfaces moderation takedowns and storage drift in
+            // production. Values are stored uncast; the logger accepts mixed context.
             Log::warning('cover.media_file_missing', [
                 'entity_type' => static::class,
                 'entity_id' => $this->getKey(),

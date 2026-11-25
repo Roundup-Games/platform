@@ -17,7 +17,8 @@ use RuntimeException;
  *
  * The service owns everything that happens AFTER the Livewire component has
  * authorized the user, validated the form, and built its translatable values:
- * the bench-mode GM gate, gathering field scrubbing, pivot canonicalization,
+ * the bench-mode GM gate, the gathering scrub (bench mode and reliability only),
+ * pivot canonicalization,
  * the create transaction (model + owner participant + canonical pivot sync +
  * the zero-offered-system invariant), the cover upload, and the GM short
  * link. Components keep authorization, validation, Livewire error feedback,
@@ -36,6 +37,7 @@ use RuntimeException;
  *     complexity: string|null,
  *     min_reliability_preference?: string|null,
  *     cover_image: UploadedFile|null,
+ *     recreates_game_id?: string|null,
  * }
  * @phpstan-type SessionCreationContext array{
  *     validated: array<string, mixed>,
@@ -47,6 +49,7 @@ use RuntimeException;
  *     min_reliability_preference: string|null,
  *     pivot_system_ids: list<string>,
  *     owner_id: int|string|null,
+ *     recreates_game_id: string|null,
  * }
  */
 class SessionCreationService
@@ -97,10 +100,11 @@ class SessionCreationService
             $benchMode = false;
         }
 
-        // Gatherings are multi-system social sessions: force complexity/bench/
-        // reliability clean so the warm form can't persist GM-complexity state.
+        // Gatherings are multi-system social sessions: the bench switch and the
+        // reliability preference are not on the gathering form, so they are forced
+        // clean. The complexity IS on that form (D325): the value the host typed is kept.
         $isGathering = ($validated['game_type'] ?? null) === 'gathering';
-        $complexity = $isGathering ? null : $draft['complexity'];
+        $complexity = $draft['complexity'];
         $minReliabilityPreference = $isGathering ? null : ($draft['min_reliability_preference'] ?? null);
         $benchMode = $isGathering ? false : $benchMode;
 
@@ -110,7 +114,13 @@ class SessionCreationService
         // single picker carries one system.
         $pivotSystemIds = $this->canonicalSystemIds($validated, $isGathering);
 
-        $model = DB::transaction(function () use ($draft, $creator, $entityType, $makeModel, $afterSync, $vibeFlags, $benchMode, $complexity, $minReliabilityPreference, $pivotSystemIds) {
+        // Linked recreate (D318/D319): the cancelled predecessor this game
+        // replaces, already validated by the component (its game, cancelled,
+        // declared, no replacement yet). Only a well-formed id travels on.
+        $recreatesGameId = $draft['recreates_game_id'] ?? null;
+        $recreatesGameId = is_string($recreatesGameId) && $recreatesGameId !== '' ? $recreatesGameId : null;
+
+        $model = DB::transaction(function () use ($draft, $creator, $entityType, $makeModel, $afterSync, $vibeFlags, $benchMode, $complexity, $minReliabilityPreference, $pivotSystemIds, $recreatesGameId) {
             /** @var SessionCreationContext $context */
             $context = [
                 'validated' => $draft['validated'],
@@ -122,6 +132,7 @@ class SessionCreationService
                 'min_reliability_preference' => $minReliabilityPreference,
                 'pivot_system_ids' => $pivotSystemIds,
                 'owner_id' => $creator->getKey(),
+                'recreates_game_id' => $recreatesGameId,
             ];
 
             $model = $makeModel($context);
@@ -159,6 +170,16 @@ class SessionCreationService
 
             return $model;
         });
+
+        // Linked recreate: the host's late-cancel offence on the cancelled
+        // predecessor turns neutral ONLY now that the replacement is committed
+        // (D319). Deliberately outside and after the create transaction — the
+        // game exists whether or not the offence resolves. Failure-isolated:
+        // a failed resolve leaves the offence standing, which is the safe
+        // default, and must never make game creation fail.
+        if ($model instanceof Game && $model->recreates_game_id !== null) {
+            $this->resolveLinkedRecreate($model);
+        }
 
         // Persist the host-uploaded cover to the Spatie 'cover' collection.
         // singleFile() on the collection means a fresh upload replaces any
@@ -209,6 +230,36 @@ class SessionCreationService
         }
 
         return $model;
+    }
+
+    /**
+     * Resolve the linked recreate for a just-published game, never throwing.
+     *
+     * Mirrors the offence guard in GamesPage::cancelGame: any failure is logged
+     * as recreate.resolve_failed and swallowed, because the game is already
+     * created and the offence standing is the safe default (D319).
+     */
+    private function resolveLinkedRecreate(Game $game): void
+    {
+        $recreatesGameId = $game->recreates_game_id;
+
+        if ($recreatesGameId === null) {
+            return;
+        }
+
+        try {
+            $predecessor = Game::query()->find($recreatesGameId);
+
+            if ($predecessor !== null) {
+                app(AttendanceService::class)->resolveLinkedRecreate($predecessor, $game);
+            }
+        } catch (\Throwable $e) {
+            Log::error('recreate.resolve_failed', [
+                'game_id' => $game->getKey(),
+                'recreates_game_id' => $recreatesGameId,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

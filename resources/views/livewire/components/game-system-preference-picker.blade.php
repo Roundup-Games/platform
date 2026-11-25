@@ -14,7 +14,8 @@
         <input
             type="text"
             id="preference-picker-{{ $preferenceType }}"
-            class="w-full pl-10 pr-10 rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"
+            @disabled($disabled)
+            class="w-full pl-10 pr-10 rounded-lg bg-surface-container-high border border-transparent text-on-surface placeholder:text-on-surface-variant focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors{{ $disabled ? ' opacity-60 cursor-not-allowed' : '' }}"
             placeholder="{{ $mode === 'creation' ? __('games.placeholder_search_game_systems_to_add') : ($preferenceType === 'favorite' ? __('games.placeholder_search_game_systems_to_add_as_favorites') : __('games.placeholder_search_game_systems_to_avoid')) }}"
             autocomplete="off"
             wire:model.live.debounce.300ms="search"
@@ -25,7 +26,7 @@
             role="combobox"
         />
 
-        @if(strlen($search) > 0)
+        @if(! $disabled && strlen($search) > 0)
             <button
                 type="button"
                 wire:click="$set('search', '')"
@@ -50,7 +51,7 @@
     @endif
 
     {{-- Dropdown: Search Results --}}
-    @if($isOpen && strlen($search) >= 2 && !$showExpansionPicker)
+    @if($isOpen && strlen($search) >= 2 && !$showExpansionPicker && !$disabled)
         @php($results = $this->searchResults)
 
         <div
@@ -124,7 +125,7 @@
     @endif
 
     {{-- Expansion Sub-Picker --}}
-    @if($showExpansionPicker)
+    @if($showExpansionPicker && ! $disabled)
         @php($expansionOptions = $this->expansionOptions)
 
         <div class="mt-2 bg-surface-container rounded-lg border border-outline/20 overflow-hidden">
@@ -249,6 +250,7 @@
                         @endif
                     @endif
 
+                    @if(!$disabled)
                     <button
                         type="button"
                         wire:click="remove('{{ $system->id }}')"
@@ -257,6 +259,7 @@
                     >
                         <span class="material-symbols-outlined text-sm" aria-hidden="true">delete</span>
                     </button>
+                    @endif
                 </div>
             @endforeach
         </div>

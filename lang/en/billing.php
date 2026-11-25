@@ -50,7 +50,6 @@ return [
     'content_refund' => 'Refund',
     'content_registration_submitted_payment_instructions_will' => 'Registration submitted! Payment instructions will follow.',
     'content_secure_payments' => 'Secure Payments',
-    'content_with_your_membership_you_get' => 'With your membership you get access to exclusive events, priority registration, and full platform features.',
     'content_your_subscription_has_been_canceled' => 'Your subscription has been cancelled. You will retain access until the end of your billing period.',
     'content_your_subscription_has_been_resumed_welcome_back' => 'Your subscription has been resumed. Welcome back!',
     'error_a_valid_event_is_required_for_payment' => 'A valid event is required for payment.',

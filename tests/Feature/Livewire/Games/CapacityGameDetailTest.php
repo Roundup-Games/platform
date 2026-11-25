@@ -3,13 +3,15 @@
 use App\Enums\GameStatus;
 use App\Enums\ParticipantRole;
 use App\Enums\ParticipantStatus;
+use App\Exceptions\DemotionRequiresConfirmation;
 use App\Livewire\Games\GameDetail;
 use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
-use App\Notifications\SeatDemoted;
 use App\Services\CapacityService;
+use App\Services\NotificationService;
+use App\Services\WaitlistService;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 use Tests\Traits\CreatesGameInstances;
@@ -76,139 +78,162 @@ describe('increase', function () {
         expect(countStatus($game->fresh(), ParticipantStatus::Pending))->toBe(2)
             ->and(countStatus($game->fresh(), ParticipantStatus::Waitlisted))->toBe(0);
     });
+
+    it('raises max_players on a game somebody has joined — an increase only opens seats', function () {
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+        expect($game->isAgreementLocked())->toBeTrue();
+
+        Livewire::actingAs($this->owner)
+            ->test(GameDetail::class, ['id' => $game->id])
+            ->call('updateCapacity', 4)
+            ->assertHasNoErrors()
+            ->assertSee(__('games.flash_capacity_increased_none', ['max' => 4]))
+            ->assertDontSee(__('games.error_agreement_locked'));
+
+        expect($game->fresh()->max_players)->toBe(4)
+            ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(3);
+    });
 });
 
 // ═══════════════════════════════════════════════════════════
-// (b) Silent decrease — above/equal the approved count, no roster change
+// (b) Silent decrease — refused once somebody has joined (D314); applied while only the owner has joined
 // ═══════════════════════════════════════════════════════════
 
 describe('silent decrease', function () {
-    it('lowers max_players above the approved count with no roster change', function () {
-        // approved=2 (owner + 1), but max overridden to 4 — room to spare.
+    it('shows the agreement-lock flash instead of lowering max_players on a game somebody has joined', function () {
+        // approved=2 (owner + 1 confirmed player), but max overridden to 4.
         $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 2, overrides: [
             'max_players' => 4,
         ]);
-        expect($game->approvedParticipantCount())->toBe(2);
+        expect($game->isAgreementLocked())->toBeTrue();
 
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
             ->call('updateCapacity', 3)
-            ->assertHasNoErrors();
+            ->assertHasNoErrors()
+            ->assertSee(__('games.error_agreement_locked'))
+            ->assertSet('confirmingCapacityDecrease', null);
 
-        expect($game->fresh()->max_players)->toBe(3)
+        expect($game->fresh()->max_players)->toBe(4)
             ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(2)
             ->and(countStatus($game->fresh(), ParticipantStatus::Waitlisted))->toBe(0);
     });
 
-    it('silently lowers to exactly the approved count (no demotion)', function () {
+    it('lowers max_players above the approved count with no roster change while only the owner has joined', function () {
+        // maxPlayers: 1 seats no non-owner, so the agreement is still unlocked.
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 1, overrides: [
+            'max_players' => 4,
+        ]);
+        expect($game->isAgreementLocked())->toBeFalse();
+
+        Livewire::actingAs($this->owner)
+            ->test(GameDetail::class, ['id' => $game->id])
+            ->call('updateCapacity', 3)
+            ->assertHasNoErrors()
+            ->assertSee(__('games.flash_capacity_decreased', ['max' => 3]))
+            ->assertDontSee(__('games.error_agreement_locked'));
+
+        expect($game->fresh()->max_players)->toBe(3)
+            ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(1)
+            ->and(countStatus($game->fresh(), ParticipantStatus::Waitlisted))->toBe(0);
+    });
+
+    it('refuses to lower max_players to exactly the approved count on a game somebody has joined', function () {
         $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 2, overrides: [
             'max_players' => 4,
         ]);
 
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->call('updateCapacity', 2);
+            ->call('updateCapacity', 2)
+            ->assertHasNoErrors()
+            ->assertSee(__('games.error_agreement_locked'));
 
-        expect($game->fresh()->max_players)->toBe(2)
-            ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(2);
+        expect($game->fresh()->max_players)->toBe(4)
+            ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(2)
+            ->and(countStatus($game->fresh(), ParticipantStatus::Waitlisted))->toBe(0);
     });
 });
 
 // ═══════════════════════════════════════════════════════════
-// (c) Decrease below approved WITHOUT reason — arms the confirm modal
+// (c) Decrease below approved WITHOUT reason — never reaches the confirm modal once somebody has joined
 // ═══════════════════════════════════════════════════════════
 
 describe('decrease confirmation', function () {
-    it('arms the confirm modal with the exact displaced count and does not demote yet', function () {
-        // max=3: owner + 2 approved. Decreasing to 2 displaces 1.
+    it('shows the agreement-lock flash instead of arming the confirm modal on a game somebody has joined', function () {
+        // max=3: owner + 2 approved. Decreasing to 2 would displace 1.
         $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
 
-        $component = Livewire::actingAs($this->owner)
+        Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->call('updateCapacity', 2);   // no reason → arm modal
+            ->call('updateCapacity', 2)   // no reason
+            ->assertHasNoErrors()
+            ->assertSee(__('games.error_agreement_locked'))
+            ->assertDontSee(__('games.title_confirm_capacity_decrease'))
+            ->assertSet('confirmingCapacityDecrease', null)
+            ->assertSet('pendingNewMax', null);
 
-        // Modal state exposed to the Blade partial.
-        $component
-            ->assertSet('confirmingCapacityDecrease', 'capacity-decrease')
-            ->assertSet('pendingNewMax', 2);
-
-        // The render-time preview (computed from pendingNewMax via a pure
-        // CapacityService read) names the exact displaced count for the modal.
-        // Verify it independently of Livewire's view payload.
-        $preview = app(CapacityService::class)
-            ->previewDemotion($game->fresh(), 2);
-        expect($preview->actualDemotionCount)->toBe(1);
-
-        // No demotion happened yet — roster unchanged.
-        expect(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(3)
-            ->and(countStatus($game->fresh(), ParticipantStatus::Waitlisted))->toBe(0)
-            ->and($game->fresh()->max_players)->toBe(3);
+        // Roster unchanged.
+        expect($game->fresh()->max_players)->toBe(3)
+            ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(3)
+            ->and(countStatus($game->fresh(), ParticipantStatus::Waitlisted))->toBe(0);
     });
 });
 
 // ═══════════════════════════════════════════════════════════
-// (d) Decrease below approved WITH reason — LIFO demote + notification
+// (d) Decrease below approved WITH a reason — refused the same way once somebody has joined
 // ═══════════════════════════════════════════════════════════
 
 describe('decrease with confirmation', function () {
-    it('demotes the LIFO set, flashes success, and notifies displaced players', function () {
-        Notification::fake();
-
-        // max=3: owner + 2 approved. Decreasing to 2 demotes the single
+    it('refuses the preview and the confirming call alike — nobody is demoted or notified', function () {
+        // max=3: owner + 2 approved. Decreasing to 2 used to demote the single
         // most-recently-approved non-exempt player.
         $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
-        $approved = $game->participants()
-            ->where('status', ParticipantStatus::Approved->value)
-            ->where('user_id', '!=', $game->owner_id)
-            ->get();
-        expect($approved)->toHaveCount(2);
+        Notification::fake();
 
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->call('updateCapacity', 2)                              // arms modal
-            ->call('updateCapacity', 2, 'Shrinking the table')       // confirms + demotes
-            ->assertHasNoErrors();
+            ->call('updateCapacity', 2)                              // would arm the modal
+            ->call('updateCapacity', 2, 'Shrinking the table')       // would confirm + demote
+            ->assertHasNoErrors()
+            ->assertSee(__('games.error_agreement_locked'))
+            ->assertSet('confirmingCapacityDecrease', null);
 
-        // Exactly one non-owner approved player demoted to Waitlisted; one stays.
-        expect($game->fresh()->max_players)->toBe(2)
-            ->and(countStatus($game->fresh(), ParticipantStatus::Waitlisted))->toBe(1)
-            ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(2); // owner + 1 spared
-
-        // The displaced player received a SeatDemoted notification carrying the reason.
-        $demoted = $game->fresh()->participants()
-            ->where('status', ParticipantStatus::Waitlisted->value)
-            ->first();
-        Notification::assertSentTo($demoted->user, SeatDemoted::class);
-
-        // Confirm state cleared after the demote completes.
-        // (Fresh component read — the testable instance already cleared it.)
+        expect($game->fresh()->max_players)->toBe(3)
+            ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(3)
+            ->and(countStatus($game->fresh(), ParticipantStatus::Waitlisted))->toBe(0);
+        Notification::assertNothingSent();   // in particular: no SeatDemoted
     });
 
-    it('demotes multiple players in one confirmed call', function () {
-        // max=4: owner + 3 approved. Decreasing to 2 displaces 2.
+    it('refuses a confirmed decrease however many players it would displace', function () {
+        // max=4: owner + 3 approved. Decreasing to 2 used to displace 2.
         $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 4);
 
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
             ->call('updateCapacity', 2)
-            ->call('updateCapacity', 2, 'Need a smaller group');
+            ->call('updateCapacity', 2, 'Need a smaller group')
+            ->assertHasNoErrors()
+            ->assertSee(__('games.error_agreement_locked'));
 
-        expect($game->fresh()->max_players)->toBe(2)
-            ->and(countStatus($game->fresh(), ParticipantStatus::Waitlisted))->toBe(2)
-            ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(2);
+        expect($game->fresh()->max_players)->toBe(4)
+            ->and(countStatus($game->fresh(), ParticipantStatus::Waitlisted))->toBe(0)
+            ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(4);
     });
 
-    it('clears the confirm state after a confirmed demote', function () {
+    it('leaves the confirm state disarmed after a refused decrease', function () {
         $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
 
-        $component = Livewire::actingAs($this->owner)
+        Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
             ->call('updateCapacity', 2)
-            ->call('updateCapacity', 2, 'Reason');
-
-        $component
+            ->call('updateCapacity', 2, 'Reason')
+            ->assertSee(__('games.error_agreement_locked'))
             ->assertSet('confirmingCapacityDecrease', null)
-            ->assertSet('pendingNewMax', null);
+            ->assertSet('pendingNewMax', null)
+            ->assertSet('capacityReason', null);
+
+        expect($game->fresh()->max_players)->toBe(3);
     });
 });
 
@@ -254,19 +279,20 @@ describe('validation', function () {
         expect($game->fresh()->max_players)->toBe(3);
     });
 
-    it('rejects a confirmed demote whose reason exceeds 500 characters', function () {
-        // The reason is persisted into notifications.data and rendered in
-        // email/push, so cap it (parity with attendanceReports.*.reason).
+    it('shows the agreement-lock flash, not a reason error, for a decrease on a game somebody has joined', function () {
+        // The reason is never validated: the confirm modal cannot be armed on
+        // a locked game, so the 500-character cap has nothing to check.
         $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
 
         Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
-            ->call('updateCapacity', 2)                                      // arms modal
+            ->call('updateCapacity', 2)                                      // would arm the modal
             ->call('updateCapacity', 2, str_repeat('x', 501))                // over-cap reason
-            ->assertHasErrors(['capacityReason'])
-            ->assertSee(__('games.error_capacity_reason_too_long'));
+            ->assertHasNoErrors()
+            ->assertDontSee(__('games.error_capacity_reason_too_long'))
+            ->assertSee(__('games.error_agreement_locked'));
 
-        // No demotion occurred: max_players unchanged, no Waitlisted rows.
+        // Nothing displaced: max_players unchanged, no Waitlisted rows.
         expect($game->fresh()->max_players)->toBe(3)
             ->and(countStatus($game->fresh(), ParticipantStatus::Waitlisted))->toBe(0);
     });
@@ -328,7 +354,23 @@ describe('terminal-state guard', function () {
 
 describe('cancel', function () {
     it('cancelCapacityDecrease clears the modal state without demoting', function () {
-        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+        // The confirm flow is only reachable while the agreement is still
+        // unlocked: an approval landing between update()'s lock read and
+        // decrease()'s locked re-read. Owner-only game plus that race, with
+        // decrease() throwing DemotionRequiresConfirmation, so the real
+        // NEEDS_CONFIRMATION path arms the modal under test.
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 1, overrides: [
+            'max_players' => 3,
+        ]);
+
+        $this->app->instance(CapacityService::class, tap(
+            Mockery::mock(CapacityService::class, [app(WaitlistService::class), app(NotificationService::class)])->makePartial(),
+            function ($service): void {
+                $service->shouldReceive('decrease')
+                    ->once()
+                    ->andThrow(new DemotionRequiresConfirmation(3, 2));
+            },
+        ));
 
         $component = Livewire::actingAs($this->owner)
             ->test(GameDetail::class, ['id' => $game->id])
@@ -341,7 +383,7 @@ describe('cancel', function () {
             ->assertSet('pendingNewMax', null);
 
         // Roster untouched.
-        expect(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(3)
+        expect(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(1)
             ->and($game->fresh()->max_players)->toBe(3);
     });
 });

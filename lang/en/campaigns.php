@@ -117,6 +117,7 @@ return [
     'activity_scheduled_session' => 'scheduled a new session',
     // Edit campaign
     'heading_edit_campaign' => 'Edit Campaign',
+    'action_edit_campaign' => 'Edit campaign',
     'flash_campaign_updated' => 'Campaign updated successfully.',
     // Campaign so far — the GM-published recruitment summary block on the
     // public campaign page (M071/S05, R082); :count is the completed-sessions
@@ -139,4 +140,10 @@ return [
     'placeholder_session_description' => 'Describe this session…',
     'placeholder_session_location' => 'Venue name, address, or meeting details',
     'placeholder_session_name' => 'e.g. Session 3 — The Lost Temple',
+    // Agreement lock (D313/D314, M084): Tier-1 fields lock once someone has joined.
+    // Shown where the save is refused.
+    'error_agreement_locked' => 'This can’t be changed since someone joined. To change the campaign, cancel it and create a new one.',
+    // Detail-page edit mode (D314/D317): WHY the Tier-1 fields of the form are read-only.
+    // Shown once above the form, with the lock date.
+    'content_agreement_locked' => 'Locked since someone joined on :date. To change the campaign, schedule or price, cancel it and create a new campaign.',
 ];

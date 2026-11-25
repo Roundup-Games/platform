@@ -16,6 +16,15 @@
             </p>
         </div>
 
+        {{-- Linked recreate (D318/D319): why this form is pre-filled. Rendered only while ?recreate=
+             still names the cancelled game being republished, so it is gone once the replacement is saved. --}}
+        @if($recreatingGame !== null)
+            <div class="mb-6 rounded-xl bg-surface-container-high border border-outline-variant/40 p-4 flex items-start gap-3" role="status">
+                <span class="material-symbols-outlined text-on-surface-variant shrink-0" aria-hidden="true">replay</span>
+                <p class="text-sm text-on-surface">{{ __('games.content_recreating_from', ['name' => $recreatingGame->name]) }}</p>
+            </div>
+        @endif
+
         {{-- Step 1: Type Selector --}}
         @if($step === 'type')
             <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-5 sm:p-6">
@@ -86,86 +95,19 @@
 
             <form wire:submit="save" class="space-y-6" id="game-form" tabindex="-1">
 
+                {{-- Every field below lives in partials/form/ and is included with NO argument array, so each
+                     partial reads this view's scope ($game_type, the BuildsSessionForm properties, $errors,
+                     $isGM). The detail-page edit mode renders the same partials (D315): add a field there,
+                     never here. Only the section chrome and the create-only controls stay in this view. --}}
+
                 {{-- Section 1: Game Details --}}
                 <section class="bg-surface-container-lowest rounded-xl shadow-ambient p-5 sm:p-6">
                     <x-form-section-header :number="1" :icon="'edit_note'" :title="__('games.heading_game_details')" />
 
                     <div class="space-y-4">
-                        {{-- Translatable fields (name + description) rendered via locale-aware section --}}
-                        @php($allLocales = $this->getAllLocales())
-                        @php($baselineLocale = $this->getBaselineLocale())
-                        <x-forms.translatable-section
-                            :fields="[
-                                ['name' => 'name', 'label' => __('campaigns.field_session_name'), 'placeholder' => __('games.placeholder_game_name')],
-                                ['name' => 'description', 'label' => __('common.field_description'), 'type' => 'textarea', 'rows' => 3, 'placeholder' => __('games.placeholder_game_description')],
-                            ]"
-                            :active-locale="$activeLocale"
-                            :baseline-locale="$baselineLocale"
-                            :all-locales="$allLocales"
-                            :required="['name']"
-                            inputClass="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"
-                        />
+                        @include('livewire.games.partials.form._identity')
 
-                        {{-- Host-uploaded cover image (S07). Optional — resolveCoverUrl() falls back to the representative system cover, then og-default.jpg. --}}
-                        <div>
-                            <label for="game-cover-image" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_cover_image') }}</label>
-                            <div class="mt-1">
-                                @if($cover_image && str_starts_with($cover_image->getMimeType(), 'image/'))
-                                    <div class="relative inline-block">
-                                        <img src="{{ $cover_image->temporaryUrl() }}" alt="" class="h-32 w-32 object-cover rounded-lg border border-outline-variant">
-                                        <button type="button" wire:click="$set('cover_image', null)" class="absolute -top-2 -right-2 bg-surface rounded-full p-1 shadow-md hover:bg-surface-container-high transition-colors" aria-label="{{ __('games.action_remove_cover_image') }}">
-                                            <span class="material-symbols-outlined text-sm" aria-hidden="true">close</span>
-                                        </button>
-                                    </div>
-                                @elseif($cover_image)
-                                    {{-- Non-image file selected (will fail the image validation rule).
-                                         Rendered without temporaryUrl(), which throws for non-previewable mimes. --}}
-                                    <div class="flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-sm text-on-surface-variant" aria-hidden="true">description</span>
-                                        <span class="text-sm text-on-surface-variant">{{ $cover_image->getClientOriginalName() }}</span>
-                                        <button type="button" wire:click="$set('cover_image', null)" class="text-on-surface-variant hover:text-error transition-colors" aria-label="{{ __('games.action_remove_cover_image') }}">
-                                            <span class="material-symbols-outlined text-sm" aria-hidden="true">close</span>
-                                        </button>
-                                    </div>
-                                @else
-                                    <input type="file" id="game-cover-image" wire:model="cover_image" accept="image/jpeg,image/png,image/webp"
-                                           class="block w-full text-sm text-on-surface file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-on-primary file:font-medium hover:file:brightness-110 cursor-pointer" />
-                                    <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('games.content_cover_image_hint') }}</p>
-                                    <div wire:loading wire:target="cover_image" class="mt-1 text-xs text-on-surface-variant flex items-center gap-1">
-                                        <span class="material-symbols-outlined text-sm animate-spin" aria-hidden="true" role="status">progress_activity</span>
-                                        {{ __('common.content_uploading') }}
-                                    </div>
-                                @endif
-                            </div>
-                            @error('cover_image') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                        </div>
-
-                        <div>
-                            <label for="game-date-time" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.field_date_time') }} <span class="text-error">*</span></label>
-                            <input type="datetime-local" id="game-date-time" wire:model="date_time"
-                                   class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
-                            @error('date_time') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                        </div>
-
-                        @if($game_type !== 'gathering')
-                            <div>
-                                <livewire:components.game-system-picker
-                                    :fieldId="'game-system'"
-                                    :label="__('games.content_game_system')"
-                                    :error="$errors->first('game_system_id')"
-                                    :gameType="$game_type"
-                                    :value="$game_system_id"
-                                    wire:model.live="game_system_id"
-                                    wire:key="game-system-picker-{{ $game_type ?? 'default' }}"
-                                />
-                            </div>
-                        @else
-                            <div>
-                                <label class="block text-sm font-medium text-on-surface mb-1">{{ __('games.content_game_system') }}</label>
-                                <livewire:components.game-system-preference-picker :mode="'creation'" :preferenceType="'favorite'" :selectedIds="$game_systems" :maxSystems="6" wire:key="game-system-picker-gathering" />
-                                @error('game_systems') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                            </div>
-                        @endif
+                        @include('livewire.games.partials.form._basics')
                     </div>
                 </section>
 
@@ -174,85 +116,7 @@
                     <x-form-section-header :number="2" :icon="'group'" :title="__('location.field_players_capacity')" />
 
                     <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label for="game-min-players" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_min_players') }}</label>
-                                <input type="number" id="game-min-players" wire:model.live.debounce.400ms="min_players" min="1" max="99" placeholder="2"
-                                       class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
-                                @error('min_players') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                            </div>
-
-                            <div>
-                                <label for="game-max-players" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_max_players') }}</label>
-                                <input type="number" id="game-max-players" wire:model.live.debounce.400ms="max_players" min="1" max="99" placeholder="{{ $game_type === 'gathering' ? '12' : '6' }}"
-                                       class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
-                                @if($game_type === 'gathering')
-                                    <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('games.content_max_players_venue_hint') }}</p>
-                                @endif
-                                @error('max_players') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label for="game-duration" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.content_duration_hours') }}</label>
-                                <input type="number" id="game-duration" wire:model.live.debounce.400ms="expected_duration" step="0.5" min="0.5" max="24" placeholder="2"
-                                       class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
-                                @error('expected_duration') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                            </div>
-
-                            <div>
-                                <label for="game-price" class="block text-sm font-medium text-on-surface mb-1">{{ __('billing.content_price_eur') }}</label>
-                                <input type="number" id="game-price" wire:model="price" step="0.01" min="0" placeholder="0.00"
-                                       class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
-                                <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('billing.content_amount_in_eur_leave_0_for_free') }}</p>
-                                @error('price') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                            </div>
-                        </div>
-
-                        {{-- Bench Mode Toggle (hidden for gatherings — not GM-gated matchmaking) --}}
-                        @if($game_type !== 'gathering')
-                            <div class="mt-2">
-                                <div class="flex items-center gap-3">
-                                    <button type="button"
-                                            @if(!$isGM) disabled @else wire:click="$toggle('bench_mode')" @endif
-                                            @class([
-                                                'relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0',
-                                                'bg-primary' => $bench_mode,
-                                                'bg-surface-container-highest' => !$bench_mode,
-                                                'opacity-50 cursor-not-allowed' => !$isGM,
-                                            ])
-                                            role="switch"
-                                            aria-label="{{ __('games.label_bench_mode') }}"
-                                            aria-checked="{{ $bench_mode ? 'true' : 'false' }}">
-                                        <span @class([
-                                            'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-xs',
-                                            'translate-x-6' => $bench_mode,
-                                            'translate-x-1' => !$bench_mode,
-                                        ])></span>
-                                    </button>
-                                    <div>
-                                        <span class="text-sm font-medium text-on-surface">{{ __('games.label_bench_mode') }}</span>
-                                        @if(!$isGM)
-                                            <p class="text-xs text-on-surface-variant">{{ __('common.content_bench_mode_requires_gm') }}</p>
-                                        @else
-                                            <p class="text-xs text-on-surface-variant">{{ __('games.hint_bench_mode') }}</p>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
-
-                        {{-- Signup Cutoff (M057/S05 — D124). Optional: when this time passes,
-                             new signups are blocked across web apply, share-link join, and
-                             the Discord RSVP button. Empty = no cutoff. --}}
-                        <div>
-                            <label for="game-signup-cutoff" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.label_signup_cutoff') }}</label>
-                            <input type="datetime-local" id="game-signup-cutoff" wire:model="signup_cutoff_at"
-                                   class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors" />
-                            <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('games.hint_signup_cutoff') }}</p>
-                            @error('signup_cutoff_at') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                        </div>
+                        @include('livewire.games.partials.form._table')
                     </div>
                 </section>
 
@@ -261,7 +125,7 @@
                     <x-form-section-header :number="3" :icon="'location_on'" :title="__('common.field_location')" />
 
                     <div>
-                        <livewire:components.venue-picker :location-id="$location_id" :location-instructions="$location_instructions" />
+                        @include('livewire.games.partials.form._venue')
                     </div>
                 </section>
 
@@ -270,71 +134,7 @@
                     <x-form-section-header :number="4" :icon="'tune'" :title="__('campaigns.content_discovery_session_meta')" />
 
                     <div class="space-y-5">
-                        @if($game_type === 'ttrpg')
-                            {{-- TTRPG: Full form --}}
-                            <div>
-                                <label for="game-experience" class="block text-sm font-medium text-on-surface mb-1">{{ __('discovery.content_experience_level') }}</label>
-                                <select id="game-experience" wire:model="experience_level"
-                                        class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
-                                    @foreach($this->experienceLevelOptions as $value => $label)
-                                        <option value="{{ $value }}">{{ $label }}</option>
-                                    @endforeach
-                                </select>
-                                @error('experience_level') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-on-surface mb-2">{{ __('common.content_vibe_flags') }}</label>
-                                <livewire:components.vibe-preference-picker :mode="'selection'" :gameType="'ttrpg'" :preferences="$vibePreferences" wire:key="game-vibe-picker-ttrpg" />
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-on-surface mb-2">{{ __('safety.content_safety_tools') }}</label>
-                                <livewire:components.safety-tool-picker mode="selection" :selected="isset($safety_rules['tools']) ? $safety_rules['tools'] : []" :linesAndVeilsText="$safety_rules['lines_and_veils_text'] ?? ''" :customNote="$safety_rules['custom_note'] ?? ''" wire:key="game-safety-picker-ttrpg" />
-                            </div>
-                        @elseif($game_type === 'gathering')
-                            {{-- Gathering: Warm, minimal form (host note + vibes) --}}
-                            <div>
-                                <label for="game-host-note" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_host_note') }}</label>
-                                <textarea id="game-host-note" wire:model="host_note" rows="3" placeholder="{{ __('games.placeholder_host_note') }}"
-                                          class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"></textarea>
-                                <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('games.hint_host_note') }}</p>
-                                @error('host_note') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-on-surface mb-2">{{ __('common.content_vibe_flags') }}</label>
-                                <livewire:components.vibe-preference-picker :mode="'selection'" :gameType="'gathering'" :preferences="$vibePreferences" wire:key="game-vibe-picker-gathering" />
-                            </div>
-                        @else
-                            {{-- Board Game: Simplified form --}}
-                            <div>
-                                <label class="block text-sm font-medium text-on-surface mb-2">{{ __('common.content_vibe_flags') }}</label>
-                                <livewire:components.vibe-preference-picker :mode="'selection'" :gameType="'board_game'" :preferences="$vibePreferences" wire:key="game-vibe-picker-board-game" />
-                            </div>
-
-                            <div>
-                                <label for="game-comfort-notes" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_comfort_notes') }}</label>
-                                <textarea id="game-comfort-notes" wire:model="comfort_notes" rows="2" placeholder="{{ __('games.placeholder_comfort_notes') }}"
-                                          class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface placeholder:text-on-surface-variant/50 focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors"></textarea>
-                                @error('comfort_notes') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                            </div>
-                        @endif
-
-                        @if($game_type !== 'gathering')
-                            <div>
-                                <label for="game-attendance" class="block text-sm font-medium text-on-surface mb-1">{{ __('games.field_attendance_tolerance') }}</label>
-                                <select id="game-attendance" wire:model="min_reliability_preference"
-                                        class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
-                                    @foreach($this->attendanceToleranceOptions as $value => $label)
-                                        <option value="{{ $value }}">{{ $label }}</option>
-                                    @endforeach
-                                </select>
-                                <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('games.content_reliability_definition') }}</p>
-                                <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('games.hint_attendance_tolerance') }}</p>
-                                @error('min_reliability_preference') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                            </div>
-                        @endif
+                        @include('livewire.games.partials.form._hosting')
                     </div>
                 </section>
 
@@ -343,43 +143,7 @@
                     <x-form-section-header :number="5" :icon="'visibility'" :title="__('common.content_visibility')" />
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label for="game-language" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.content_language') }} <span class="text-error">*</span></label>
-                            <select id="game-language" wire:model="language"
-                                    class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
-                                @foreach($this->languageOptions as $value => $label)
-                                    <option value="{{ $value }}">{{ $label }}</option>
-                                @endforeach
-                            </select>
-                            @error('language') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                        </div>
-
-                        <div>
-                            <label for="game-visibility" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.content_visibility') }} <span class="text-error">*</span></label>
-                            <select id="game-visibility" wire:model="visibility"
-                                    class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors">
-                                @php($hostingEvent = $this->hostingEvent)
-                                @if($this->canCreatePublic || $hostingEvent?->is_public)
-                                    {{-- Public-event tables may always be public: the umbrella
-                                         event is itself public, so the venue-trust gate that
-                                         guards standalone public discovery does not apply. --}}
-                                    <option value="public">{{ __('common.content_public_anyone_can_find_and_join') }}</option>
-                                @endif
-                                <option value="protected">{{ __('common.field_protected_only_with_link') }}</option>
-                                <option value="private">{{ __('common.content_private_invite_only') }}</option>
-                            </select>
-                            @if($hostingEvent?->is_public)
-                                {{-- Public-event rule: save() rejects restricted tables at
-                                     public get-togethers — say so before submit, not after. --}}
-                                <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('events.content_table_visibility_hint') }}</p>
-                            @elseif(!$this->canCreatePublic)
-                                <p class="mt-1 text-xs text-on-surface-variant/60">{{ __('common.content_public_visibility_requires_admin_approval') }}</p>
-                            @endif
-                            @if($this->publicViaVenue)
-                                <p class="mt-1 text-xs text-success">{{ __('venues.content_public_unlocked_by_verified_venue') }}</p>
-                            @endif
-                            @error('visibility') <p class="mt-1 text-sm text-error">{{ $message }}</p> @enderror
-                        </div>
+                        @include('livewire.games.partials.form._settings')
                     </div>
                 </section>
 

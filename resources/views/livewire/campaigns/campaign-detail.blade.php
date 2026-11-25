@@ -1,13 +1,28 @@
 <div>
     {{-- Back link --}}
     <div class="bg-surface-container-low border-b border-outline-variant">
-        <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
             <a href="{{ route('dashboard') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
                 {{ __('profile.action_back_to_dashboard') }}
             </a>
+            {{-- Owner edit mode (M084/S03, D317): only for a user who passes CampaignPolicy::update,
+                 only while the campaign is Active. The edit component re-checks both itself. --}}
+            @if($canEditCampaign && !$editing)
+                <button type="button" wire:click="startEditing"
+                        class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+                    <span class="material-symbols-outlined text-base" aria-hidden="true">edit</span>
+                    {{ __('campaigns.action_edit_campaign') }}
+                </button>
+            @endif
         </div>
     </div>
+
+    @if($editing)
+        {{-- Edit mode: the owner's edit form replaces the read-only hero, description and body.
+             The form announces campaign-edit-saved / campaign-edit-cancelled and this flag returns to false. --}}
+        <livewire:campaigns.edit-campaign :campaign="$campaign" :key="$campaign->id" />
+    @else
 
     {{-- ── Hero ─────────────────────────────────────────────── --}}
     <section class="relative bg-primary text-on-primary overflow-hidden">
@@ -116,6 +131,17 @@
             <div class="rounded-xl bg-error-container p-4 flex items-center gap-3" role="alert" aria-live="polite">
                 <span class="material-symbols-outlined text-on-error-container" aria-hidden="true">error</span>
                 <p class="text-sm text-on-error-container">{{ session('error') }}</p>
+            </div>
+        @endif
+
+        {{-- Owner edit mode (M084/S08): the confirmation of an in-place save. This page's own
+             state (editSavedMessage), set by the campaign-edit-saved listener — a session
+             flash written by the edit form would be readable in that listener's request only.
+             No auto-hide: it stays until the owner edits again, cancels or reloads. --}}
+        @if($editSavedMessage)
+            <div class="rounded-xl bg-secondary-container p-4 flex items-center gap-3" role="status" aria-live="polite">
+                <span class="material-symbols-outlined text-on-secondary-container" aria-hidden="true">check_circle</span>
+                <p class="text-sm text-on-secondary-container">{{ $editSavedMessage }}</p>
             </div>
         @endif
 
@@ -745,4 +771,6 @@
             </div>
         @endif
     @endauth
+
+    @endif
 </div>

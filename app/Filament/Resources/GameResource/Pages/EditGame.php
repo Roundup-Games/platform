@@ -5,6 +5,7 @@ namespace App\Filament\Resources\GameResource\Pages;
 use App\Enums\AttendanceResolutionMethod;
 use App\Enums\CalendarSyncOperation;
 use App\Enums\GameType;
+use App\Filament\Concerns\BindsAdminEditToAgreementLock;
 use App\Filament\Concerns\TransformsLocaleSwitchWithoutValidation;
 use App\Filament\Resources\GameResource;
 use App\Models\Event;
@@ -21,6 +22,7 @@ use LaraZeus\SpatieTranslatable\Resources\Pages\EditRecord\Concerns\Translatable
 
 class EditGame extends EditRecord
 {
+    use BindsAdminEditToAgreementLock;
     use TransformsLocaleSwitchWithoutValidation, Translatable {
         TransformsLocaleSwitchWithoutValidation::updatedActiveLocale insteadof Translatable;
     }
@@ -87,6 +89,46 @@ class EditGame extends EditRecord
         return $data;
     }
 
+    /**
+     * D316: staff are bound by the agreement lock on the IDENTITY fields —
+     * the game type and the offered game system(s) — and free to correct
+     * everything else. Runs before the model and its pivot are written, so a
+     * refused save changes nothing.
+     *
+     * Values are read from the raw form state, not $data: the single-system
+     * picker and the type are ordinary dehydrated fields, but the Gathering
+     * multi-select never reaches $data (see BindsAdminEditToAgreementLock), and
+     * the translatable resource replays this hook per locale with only the
+     * translatable keys in $data.
+     */
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        /** @var Game $record */
+        $record = $this->getRecord();
+
+        if ($record->isAgreementLocked()) {
+            $rawState = $this->rawFormState();
+
+            $submittedType = $rawState['game_type'] ?? null;
+
+            if (is_string($submittedType) && $submittedType !== $record->game_type?->value) {
+                throw $this->agreementLockedException($record, 'data.game_type', ['game_type']);
+            }
+
+            $this->refuseChangedGameSystems($rawState);
+
+            // Single-system picker (focused game types; hidden for Gatherings).
+            $submittedSystemId = $rawState['game_system_id'] ?? null;
+
+            if (is_string($submittedSystemId) && $submittedSystemId !== ''
+                && $submittedSystemId !== $record->gameSystems->first()?->id) {
+                throw $this->agreementLockedException($record, 'data.game_system_id', ['game_system_id']);
+            }
+        }
+
+        return $data;
+    }
+
     protected function afterSave(): void
     {
         /** @var Game $record */
@@ -119,5 +161,11 @@ class EditGame extends EditRecord
         // re-patches content, so this seam is the only admin-path
         // propagation for date/venue/name changes.
         CalendarSyncDispatcher::dispatchToRoster($record, CalendarSyncOperation::Upsert);
+
+        // D316: the admin edit is logged with the admin as actor and announced
+        // to the approved participants, exactly like the owner path. Filament
+        // has already written the row here — no second write, only the
+        // announcement, and nothing at all when nothing changed.
+        $this->announceAdminEdit($record);
     }
 }

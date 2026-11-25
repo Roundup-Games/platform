@@ -14,9 +14,11 @@ use App\Models\GameParticipant;
 use App\Models\GameSystem;
 use App\Models\User;
 use App\Models\UserRelationship;
+use App\Notifications\EntityInvitation;
 use App\Services\ParticipantLifecycle;
 use App\Services\ParticipantService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\Notification;
 
 uses(DatabaseTransactions::class);
 
@@ -76,6 +78,7 @@ describe('ParticipantService', function () {
         });
 
         it('skips non-friend', function () {
+            Notification::fake();
             $game = Game::factory()->create([
                 'owner_id' => $this->owner->id,
                 'game_system_id' => $this->system->id,
@@ -85,6 +88,13 @@ describe('ParticipantService', function () {
 
             expect($result->invitedCount)->toBe(0);
             expect($result->skippedCount)->toBe(1);
+            // R017: a non-friend is never invited — no row, no notification. Only the
+            // roster re-invite (ParticipantService::inviteFormerRoster) may invite
+            // without the mutual-follow rule, and it is a separate entry point.
+            expect(GameParticipant::where('game_id', $game->id)
+                ->where('user_id', $this->stranger->id)
+                ->exists())->toBeFalse();
+            Notification::assertNothingSentTo($this->stranger, EntityInvitation::class);
         });
 
         it('skips already-participant', function () {

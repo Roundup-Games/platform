@@ -21,6 +21,7 @@ use App\Services\ReliabilityScoreService;
 use App\Services\WaitlistService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Tests\Traits\CreatesGameInstances;
 
 uses(CreatesGameInstances::class);
@@ -47,6 +48,34 @@ function addWaitlistedPlayer(Game $game): GameParticipant
         'status' => ParticipantStatus::Waitlisted->value,
         'waitlisted_at' => now(),
     ]);
+}
+
+/**
+ * Assert a host DECREASE on an agreement-locked game is refused whole (D313
+ * Tier 1 / D314): the premise (the game really is locked), the LOCKED outcome
+ * with the agreement-lock key — no field error, no confirm preview, no success
+ * flash — and nothing written or displaced. The fixtures that use this have
+ * no waitlisted players to begin with.
+ *
+ * @param  int  $currentMax  The capacity before the call; it must still stand afterwards.
+ * @param  int  $requestedMax  The lower max the host asked for.
+ */
+function expectAgreementLockedDecrease(CapacityUpdateResult $result, Game $game, int $currentMax, int $requestedMax): void
+{
+    // Premise first: on an unlocked game the assertions below would prove nothing.
+    expect($game->isAgreementLocked())->toBeTrue();
+
+    expect($result->outcome)->toBe(CapacityUpdateResult::LOCKED)
+        ->and($result->newMax)->toBe($requestedMax)
+        ->and($result->errorKey)->toBe('games.error_agreement_locked')
+        ->and($result->errorField())->toBeNull()
+        ->and($result->isFieldError())->toBeFalse()
+        ->and($result->preview)->toBeNull()
+        ->and($result->flashKey)->toBeNull()
+        ->and($result->demotedCount)->toBe(0);
+
+    expect($game->fresh()->max_players)->toBe($currentMax)
+        ->and(countStatus($game->fresh(), ParticipantStatus::Waitlisted))->toBe(0);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -639,78 +668,100 @@ describe('update', function () {
             ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(3);
     });
 
-    it('routes a silent decrease through decrease() with the decreased flash', function () {
+    // ── DECREASE on an agreement-locked game (M084, D314) ──────────────
+    //
+    // Every game that has a confirmed non-owner participant is agreement-locked
+    // (HasAgreementLock), and a DECREASE is a Tier-1 change: it takes back part
+    // of what those players agreed to. update() refuses it before any branch is
+    // entered, so the silent-decrease / confirm / demote routing is no longer
+    // reachable for a populated game. The tests that used to assert that
+    // routing assert the refusal; where a path is still live for an owner-only
+    // game, that coverage is kept right next to it.
+
+    it('refuses a silent decrease on an agreement-locked game instead of routing it through decrease()', function () {
+        // approved=2 (owner + 1 confirmed player), max 4: room to spare, so
+        // this is the shape that used to be the silent branch.
         $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 2, overrides: [
             'max_players' => 4,
         ]);
 
         $result = $this->service->update($game, 3, $this->owner);
 
+        expectAgreementLockedDecrease($result, $game, currentMax: 4, requestedMax: 3);
+        expect(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(2);
+    });
+
+    it('routes a silent decrease through decrease() with the decreased flash while nobody but the owner has joined', function () {
+        // maxPlayers: 1 seats no non-owner, so the agreement is still unlocked.
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 1, overrides: [
+            'max_players' => 4,
+        ]);
+        expect($game->isAgreementLocked())->toBeFalse()
+            ->and($game->approvedParticipantCount())->toBe(1);
+
+        // A partial mock keeps the real decrease() and proves the routing.
+        $service = Mockery::mock(CapacityService::class, [app(WaitlistService::class), app(NotificationService::class)])
+            ->makePartial();
+        $service->shouldReceive('decrease')
+            ->once()
+            ->with(Mockery::on(fn (Game $g) => $g->id === $game->id), 3)
+            ->passthru();
+
+        $result = $service->update($game, 3, $this->owner);
+
         expect($result->outcome)->toBe(CapacityUpdateResult::DECREASED)
             ->and($result->flashKey)->toBe('games.flash_capacity_decreased')
             ->and($result->flashParams)->toBe(['max' => 3])
-            ->and($game->fresh()->max_players)->toBe(3)
-            ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(2);
+            ->and($result->errorKey)->toBeNull();
+        expect($game->fresh()->max_players)->toBe(3)
+            ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(1)
+            ->and(countStatus($game->fresh(), ParticipantStatus::Waitlisted))->toBe(0);
     });
 
-    it('returns NEEDS_CONFIRMATION with a preview for a below-approved first call', function () {
-        // max=3: owner + 2 approved. Decreasing to 2 displaces 1.
+    it('returns LOCKED — not a confirm preview — for a below-approved decrease on an agreement-locked game', function () {
+        // max=3: owner + 2 approved. Decreasing to 2 would displace 1.
         $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
 
         $result = $this->service->update($game, 2, $this->owner, reason: null, confirmed: false);
 
-        expect($result->outcome)->toBe(CapacityUpdateResult::NEEDS_CONFIRMATION)
-            ->and($result->newMax)->toBe(2)
-            ->and($result->preview)->toBeInstanceOf(DemotionPreview::class)
-            ->and($result->preview->actualDemotionCount)->toBe(1)
-            // Nothing mutated — the modal only arms.
-            ->and($game->fresh()->max_players)->toBe(3)
-            ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(3);
+        expectAgreementLockedDecrease($result, $game, currentMax: 3, requestedMax: 2);
+        expect(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(3);
     });
 
-    it('rejects a confirming call whose reason exceeds 500 characters (no demotion)', function () {
+    it('refuses a confirming call with an over-long reason on an agreement-locked game before the reason is validated', function () {
+        // The reason is never reached: the confirm modal cannot be armed on a
+        // locked game, so there is nothing to validate.
         $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
 
         $result = $this->service->update($game, 2, $this->owner, reason: str_repeat('x', 501), confirmed: true);
 
-        expect($result->outcome)->toBe(CapacityUpdateResult::INVALID_REASON)
-            ->and($result->errorKey)->toBe('games.error_capacity_reason_too_long')
-            ->and($result->errorField())->toBe('capacityReason')
-            ->and($result->isFieldError())->toBeTrue()
-            ->and($game->fresh()->max_players)->toBe(3)
-            ->and(countStatus($game->fresh(), ParticipantStatus::Waitlisted))->toBe(0);
+        expectAgreementLockedDecrease($result, $game, currentMax: 3, requestedMax: 2);
     });
 
-    it('rejects a confirming call with an empty reason (service-level defense)', function () {
+    it('refuses a confirming call with an empty reason on an agreement-locked game before the reason is validated', function () {
         $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
 
         $result = $this->service->update($game, 2, $this->owner, reason: '', confirmed: true);
 
-        expect($result->outcome)->toBe(CapacityUpdateResult::INVALID_REASON)
-            ->and($result->errorKey)->toBe('games.error_capacity_reason_required')
-            ->and($game->fresh()->max_players)->toBe(3);
+        expectAgreementLockedDecrease($result, $game, currentMax: 3, requestedMax: 2);
     });
 
-    it('runs the confirmed LIFO demote and reports counts plus flash', function () {
-        // max=4: owner + 3 approved. Decreasing to 2 demotes 2.
+    it('refuses a confirmed LIFO demote on an agreement-locked game and displaces nobody', function () {
+        // max=4: owner + 3 approved. Decreasing to 2 used to demote 2.
         $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 4);
+        Notification::fake();
 
         $result = $this->service->update($game, 2, $this->owner, reason: 'Need a smaller group', confirmed: true);
 
-        expect($result->outcome)->toBe(CapacityUpdateResult::DEMOTED)
-            ->and($result->demotedCount)->toBe(2)
-            ->and($result->flashKey)->toBe('games.flash_capacity_demoted_many')
-            ->and($result->flashParams)->toBe(['max' => 2, 'count' => 2])
-            ->and($game->fresh()->max_players)->toBe(2)
-            ->and(countStatus($game->fresh(), ParticipantStatus::Waitlisted))->toBe(2)
-            ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(2);
+        expectAgreementLockedDecrease($result, $game, currentMax: 4, requestedMax: 2);
+        expect(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(4);
+        Notification::assertNothingSent();
     });
 
-    it('routes the all-exempt overflow case to the confirm flow, not silent decrease', function () {
-        // owner + 3 manually-promoted (all exempt): approved=4, demotable=0.
-        // Decreasing to 2 requests 2 displacements but cannot demote anyone —
-        // the guard must NOT call decrease() (which would throw
-        // DemotionRequiresConfirmation uncaught) but arm the confirm flow.
+    it('refuses the all-exempt overflow decrease on an agreement-locked game on the preview and the confirming call alike', function () {
+        // owner + 3 manually-promoted members: approved=4, demotable=0. Being
+        // exempt from DEMOTION says who may never be moved to the waitlist; it
+        // does not reopen a decrease, which is refused before anyone is picked.
         $game = Game::factory()->create([
             'owner_id' => $this->owner->id,
             'game_system_id' => $this->gameSystem->id,
@@ -722,39 +773,30 @@ describe('update', function () {
         addApprovedPlayer($game, '2026-01-01 10:00:00', promotedManually: true);
         addApprovedPlayer($game, '2026-02-01 10:00:00', promotedManually: true);
         addApprovedPlayer($game, '2026-03-01 10:00:00', promotedManually: true);
+        Notification::fake();
 
         $first = $this->service->update($game, 2, $this->owner);
-        expect($first->outcome)->toBe(CapacityUpdateResult::NEEDS_CONFIRMATION)
-            ->and($first->preview->requestedDisplaced)->toBe(2)
-            ->and($first->preview->actualDemotionCount)->toBe(0);
-
-        // Confirmed: demote() runs harmlessly (CAP rule), the max still drops.
         $second = $this->service->update($game, 2, $this->owner, reason: 'Owner-heavy table', confirmed: true);
-        expect($second->outcome)->toBe(CapacityUpdateResult::DEMOTED)
-            ->and($second->demotedCount)->toBe(0)
-            ->and($second->flashKey)->toBe('games.flash_capacity_decreased')
-            ->and($second->flashParams)->toBe(['max' => 2])
-            ->and($game->fresh()->max_players)->toBe(2)
-            ->and(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(4);
+
+        expectAgreementLockedDecrease($first, $game, currentMax: 3, requestedMax: 2);
+        expectAgreementLockedDecrease($second, $game, currentMax: 3, requestedMax: 2);
+        expect(countStatus($game->fresh(), ParticipantStatus::Approved))->toBe(4);
+        Notification::assertNothingSent();
     });
 
-    it('maps a post-preview completion race (DomainException from demote) to REFUSED', function () {
+    it('never reaches demote() on an agreement-locked game, so the post-preview completion race is closed', function () {
         $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
 
-        // Partial mock: the game passes update()'s terminal guard but flips
-        // to Completed inside demote()'s locked transaction (the preview/confirm
-        // race the component previously caught inline).
+        // That race (Completed between the preview and demote()'s locked
+        // re-read) needs a confirm flow to exist first. On a locked game the
+        // request is refused before any branch, so demote() must not run.
         $service = Mockery::mock(CapacityService::class, [app(WaitlistService::class), app(NotificationService::class)])
             ->makePartial();
-        $service->shouldReceive('demote')
-            ->once()
-            ->andThrow(new DomainException('Cannot adjust capacity on a completed game.'));
+        $service->shouldReceive('demote')->never();
 
         $result = $service->update($game, 2, $this->owner, reason: 'Shrinking', confirmed: true);
 
-        expect($result->outcome)->toBe(CapacityUpdateResult::REFUSED)
-            ->and($result->errorKey)->toBe('games.error_capacity_game_completed')
-            ->and($game->fresh()->max_players)->toBe(3);
+        expectAgreementLockedDecrease($result, $game, currentMax: 3, requestedMax: 2);
     });
 
     it('maps a completion race on the increase path (DomainException from increase) to REFUSED', function () {
@@ -775,19 +817,35 @@ describe('update', function () {
             ->and($game->fresh()->max_players)->toBe(3);
     });
 
-    it('re-arms confirmation when approvals grow between the preview and the locked decrease', function () {
-        // max=3, approved=2 (owner + 1): preview(2) sees zero displacement, so
-        // update() routes to the silent-decrease branch — but the locked
-        // re-read inside decrease() sees a third approval (invite accepted /
-        // promotion landed in the race window) and throws
-        // DemotionRequiresConfirmation. That must surface as the confirm
-        // flow, not escape as an uncaught exception.
+    it('never reaches decrease() on an agreement-locked game, so a grown roster cannot re-arm the confirm flow', function () {
+        // max=3 with one player since rejected: the remaining confirmed player
+        // is what locks the agreement.
         $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
         GameParticipant::where('game_id', $game->id)
             ->where('status', ParticipantStatus::Approved->value)
             ->where('user_id', '!=', $game->owner_id)
             ->first()
             ->update(['status' => ParticipantStatus::Rejected->value]);
+
+        $service = Mockery::mock(CapacityService::class, [app(WaitlistService::class), app(NotificationService::class)])
+            ->makePartial();
+        $service->shouldReceive('decrease')->never();
+
+        $result = $service->update($game, 2, $this->owner);
+
+        expectAgreementLockedDecrease($result, $game, currentMax: 3, requestedMax: 2);
+    });
+
+    it('re-arms confirmation when approvals land between the unlocked lock read and the locked decrease', function () {
+        // Owner-only: the agreement is still unlocked when update() reads it,
+        // so the silent branch is entered — but decrease()'s locked re-read
+        // then finds players who were confirmed in the race window (two at
+        // once: approved 3 > newMax 2) and throws
+        // DemotionRequiresConfirmation. That must surface as the confirm
+        // flow, not escape as an uncaught exception.
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 1, overrides: [
+            'max_players' => 3,
+        ]);
 
         $service = Mockery::mock(CapacityService::class, [app(WaitlistService::class), app(NotificationService::class)])
             ->makePartial();
@@ -799,19 +857,28 @@ describe('update', function () {
 
         expect($result->outcome)->toBe(CapacityUpdateResult::NEEDS_CONFIRMATION)
             ->and($result->newMax)->toBe(2)
-            ->and($result->preview)->toBeInstanceOf(DemotionPreview::class)
-            ->and($game->fresh()->max_players)->toBe(3);
+            ->and($result->preview)->toBeInstanceOf(DemotionPreview::class);
+        expect($game->fresh()->max_players)->toBe(3);
     });
 
-    it('maps a completion race on the silent-decrease path (DomainException from decrease) to REFUSED', function () {
-        // Same silent-decrease shape as above; the locked re-read finds the
-        // game completed between update()'s unlocked guard and the lock.
+    it('never reaches decrease() on an agreement-locked game, so the silent-decrease completion race is closed', function () {
         $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
-        GameParticipant::where('game_id', $game->id)
-            ->where('status', ParticipantStatus::Approved->value)
-            ->where('user_id', '!=', $game->owner_id)
-            ->first()
-            ->update(['status' => ParticipantStatus::Rejected->value]);
+
+        $service = Mockery::mock(CapacityService::class, [app(WaitlistService::class), app(NotificationService::class)])
+            ->makePartial();
+        $service->shouldReceive('decrease')->never();
+
+        $result = $service->update($game, 2, $this->owner);
+
+        expectAgreementLockedDecrease($result, $game, currentMax: 3, requestedMax: 2);
+    });
+
+    it('maps a completion race on the silent-decrease path (DomainException from decrease) to REFUSED while nobody but the owner has joined', function () {
+        // Owner-only: the game completes between update()'s unlocked terminal
+        // guard and decrease()'s locked re-read.
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 1, overrides: [
+            'max_players' => 3,
+        ]);
 
         $service = Mockery::mock(CapacityService::class, [app(WaitlistService::class), app(NotificationService::class)])
             ->makePartial();
@@ -822,8 +889,40 @@ describe('update', function () {
         $result = $service->update($game, 2, $this->owner);
 
         expect($result->outcome)->toBe(CapacityUpdateResult::REFUSED)
-            ->and($result->errorKey)->toBe('games.error_capacity_game_completed')
-            ->and($game->fresh()->max_players)->toBe(3);
+            ->and($result->errorKey)->toBe('games.error_capacity_game_completed');
+        expect($game->fresh()->max_players)->toBe(3);
+    });
+
+    it('reports the terminal-state refusal, not the lock, for a decrease on a completed agreement-locked game', function () {
+        // Guard order: the terminal state is checked before the agreement
+        // lock, so the host hears why nothing can change at all.
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3, overrides: [
+            'status' => GameStatus::Completed->value,
+        ]);
+        expect($game->isAgreementLocked())->toBeTrue();
+
+        $result = $this->service->update($game, 2, $this->owner);
+
+        expect($result->outcome)->toBe(CapacityUpdateResult::REFUSED)
+            ->and($result->errorKey)->toBe('games.error_capacity_game_completed');
+        expect($game->fresh()->max_players)->toBe(3);
+    });
+
+    it('emits one capacity.decrease_refused structured log naming the agreement lock', function () {
+        $game = $this->createFullGame($this->owner, $this->gameSystem, maxPlayers: 3);
+
+        // Strict: exactly one info record, naming the game and the two
+        // capacities — no participant, no reason text.
+        Log::shouldReceive('info')
+            ->once()
+            ->with('capacity.decrease_refused', Mockery::on(fn ($ctx) => $ctx === [
+                'entity_id' => $game->id,
+                'reason' => 'agreement_locked',
+                'old_max' => 3,
+                'new_max' => 2,
+            ]));
+
+        $this->service->update($game, 2, $this->owner);
     });
 
     it('refuses decrease() directly on a completed game (locked terminal-state guard)', function () {

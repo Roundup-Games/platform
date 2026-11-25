@@ -53,14 +53,22 @@ class CapacityService
      * Owns the state machine previously inlined (~146 LOC) in
      * GameDetail::updateCapacity(): the validation rules and messages
      * (zero, 2..30 range, min_players floor, demotion reason cap), the
-     * terminal-state guard, and the three-way branch:
+     * terminal-state guard, the agreement lock, and the three-way branch:
      *  - increase (newMax > current) → {@see increase()};
+     *  - decrease on an agreement-locked game → LOCKED, before any branch is
+     *    entered ({@see Game::isAgreementLocked()}, decision D314): capacity is
+     *    part of what the confirmed participants agreed to (D313 Tier 1);
      *  - silent decrease (newMax <= current but still at/above the approved
      *    count) → {@see decrease()};
      *  - decrease below the approved count → two-phase confirm: the first
      *    call returns NEEDS_CONFIRMATION carrying a {@see DemotionPreview};
      *    the confirming call ($confirmed + non-empty reason) validates the
      *    reason and runs the LIFO {@see demote()}.
+     *
+     * The lock makes the last two branches an owner-only affair: every game
+     * with an approved non-owner participant is locked, so only a game nobody
+     * but the owner sits on still reaches decrease() — and there a decrease
+     * stays silent (the owner is exempt and is the only approved seat).
      *
      * The calling component keeps ONLY the surface mapping — authorize,
      * addError, session flash (via the returned flash key), confirm-modal
@@ -126,6 +134,30 @@ class CapacityService
         }
 
         $currentMax = (int) $game->max_players;
+
+        // AGREEMENT LOCK (D314, D313 Tier 1) — a DECREASE takes back part of
+        // what the confirmed participants agreed to, so it is refused once the
+        // game has ever had a confirmed non-owner participant. Ordered AFTER
+        // the value validation on purpose: a bad max still reports
+        // INVALID_MAX, the more actionable message. And BEFORE the branch
+        // routing, so neither the silent decrease nor the confirm/demote flow
+        // is ever entered on a locked game — nothing is written. An increase
+        // is untouched: it only ever opens seats. The lock is a live query
+        // (HasAgreementLock), never read off this possibly-stale model.
+        if ($newMax < $currentMax && $game->isAgreementLocked()) {
+            Log::info('capacity.decrease_refused', [
+                'entity_id' => $game->id,
+                'reason' => 'agreement_locked',
+                'old_max' => $currentMax,
+                'new_max' => $newMax,
+            ]);
+
+            return new CapacityUpdateResult(
+                outcome: CapacityUpdateResult::LOCKED,
+                newMax: $newMax,
+                errorKey: 'games.error_agreement_locked',
+            );
+        }
 
         // INCREASE path — raise + auto-promote from the waitlist. The
         // locked terminal-state guard inside increase() can still trip when

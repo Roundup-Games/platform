@@ -26,8 +26,6 @@ return [
     'heading_recap_due' => 'Recaps due',
     'action_review_publish' => 'Review & publish',
     'action_write_recap' => 'Write recap',
-    'content_no_linked_game' => 'No linked game',
-    'label_archived' => 'Archived',
     // Share Link Analytics
     'heading_share_link_analytics' => 'Share Link Analytics',
     'heading_top_links' => 'Top Links',

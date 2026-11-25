@@ -25,6 +25,7 @@ use App\Notifications\EntityInvitation;
 use App\Notifications\ParticipantJoined;
 use App\Notifications\ParticipantRemoved;
 use App\Notifications\PromotedFromBench;
+use App\Notifications\RosterReinviteInvitation;
 use App\Services\Calendar\CalendarSyncDispatcher;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -124,8 +125,8 @@ class ParticipantLifecycle
      *  - host-initiated invite with room → Pending(Invited) awaiting
      *    acceptance (campaign fan-out parity);
      *  - otherwise (user join / public apply with room) → Approved(Player)
-     *    with approved_at stamped per isFillable (GameParticipant only —
-     *    CampaignParticipant has no such column).
+     *    with approved_at stamped per isFillable (both participant models
+     *    carry the column; the guard keeps the shared seam model-agnostic).
      *
      * Locking stays with the caller: race-sensitive paths hold the entity
      * lock around this call (isAtCapacity() re-reads post-lock state inside
@@ -173,10 +174,11 @@ class ParticipantLifecycle
             $role = ParticipantRole::Player;
             $status = ParticipantStatus::Approved;
             $extra = [];
-            // approved_at exists only on GameParticipant — CampaignParticipant
-            // has no such column, so stamp per the model's fillable set rather
-            // than mass-assigning blindly (strict model mode would discard it
-            // silently otherwise).
+            // Both participant models carry approved_at (campaigns since
+            // M084/S01-T01, for the agreement lock), so stamp per the model's
+            // fillable set rather than mass-assigning blindly — the shared
+            // seam stays correct for any participant model (strict model mode
+            // would discard an unknown attribute silently otherwise).
             if ((new $meta->participantClass)->isFillable('approved_at')) {
                 $extra['approved_at'] = now();
             }
@@ -460,10 +462,11 @@ class ParticipantLifecycle
                 throw new \LogicException('Cannot promote: entity is full.');
             }
 
-            // approved_at exists only on GameParticipant — CampaignParticipant
-            // has no such column, so passing it through this shared seam was
-            // silently discarded on the campaign path (surfaced by strict
-            // model mode's preventSilentlyDiscardingAttributes).
+            // Both participant models carry approved_at (campaigns since
+            // M084/S01-T01, for the agreement lock). Guarded on the model's
+            // fillable set because this is a shared seam — an unknown
+            // attribute would be silently discarded under strict model mode
+            // (preventSilentlyDiscardingAttributes).
             $update = [
                 'status' => ParticipantStatus::Approved->value,
                 'benched_at' => null,
@@ -643,10 +646,10 @@ class ParticipantLifecycle
             }
 
             $update['status'] = ParticipantStatus::Approved->value;
-            // approved_at exists only on GameParticipant (CampaignParticipant
-            // has no such column — silently discarded before strict model
-            // mode). Overflow placements are not seat approvals — a later
-            // promotion stamps it instead.
+            // Both participant models carry approved_at (campaigns since
+            // M084/S01-T01, for the agreement lock), guarded on the fillable
+            // set because this is a shared seam. Overflow placements are not
+            // seat approvals — a later promotion stamps it instead.
             if ($participant->isFillable('approved_at')) {
                 $update['approved_at'] = now();
             }
@@ -974,8 +977,9 @@ class ParticipantLifecycle
                 'role' => ParticipantRole::Player->value,
                 'status' => ParticipantStatus::Approved->value,
             ];
-            // approved_at exists only on GameParticipant (CampaignParticipant
-            // has no such column — silently discarded before strict model mode).
+            // Both participant models carry approved_at (campaigns since
+            // M084/S01-T01, for the agreement lock), guarded on the fillable
+            // set because this is a shared seam (strict model mode).
             if ($lockedParticipant->isFillable('approved_at')) {
                 $update['approved_at'] = now();
             }
@@ -1081,6 +1085,12 @@ class ParticipantLifecycle
             $invitationType = EntityInvitation::class;
             $dataKey = $meta->isCampaign() ? 'campaign_id' : 'game_id';
             $this->notificationService->markReadByType($user, $invitationType, $entity->id, $dataKey);
+
+            // A roster re-invitation (D320/D321) is its own class and its payload binds
+            // entity_id: accepting it clears that bell row exactly like an ordinary invite.
+            if ($entity instanceof Game) {
+                $this->notificationService->markReadByType($user, RosterReinviteInvitation::class, $entity->id, 'entity_id');
+            }
         } catch (\Throwable $e) {
             Log::error('notification.mark_read_on_accept_failed', [
                 'entity_type' => $meta->type,

@@ -247,7 +247,6 @@ return [
     'field_ended_at' => 'Beendet am',
     'field_full_description' => 'Vollständige Beschreibung',
     'field_gender' => 'Geschlecht',
-    'field_get_started' => 'Loslegen',
     'field_getting_started' => 'Erste Schritte',
     'field_hey_name' => 'Hallo :name,',
     'field_individual_amount' => 'Einzel: :amount',
@@ -395,6 +394,7 @@ return [
     'content_source_short_link' => 'Kurzlink',
     'content_source_discord' => 'Discord',
     'content_source_mcp_agent' => 'MCP-Agent',
+    'content_source_roster_reinvite' => 'Erneute Einladung aus der vorherigen Runde',
     /*
     |--------------------------------------------------------------------------
     | Policy Update Notice

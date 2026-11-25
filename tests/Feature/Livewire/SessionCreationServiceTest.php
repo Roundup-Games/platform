@@ -141,7 +141,7 @@ describe('SessionCreationService — service contract', function () {
         expect($scrubbedBenchMode)->toBeFalse();
     });
 
-    it('scrubs bench mode, complexity, and reliability for gatherings', function () {
+    it('keeps the complexity the form shows for gatherings, and still scrubs bench mode and reliability', function () {
         $user = User::factory()->create();
         $system = GameSystem::factory()->create();
 
@@ -164,8 +164,12 @@ describe('SessionCreationService — service contract', function () {
             },
         );
 
+        // D325: nothing the form shows is silently dropped. The gathering form
+        // renders the complexity input, so the value the host typed is stored.
+        // The bench switch and the attendance tolerance are NOT on that form,
+        // so their scrub stands.
         expect($contextSeen['bench_mode'])->toBeFalse()
-            ->and($contextSeen['complexity'])->toBeNull()
+            ->and($contextSeen['complexity'])->toBe('4.2')
             ->and($contextSeen['min_reliability_preference'])->toBeNull()
             ->and($contextSeen['pivot_system_ids'])->toBe([$system->id]);
     });

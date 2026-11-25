@@ -47,7 +47,6 @@ return [
     'content_schedule_a_new_game_session_for_players_to_join' => 'Schedule a new game for players to join.',
     'content_share_your_location_to_discover' => 'Share your location to discover games and campaigns in your area.',
     'content_share_your_location_to_see' => 'Share your location to see games and campaigns happening this week in your area.',
-    'content_start_a_campaign_organize_a' => '**Start a campaign** — Organize a recurring game with your group.',
     'content_step_outside_your_comfort_zone' => 'Step outside your comfort zone. Try a new system, join a different group, or fall in love with a game you\'d never heard of.',
     'content_this_is_a_protected_game' => 'This is a connections-only game. Your application will be reviewed by the host before you can join.',
     'content_three_steps_to_your_next_game_night' => 'Three steps to your next game night',
@@ -120,6 +119,10 @@ return [
     'flash_game_completed' => 'Game marked as completed.',
     'error_game_not_scheduled' => 'Only scheduled games can be modified.',
     'confirm_cancel_game' => 'Are you sure you want to cancel this game?',
+    // "Recreate with changes" (D318/D319, M084/S05): cancel + create form pre-filled from the game
+    'action_recreate_game' => 'Recreate with changes',
+    'confirm_recreate' => 'Cancel this game and start a new one from its details? Your late-cancellation mark is waived once the new game is published. Players are not carried over — you invite them again.',
+    'content_recreating_from' => 'You’re recreating :name. Publish to waive the late-cancellation mark.',
     // GamesPage — priority board sections
     'heading_needs_your_attention' => 'Needs your attention',
     'heading_upcoming_hosting' => 'Upcoming — you\'re hosting',
@@ -210,6 +213,10 @@ return [
     'type_board_game' => 'Board Game',
     'type_ttrpg' => 'TTRPG',
     'type_gathering' => 'Gathering',
+    // The type's own name. No form shows it (the picker above labels each
+    // type separately); ChangedFieldLabels names the column with it in
+    // entity-update notifications.
+    'field_game_type' => 'Game type',
     'content_also_offering' => 'Also offering',
     'content_n_games_on_offer' => '{1}1 game on offer|[2,*]:count games on offer',
     'content_what_are_you_playing' => 'What are you playing?',
@@ -223,6 +230,9 @@ return [
     'error_max_game_systems_reached' => 'You can add a maximum of :max game systems.',
     'content_no_game_systems_added_yet' => 'No game systems added yet.',
     'field_comfort_notes' => 'Comfort Notes',
+    // No form renders this field yet; ChangedFieldLabels names the column
+    // with it in entity-update notifications.
+    'field_minimum_requirements' => 'Minimum requirements',
     'placeholder_game_description' => 'Describe the session…',
     'placeholder_game_name' => 'e.g. Dungeon Crawl Night',
     'placeholder_comfort_notes' => 'Any comfort notes for players?',
@@ -418,4 +428,24 @@ return [
     'action_add_to_calendar' => 'Add to calendar',
     'content_add_to_calendar_hint' => 'Save this session to your calendar',
     'action_calendar_feed_settings' => 'Subscribe to all your sessions',
+    // Agreement lock (D313/D314, M084): Tier-1 fields — game system, date, duration,
+    // price, capacity decrease, min players, bench mode, language, public→private —
+    // lock once someone has joined. Shown where the save is refused.
+    'error_agreement_locked' => 'This can’t be changed since someone joined. To change the game, cancel it and create a new one.',
+    // Owner edit mode on the detail page (D315/D314, M084/S03)
+    'action_edit_game' => 'Edit game',
+    'action_save_game_changes' => 'Save changes',
+    'action_save_cover_image' => 'Save cover image',
+    'content_current_cover_image' => 'Current cover image',
+    // WHY the Tier-1 fields are read-only: shown once at the top of the edit form.
+    'content_agreement_locked' => 'Locked since someone joined on :date. To change the game, date or price, cancel it and create a new game.',
+    'error_cover_image_upload_failed' => 'The cover image could not be saved. Please try again.',
+    // Roster re-invite on a game that replaces a cancelled one (D320/D321, M084/S06): players are
+    // invited back, never carried over — each one decides.
+    'content_roster_reinvite' => '{1} :count player from :replaced can be invited to this game. They are not added automatically — each one decides.|[2,*] :count players from :replaced can be invited to this game. They are not added automatically — each one decides.',
+    'action_roster_reinvite' => 'Invite the previous roster',
+    'flash_roster_reinvite' => 'Previous roster: :invited invited, :skipped not invited.',
+    'flash_roster_reinvite_reason_capacity' => 'The game is full.',
+    'flash_roster_reinvite_reason_already' => 'They are already part of this game.',
+    'error_roster_reinvite_unavailable' => 'The previous roster can no longer be invited.',
 ];

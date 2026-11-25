@@ -1,13 +1,11 @@
 <?php
 return [
-    'content_already_registered' => 'Already registered?',
     'content_forgot_your_password' => 'Forgot your password?',
     'content_log_in' => 'Log in',
     'content_log_out' => 'Log Out',
     'content_no_password_set_you_currently' => 'No password set. You currently sign in via a linked provider.',
     // M066/S09/T03: replaced the boilerplate 'Join :brand today' SaaS CTA with
     // on-voice copy (audit 03 §5 #10) — seat/table language like the home H1.
-    'content_register_subtitle' => 'Pull up a chair — your table is waiting.',
     'content_remember_me' => 'Remember me',
     'content_sign_in' => 'Log in',
     'content_sign_in_to_register' => 'Sign in to Register',
@@ -15,8 +13,6 @@ return [
     'content_sign_up_for_a_session' => 'Join a game, show up, and have a great time. That\'s it. No dues, no commitments, no pressure. Just roll the dice and see what happens.',
     'content_sign_up_free' => 'Sign Up Free',
     'content_sign_up_to_host' => 'Sign Up to Host',
-    'content_sign_up_with_google' => 'Sign up with Google',
-    'content_sign_up_with_discord' => 'Sign up with Discord',
     'content_this_is_a_secure_area_please_confirm_your_password' => 'This is a secure area. Please confirm your password.',
     'content_your_password_is_set_click' => 'Your password is set. Click "Change Password" above to update it.',
     'field_amount_to_register' => ':amount+ to register',
@@ -53,7 +49,6 @@ return [
     'action_continue' => 'Continue',
     'hint_new_here' => 'New here? Your email creates the account — nothing more to decide now.',
     'label_or_email' => 'or continue with email',
-    'content_sign_in_sub' => 'Welcome back — enter your password.',
     'field_change' => 'Change',
     'content_oauth_only_sub' => "This account doesn't use a password here.",
     'hint_oauth_provider' => 'You usually sign in with :provider — continue with the button below.',
@@ -61,8 +56,6 @@ return [
     'title_create_account' => 'Create your account',
     'content_signup_sub' => "Two fields and you're at the table.",
     'action_create_account' => 'Create account',
-    'title_check_inbox' => 'Check your inbox',
-    'content_link_sent' => 'We sent a link to :email.',
     'label_last_used' => 'Last used',
     'label_guest' => 'Guest',
     'content_new_here_toggle' => 'New here? Create an account',

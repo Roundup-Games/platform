@@ -65,6 +65,15 @@ class GameSystemPreferencePicker extends Component
 
     public bool $showExpansionPicker = false;
 
+    /**
+     * Read-only: the search input renders disabled and the clear / remove
+     * buttons and dropdowns are hidden. Used by the game edit mode for the
+     * Tier-1 locked offered-system set of a gathering (D314) — the selected
+     * systems are still shown. Rendering only: the enforcement of the lock
+     * lives in the parent's save path.
+     */
+    public bool $disabled = false;
+
     /** @var string|null The base game ID when expansion sub-picker is shown */
     public ?string $selectedBaseId = null;
 
@@ -80,8 +89,10 @@ class GameSystemPreferencePicker extends Component
         array $conflictIds = [],
         string $mode = 'preference',
         int $maxSystems = 0,
+        bool $disabled = false,
     ): void {
         $this->preferenceType = $preferenceType;
+        $this->disabled = $disabled;
         $this->selectedIds = array_map('strval', $selectedIds);
         $this->conflictIds = array_map('strval', $conflictIds);
         $this->mode = $mode;

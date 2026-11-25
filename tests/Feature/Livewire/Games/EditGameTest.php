@@ -179,3 +179,99 @@ describe('Save Game Edit', function () {
         expect($game->fresh()->visibility)->toBe(Visibility::Public);
     });
 });
+
+describe('agreement lock', function () {
+    it('refuses an expected-duration edit on an agreement-locked game and renders the lock reason in the edit modal', function () {
+        $game = createOwnedGame($this->owner, $this->gameSystem);
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => User::factory()->create()->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+        expect($game->isAgreementLocked())->toBeTrue();
+
+        Livewire::actingAs($this->owner)->test(GamesPage::class)
+
+            ->call('editGame', $game->id)
+            ->set('edit_expected_duration', '4')
+            ->set('edit_name', 'Not applied either')
+            ->call('saveGameEdit')
+            ->assertHasErrors(['edit' => fn ($rules, $messages) => $messages === [__('games.error_agreement_locked')]])
+            ->assertSee(__('games.error_agreement_locked'))
+            // Rendered by the modal's own `edit` block — the reason, as an alert.
+            ->assertSeeHtml('<p role="alert" class="mb-3 text-sm text-error">'.e(__('games.error_agreement_locked')).'</p>')
+            ->assertDontSee(__('games.flash_game_updated'))
+            // The modal stays open so the reason stays on screen.
+            ->assertSet('editingGameId', $game->id);
+
+        // Nothing was written — not the Tier-3 name either.
+        expect((float) $game->fresh()->expected_duration)->toBe(2.0)
+            ->and($game->fresh()->name)->toBe('Test Game');
+        // ... and nothing was logged as an update.
+        expect(ActivityLog::where('subject_type', (new Game)->getMorphClass())
+            ->where('subject_id', $game->id)
+            ->where('event_type', ActivityType::GameUpdated)
+            ->count())->toBe(0);
+    });
+
+    it('refuses a public → private visibility switch on an agreement-locked game', function () {
+        $game = createOwnedGame($this->owner, $this->gameSystem, ['visibility' => 'public']);
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => User::factory()->create()->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+
+        Livewire::actingAs($this->owner)->test(GamesPage::class)
+
+            ->call('editGame', $game->id)
+            ->set('edit_visibility', 'private')
+            ->call('saveGameEdit')
+            ->assertHasErrors(['edit'])
+            ->assertSee(__('games.error_agreement_locked'))
+            ->assertDontSee(__('games.flash_game_updated'));
+
+        expect($game->fresh()->visibility)->toBe(Visibility::Public);
+    });
+
+    it('allows a private → public visibility switch on an agreement-locked game', function () {
+        $owner = User::factory()->create(['can_create_public_entries' => true]);
+        $game = createOwnedGame($owner, $this->gameSystem, ['visibility' => 'private']);
+        GameParticipant::create([
+            'game_id' => $game->id,
+            'user_id' => User::factory()->create()->id,
+            'role' => ParticipantRole::Player->value,
+            'status' => ParticipantStatus::Approved->value,
+        ]);
+
+        Livewire::actingAs($owner)->test(GamesPage::class)
+
+            ->call('editGame', $game->id)
+            ->set('edit_visibility', 'public')
+            ->call('saveGameEdit')
+            ->assertHasNoErrors()
+            ->assertDontSee(__('games.error_agreement_locked'))
+            ->assertSee(__('games.flash_game_updated'));
+
+        expect($game->fresh()->visibility)->toBe(Visibility::Public);
+    });
+
+    it('still applies an expected-duration edit while nobody has joined', function () {
+        $game = createOwnedGame($this->owner, $this->gameSystem);
+        expect($game->isAgreementLocked())->toBeFalse();
+
+        Livewire::actingAs($this->owner)->test(GamesPage::class)
+
+            ->call('editGame', $game->id)
+            ->set('edit_expected_duration', '4')
+            ->call('saveGameEdit')
+            ->assertHasNoErrors()
+            ->assertDontSee(__('games.error_agreement_locked'))
+            ->assertSee(__('games.flash_game_updated'))
+            ->assertSet('editingGameId', null);
+
+        expect((float) $game->fresh()->expected_duration)->toBe(4.0);
+    });
+});

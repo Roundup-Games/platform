@@ -137,6 +137,13 @@ class I18nDeadStringsCommand extends Command
             'discovery' => ['cat_', 'mech_'],
             // ContactSupport/BillingSupport ISSUE_TYPES const maps
             'support' => ['field_issue_', 'field_billing_issue_'],
+            // CapacityService: capacity-reason key maps (no literal __() site
+            // exists for any key in these two families).
+            'games' => ['flash_capacity_', 'error_capacity_'],
+            // Settings/AgentTokens: the activity-label const map.
+            'settings' => ['activity_'],
+            // ParticipantLifecycle: the application-outcome flash map.
+            'common' => ['flash_application_'],
         ];
 
         // Specific keys used via variable-based ternary or match() blocks
@@ -201,6 +208,50 @@ class I18nDeadStringsCommand extends Command
             'profile.dashboard_feed_action_joined',
             'profile.dashboard_feed_action_completed',
             'campaigns.activity_scheduled_session_for',
+            // BadgeRegistry: definition name/description keys held as registry
+            // data and resolved through BadgeCopy. Explicit per key on purpose:
+            // the badges.content_badge_ family ALSO has literal __() sites, so a
+            // prefix rule would permanently mask real orphans in it.
+            'badges.content_badge_campaign_compleat_description',
+            'badges.content_badge_campaign_compleat_name',
+            'badges.content_badge_chartered_description',
+            'badges.content_badge_chartered_name',
+            'badges.content_badge_debut_description',
+            'badges.content_badge_debut_name',
+            'badges.content_badge_first_seat_description',
+            'badges.content_badge_first_seat_name',
+            'badges.content_badge_founding_table_description',
+            'badges.content_badge_founding_table_name',
+            'badges.content_badge_guild_linked_description',
+            'badges.content_badge_guild_linked_name',
+            'badges.content_badge_mentor_description',
+            'badges.content_badge_mentor_name',
+            'badges.content_badge_regulars_table_description',
+            'badges.content_badge_regulars_table_name',
+            'badges.content_badge_still_rolling_description',
+            'badges.content_badge_still_rolling_name',
+            'badges.content_badge_supporting_member_description',
+            'badges.content_badge_supporting_member_name',
+            'badges.content_badge_trusted_organizer_description',
+            'badges.content_badge_trusted_organizer_name',
+            // BadgeCopy::tierLabel(): "badges.content_badge_tier_{$tier}" — every
+            // tier label resolves through that one interpolated key.
+            'badges.content_badge_tier_bronze',
+            'badges.content_badge_tier_silver',
+            'badges.content_badge_tier_gold',
+            'badges.content_badge_tier_year_1',
+            'badges.content_badge_tier_year_2',
+            'badges.content_badge_tier_year_3',
+            'badges.content_badge_tier_year_5',
+            // ChangedFieldLabels: LABEL_KEYS fallback reached through a variable.
+            'common.field_details',  // ChangedFieldLabels::LABEL_KEYS fallback
+            // ChangedFieldLabels::LABEL_KEYS (M084/S04/T02): label keys held as
+            // const-map values and resolved through a variable — the same
+            // const indirection as ModerationNoticeLabels above. Only these
+            // two have no other call site: the type picker labels each type
+            // separately and no form renders minimum_requirements.
+            'games.field_game_type',
+            'games.field_minimum_requirements',
         ];
 
         return array_values(array_filter($deadKeys, function ($dead) use ($frameworkDomains, $dynamicDomainPrefixes, $dynamicVariableKeys, $usage) {

@@ -40,7 +40,6 @@ return [
     'content_see_how_it_works' => 'So funktioniert\'s ansehen',
     'content_we_believe_everyone_deserves_a' => 'Wir glauben, dass jeder einen Platz am Tisch verdient. So machen wir das möglich — ohne Vorkenntnisse.',
     'content_we_take_trust_seriously_here' => 'Wir nehmen Vertrauen ernst. So halten wir die Community sicher und transparent.',
-    'content_what_s_included' => 'Was enthalten ist',
     'field_email_general' => 'Allgemeine Anfragen',
     'field_email_support' => 'Support',
     'field_send_us_a_message' => 'Sende uns eine Nachricht',

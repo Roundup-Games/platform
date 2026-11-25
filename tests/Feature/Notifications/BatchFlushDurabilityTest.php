@@ -16,7 +16,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Monolog\Handler\NullHandler;
+use Monolog\Level;
 use Monolog\Logger as MonologLogger;
+use Tests\Traits\CapturesLogRecords;
 
 /*
  * Dual-path flush durability (M082/S01/T03, D296): the delayed
@@ -29,6 +31,8 @@ use Monolog\Logger as MonologLogger;
  * Clock frozen throughout (K014): every window/arithmetic assertion is
  * deterministic against 2026-11-19 12:00:00.
  */
+
+uses(CapturesLogRecords::class);
 
 /**
  * One buffered event snapshot — the item payload contract documented on
@@ -339,12 +343,74 @@ it('marks the batch processed and sends nothing when the recipient was deleted m
  * its recipient will never receive — until this pin the sweep only counted
  * it in an info-level summary, which AlertableErrorTap never records, so
  * the loss was invisible to both the page and the daily digest.
+ *
+ * Both pins read REAL records via CapturesLogRecords and assert on the
+ * sweep's own messages — never on a raw warning() call count: Artisan's
+ * bootstrap already warns before the sweep runs on any machine without
+ * VAPID keys (see sweepWarningRecords()), so a total count is not a sweep
+ * verdict.
  */
 
-it('pages the operator when a batch dead-letters — the logged warning matches the configured critical patterns', function () {
+/**
+ * Records at WARNING or above — the levels AlertableErrorTap turns into
+ * alertable_errors, i.e. the channel an operator can be paged from.
+ *
+ * @param  list<array{message: string, level_name: string, context: array<string, mixed>}>  $records
+ * @return list<array{message: string, level_name: string, context: array<string, mixed>}>
+ */
+function warningLogRecords(array $records): array
+{
+    return array_values(array_filter(
+        $records,
+        static fn (array $record): bool => Level::Warning->includes(Level::fromName($record['level_name'])),
+    ));
+}
+
+/**
+ * WARNING-and-above records the SWEEP itself wrote — every log key the
+ * command owns lives under the 'notification_batch.' namespace.
+ *
+ * The namespace scope is load-bearing. Artisan resolves every registered
+ * command BEFORE the sweep runs, and outside production that includes the
+ * dev notifications:push-test command, whose constructor chain
+ * (PushChannel → WebPush) makes AppServiceProvider's WebPush binding log
+ * 'VAPID keys not configured, push notifications disabled' whenever VAPID
+ * keys are absent — CI and a fresh worktree (both .env.example) always
+ * are. That is container bootstrap noise, not a sweep verdict: the earlier
+ * Log::spy() count pins were green only on a machine whose untracked .env
+ * carried VAPID keys.
+ *
+ * @param  list<array{message: string, level_name: string, context: array<string, mixed>}>  $records
+ * @return list<array{message: string, level_name: string, context: array<string, mixed>}>
+ */
+function sweepWarningRecords(array $records): array
+{
+    return array_values(array_filter(
+        warningLogRecords($records),
+        static fn (array $record): bool => str_starts_with($record['message'], 'notification_batch.'),
+    ));
+}
+
+/**
+ * Records that PAGE the operator: WARNING or above (recorded by
+ * AlertableErrorTap) AND matching a configured critical pattern (what
+ * observability:scan pages on).
+ *
+ * @param  list<array{message: string, level_name: string, context: array<string, mixed>}>  $records
+ * @return list<array{message: string, level_name: string, context: array<string, mixed>}>
+ */
+function pagingLogRecords(array $records): array
+{
+    return array_values(array_filter(
+        warningLogRecords($records),
+        static fn (array $record): bool => CriticalPatternMatcher::matches($record['message']),
+    ));
+}
+
+it('pages the operator when a batch dead-letters — the sweep logs one warning, and its text matches the configured critical patterns', function () {
     $this->travelTo(Carbon::parse('2026-11-19 12:00:00'));
     Queue::fake();
-    $log = Log::spy();
+    $this->captureLogRecords();
 
     $recipient = User::factory()->create();
     $batch = seedFlushBatch($recipient, ['flush_attempts' => 5]);
@@ -356,29 +422,31 @@ it('pages the operator when a batch dead-letters — the logged warning matches 
     // surface the loss.
     Queue::assertNotPushed(FlushNotificationBatch::class);
 
-    $loggedMessage = null;
-    $log->shouldHaveReceived('warning')
-        ->once()
-        ->withArgs(function (string $message, array $context) use (&$loggedMessage, $batch): bool {
-            $loggedMessage = $message;
+    // ONE warning leaves the sweep — the dead-letter page with its
+    // first-sighting forensics — and it is the run's only page.
+    $warnings = sweepWarningRecords($this->logRecords());
 
-            return $context['abandoned'] === 1
-                && $context['batch_ids'] === [$batch->id]
-                && $context['batch_ids_truncated'] === false
-                && $context['max_flush_attempts'] === FlushNotificationBatches::MAX_FLUSH_ATTEMPTS;
-        });
+    expect($warnings)->toHaveCount(1)
+        ->and(pagingLogRecords($this->logRecords()))->toHaveCount(1);
+
+    $page = $warnings[0];
+
+    expect($page['message'])->toBe(FlushNotificationBatches::ABANDONED_MESSAGE)
+        ->and($page['context']['abandoned'])->toBe(1)
+        ->and($page['context']['batch_ids'])->toBe([$batch->id])
+        ->and($page['context']['batch_ids_truncated'])->toBeFalse()
+        ->and($page['context']['max_flush_attempts'])->toBe(FlushNotificationBatches::MAX_FLUSH_ATTEMPTS);
 
     // The REAL logged text — not a hand-typed literal — must be paged by
     // the production pattern list: the lockstep pin between this command
     // and config/observability.php.
-    expect($loggedMessage)->toBeString();
-    expect(CriticalPatternMatcher::matches($loggedMessage))->toBeTrue();
+    expect(CriticalPatternMatcher::matches($page['message']))->toBeTrue();
 });
 
-it('stays off the warning channel while every closed batch is inside the attempt bound', function () {
+it('the sweep stays off the warning channel while every closed batch is inside the attempt bound', function () {
     $this->travelTo(Carbon::parse('2026-11-19 12:00:00'));
     Queue::fake();
-    $log = Log::spy();
+    $this->captureLogRecords();
 
     $batch = seedFlushBatch(User::factory()->create());
     seedFlushItems($batch, ['Actor A']);
@@ -386,7 +454,17 @@ it('stays off the warning channel while every closed batch is inside the attempt
     $this->artisan('notifications:flush-batches')->assertSuccessful();
 
     Queue::assertPushed(FlushNotificationBatch::class, 1);
-    $log->shouldNotHaveReceived('warning');
+
+    // Positive control: the capture is live on the channel the sweep
+    // writes to — its own info trail is in it — so the empty lists below
+    // are a sweep verdict, not a detached handler that saw nothing.
+    expect(array_column($this->logRecords(), 'message'))
+        ->toContain('notification_batch.sweep_dispatched', 'notification_batch.sweep_complete');
+
+    // Every batch was dispatched and none abandoned: the sweep writes
+    // nothing to the warning channel, and nothing in the run pages.
+    expect(sweepWarningRecords($this->logRecords()))->toBe([])
+        ->and(pagingLogRecords($this->logRecords()))->toBe([]);
 });
 
 it('lands the dead-letter warning in alertable_errors once, where observability:scan pages from', function () {

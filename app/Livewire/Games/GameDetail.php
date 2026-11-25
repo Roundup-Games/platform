@@ -3,6 +3,7 @@
 namespace App\Livewire\Games;
 
 use App\Dto\CapacityUpdateResult;
+use App\Dto\RosterReinviteResult;
 use App\Enums\AttendanceStatus;
 use App\Enums\GameStatus;
 use App\Enums\JoinSource;
@@ -45,6 +46,7 @@ use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
@@ -64,6 +66,8 @@ use Livewire\Component;
  * @property Collection<int, ShortLink> $getShortLinks
  * @property bool $hasShareLink
  * @property string|null $shareLinkUrl
+ * @property bool $canReinviteRoster
+ * @property int $reinvitableRosterCount
  */
 #[Layout('layouts.app')]
 class GameDetail extends Component
@@ -120,6 +124,29 @@ class GameDetail extends Component
 
     /** @var int|null Host-edited max_players input (wire:model target). */
     public ?int $capacityNewMax = null;
+
+    /**
+     * The owner's in-page edit mode (M084/S03, D315): while true the page
+     * renders the EditGame form in place of the read-only hero and body.
+     * Owned by this component, not the child: the child only announces
+     * `game-edit-saved` / `game-edit-cancelled` and this flag returns to false.
+     */
+    public bool $editing = false;
+
+    /**
+     * The confirmation shown after an in-place save: this page's own state, set by
+     * the `game-edit-saved` listener and cleared when the owner edits again or
+     * cancels. Not a session flash — that listener runs in a second request, so a
+     * flash written by the edit form would be readable in that request only.
+     */
+    public ?string $editSavedMessage = null;
+
+    /**
+     * Hides the roster-reinvite banner (D320): once the host acted on it, or dismissed it.
+     * Component state only — a reload offers the banner again while someone is still left
+     * to invite, because nobody is invited until the host does it.
+     */
+    public bool $rosterReinviteBannerDismissed = false;
 
     public function mount(string $id): void
     {
@@ -445,7 +472,8 @@ class GameDetail extends Component
     /**
      * Host-driven max_players change — pure orchestration over
      * {@see CapacityService::update()}, which owns the validation rules,
-     * the terminal-state guard, and the three-way branch (increase /
+     * the terminal-state guard, the agreement lock (a decrease is refused once
+     * anyone has joined, D314), and the three-way branch (increase /
      * silent decrease / two-phase-confirm demotion).
      *
      * This method keeps ONLY the Livewire surface effects: authorize,
@@ -480,8 +508,13 @@ class GameDetail extends Component
             CapacityUpdateResult::INVALID_MAX => $this->applyCapacityError($result, clearConfirm: true),
             CapacityUpdateResult::INVALID_REASON => $this->applyCapacityError($result, clearConfirm: false),
 
-            // Terminal-state refusal (completed / attendance resolved).
+            // Refusals that carry no field: the terminal state (completed /
+            // attendance resolved) and the agreement lock (a decrease on a game
+            // someone has joined — D314). Both flash the service's reason. The
+            // LOCKED arm is spelled out on purpose: a fall-through to the
+            // default arm below would announce an APPLIED change.
             CapacityUpdateResult::REFUSED => $this->refuseCapacityChange($result),
+            CapacityUpdateResult::LOCKED => $this->refuseCapacityChange($result),
 
             // Applied changes (increased / decreased / demoted) — refresh
             // computed props and flash the service-chosen message.
@@ -512,7 +545,8 @@ class GameDetail extends Component
     }
 
     /**
-     * Surface a terminal-state refusal (error flash, confirm state cleared).
+     * Surface a refusal that carries no field — terminal state or agreement
+     * lock (error flash, confirm state cleared).
      */
     private function refuseCapacityChange(CapacityUpdateResult $result): void
     {
@@ -889,6 +923,134 @@ class GameDetail extends Component
         return ($id = $this->viewerId()) !== null && $this->game->owner_id === $id;
     }
 
+    /**
+     * The Edit game button: a user who passes GamePolicy::update, on a game
+     * that is still Scheduled (a completed or cancelled game has no edit
+     * mode). The component itself re-checks both on mount and on save.
+     */
+    #[Computed]
+    public function canEditGame(): bool
+    {
+        $user = Auth::user();
+
+        return $user !== null
+            && $user->can('update', $this->game)
+            && $this->game->status === GameStatus::Scheduled;
+    }
+
+    /** Enter the in-page edit mode (D315). */
+    public function startEditing(): void
+    {
+        $this->authorize('update', $this->game);
+
+        if (! $this->canEditGame()) {
+            return;
+        }
+
+        $this->editing = true;
+        $this->editSavedMessage = null;
+    }
+
+    /** The edit form saved (or stored a cover): back to the read-only page, confirmation shown. */
+    #[On('game-edit-saved')]
+    public function stopEditing(): void
+    {
+        $this->editing = false;
+        $this->editSavedMessage = __('games.flash_game_updated');
+    }
+
+    /** The edit form was cancelled: back to the read-only page, nothing written. */
+    #[On('game-edit-cancelled')]
+    public function cancelEditing(): void
+    {
+        $this->editing = false;
+        $this->editSavedMessage = null;
+    }
+
+    // ── Roster re-invite (D320, D321) ─────────────────
+
+    /**
+     * Whether this game replaces a cancelled one and the viewer may invite its roster:
+     * the link exists, its predecessor is cancelled, the game is still Scheduled, and
+     * the viewer passes GamePolicy::update. ParticipantService::inviteFormerRoster()
+     * re-checks every one of these.
+     */
+    #[Computed]
+    public function canReinviteRoster(): bool
+    {
+        // loadMissing: the model is re-hydrated on every request, and strict mode
+        // forbids the lazy load a bare ->recreates would trigger before render().
+        $this->game->loadMissing('recreates');
+
+        $predecessor = $this->game->recreates;
+
+        return $predecessor !== null
+            && $predecessor->status === GameStatus::Canceled
+            && $this->game->status === GameStatus::Scheduled
+            && Auth::user()?->can('update', $this->game) === true;
+    }
+
+    /**
+     * How many former players the banner can offer to invite right now. 0 hides it:
+     * the host dismissed it or already acted on it, nobody is left to invite, or
+     * there is no free seat.
+     */
+    #[Computed]
+    public function reinvitableRosterCount(): int
+    {
+        if ($this->rosterReinviteBannerDismissed || ! $this->canReinviteRoster()) {
+            return 0;
+        }
+
+        return $this->participantService()->countReinvitableFormerRoster($this->game);
+    }
+
+    /**
+     * Invite the previous roster: one click, and every former player decides for themselves.
+     * The flash reports the two counts plus the reason anyone was left out, so it never
+     * blames a full game for a player who had simply joined already.
+     */
+    public function reinviteRoster(): void
+    {
+        $this->authorize('update', $this->game);
+
+        if (! $this->canReinviteRoster()) {
+            session()->flash('error', __('games.error_roster_reinvite_unavailable'));
+
+            return;
+        }
+
+        $result = $this->participantService()->inviteFormerRoster($this->game, authenticatedUser());
+
+        $this->rosterReinviteBannerDismissed = true;
+
+        session()->flash('success', $this->rosterReinviteFlash($result));
+    }
+
+    /**
+     * Hide the banner for this page view. It returns on the next load while someone is
+     * still left to invite.
+     */
+    public function dismissRosterReinviteBanner(): void
+    {
+        $this->rosterReinviteBannerDismissed = true;
+    }
+
+    private function rosterReinviteFlash(RosterReinviteResult $result): string
+    {
+        $message = __('games.flash_roster_reinvite', ['invited' => $result->invited, 'skipped' => $result->skipped()]);
+
+        if ($result->skippedCapacity > 0) {
+            $message .= ' '.__('games.flash_roster_reinvite_reason_capacity');
+        }
+
+        if ($result->skippedAlready > 0) {
+            $message .= ' '.__('games.flash_roster_reinvite_reason_already');
+        }
+
+        return $message;
+    }
+
     #[Computed]
     public function isParticipant(): bool
     {
@@ -1186,7 +1348,7 @@ class GameDetail extends Component
             'owner', 'campaign', 'recapEntry', 'event',
             'gameSystems.categories', 'gameSystems.mechanics',
             'gameSystems.publishers', 'gameSystems.baseGame', 'gameSystems.expansions',
-            'linkedLocation',
+            'linkedLocation', 'recreates',
         ]);
         $this->game->load(['participants.user', 'applications.user']);
 
@@ -1196,6 +1358,10 @@ class GameDetail extends Component
         return view('livewire.games.game-detail', [
             'game' => $this->game,
             'isOwner' => $this->isOwner(),
+            'canEditGame' => $this->canEditGame(),
+            'canReinviteRoster' => $this->canReinviteRoster(),
+            'reinvitableRosterCount' => $this->reinvitableRosterCount(),
+            'replacedGameName' => $this->game->recreates?->name,
             'isParticipant' => $this->isParticipant(),
             'isApprovedParticipant' => $this->isApprovedParticipant(),
             'userInvitation' => $this->userInvitation(),

@@ -302,8 +302,6 @@ return [
     'action_next' => 'Weiter',
     'action_back' => 'Zurück',
     'action_publish' => 'Charta veröffentlichen',
-    'action_continue_editing' => 'Weiter bearbeiten',
-    'action_copy_link' => 'Link kopieren',
 
     // Entwurfszustand
     'content_draft_banner' => 'Diese Charta ist ein Entwurf — bis zur Veröffentlichung siehst sie nur Du.',

@@ -11,6 +11,7 @@ enum JoinSource: string
     case ShortLink = 'short_link';
     case Discord = 'discord';
     case McpAgent = 'mcp_agent';
+    case RosterReinvite = 'roster_reinvite';
 
     /**
      * @return string[]
@@ -30,6 +31,7 @@ enum JoinSource: string
             self::ShortLink => __('common.content_source_short_link'),
             self::Discord => __('common.content_source_discord'),
             self::McpAgent => __('common.content_source_mcp_agent'),
+            self::RosterReinvite => __('common.content_source_roster_reinvite'),
         };
     }
 }

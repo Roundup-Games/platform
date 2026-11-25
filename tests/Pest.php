@@ -312,8 +312,10 @@ function seedDemoGameSystems()
  * would have stamped (MEM291): pass the id (HasPlatformUuid generation
  * never runs without a save) and any NOT NULL timestamp columns through
  * $extra, and mirror observer side effects the rows' readers actually
- * depend on (e.g. GameParticipantObserver's approved_at stamp on Approved
- * rows). Rows whose model events matter to what is being asserted stay on
+ * depend on (e.g. the participant observers' approved_at stamp on Approved
+ * rows — GameParticipantObserver and CampaignParticipantObserver alike, so a
+ * bulk-inserted Approved row reads as "never approved" by the agreement lock).
+ * Rows whose model events matter to what is being asserted stay on
  * factory create() — bulk-insert only pure volume.
  *
  * Defined here (not per-file) so every Pest process sees it — the badge

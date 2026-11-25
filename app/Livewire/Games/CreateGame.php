@@ -17,6 +17,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
@@ -40,6 +41,16 @@ class CreateGame extends Component
     /** Optional query parameter: game ID to clone from */
     #[Url]
     public ?string $clone = null;
+
+    /**
+     * Optional query parameter: the cancelled game this form republishes
+     * (linked recreate, D318/D319 — sent by the cancel flow's "Recreate with
+     * changes"). Validated on mount AND on save: the property is
+     * client-writable between requests, and a tampered id must never create
+     * a link. A valid target pre-fills the form exactly like ?clone=.
+     */
+    #[Url]
+    public ?string $recreate = null;
 
     /** Optional query parameter: pre-selected game type (from the unified Plan flow) */
     #[Url]
@@ -135,10 +146,20 @@ class CreateGame extends Component
             $this->authorize('update', $hostingEvent);
         }
 
-        // If a type was pre-selected via ?type= (e.g. from the Plan flow),
-        // auto-advance to the form with smart defaults applied.
-        if (($this->clone === null || $this->clone === '') && $this->type !== null) {
-            if (in_array($this->type, GameType::values(), true)) {
+        // Linked recreate (D318/D319): ?recreate={id} names the cancelled game
+        // this form republishes. A target that fails validation is dropped
+        // here rather than rejected — a tampered id must never create a link.
+        $recreateTarget = $this->resolveRecreateTarget();
+
+        if ($this->clone !== null && $this->clone !== '') {
+            $source = Game::findOrFail($this->clone);
+        } elseif ($recreateTarget !== null) {
+            // A valid recreate target pre-fills the form exactly like a clone.
+            $source = $recreateTarget;
+        } else {
+            // If a type was pre-selected via ?type= (e.g. from the Plan flow),
+            // auto-advance to the form with smart defaults applied.
+            if ($this->type !== null && in_array($this->type, GameType::values(), true)) {
                 $this->selectType($this->type);
             }
 
@@ -146,14 +167,6 @@ class CreateGame extends Component
 
             return;
         }
-
-        if ($this->clone === null || $this->clone === '') {
-            $this->applyHostingEventVisibilityDefault($hostingEvent);
-
-            return;
-        }
-
-        $source = Game::findOrFail($this->clone);
 
         // Only the owner can clone their own game — the rule lives in
         // GamePolicy::clone; the localized message stays at the surface.
@@ -164,6 +177,82 @@ class CreateGame extends Component
         // Verify the user can still create games (permission may have been revoked)
         $this->authorize('create', Game::class);
 
+        $this->prefillFromGame($source);
+
+        Log::info('Game clone initiated', [
+            'source_game_id' => $source->id,
+            'user_id' => Auth::id(),
+            'recreate_game_id' => $this->recreate,
+        ]);
+
+        // Cloning into a host-a-table context follows the same public-event
+        // visibility rule as a fresh table.
+        if ($this->event !== null && $this->event !== '') {
+            $this->applyHostingEventVisibilityDefault($this->resolveHostingEvent());
+        }
+    }
+
+    /**
+     * Resolve ?recreate={id} to the cancelled predecessor this form may link
+     * to, or null when the param is absent or fails validation — in which case
+     * the param is dropped as well, so no link is ever persisted from it.
+     *
+     * Anything invalid is dropped silently (never a 403/404/500): a tampered
+     * id must not create a link. Runs on mount AND again in save(), because a
+     * #[Url] property is client-writable between requests.
+     */
+    protected function resolveRecreateTarget(): ?Game
+    {
+        $target = $this->validatedRecreateTarget();
+
+        if ($target === null) {
+            $this->recreate = null;
+        }
+
+        return $target;
+    }
+
+    /**
+     * ?recreate={id} checked against every condition a link requires, without
+     * touching the param: null when it is absent or fails validation.
+     *
+     * A target is accepted only when EVERY condition holds:
+     *  - it is a real game the authenticated user owns (GamePolicy::clone),
+     *  - it is cancelled,
+     *  - the host declared "Recreate with changes" when cancelling,
+     *  - no replacement has been published for it yet — one replacement per
+     *    cancelled game, which is what keeps the same former roster from being
+     *    re-invited to several games.
+     *
+     * Shared by resolveRecreateTarget() and the recreate notice above the
+     * form: the notice is checked on every render, so it can never name a
+     * game the save would not link to.
+     */
+    protected function validatedRecreateTarget(): ?Game
+    {
+        if ($this->recreate === null || $this->recreate === '' || ! Str::isUuid($this->recreate)) {
+            return null;
+        }
+
+        $target = Game::query()->find($this->recreate);
+
+        if ($target === null
+            || ! authenticatedUser()->can('clone', $target)
+            || $target->status !== GameStatus::Canceled
+            || $target->recreate_declared_at === null
+            || $target->recreatedBy()->exists()) {
+            return null;
+        }
+
+        return $target;
+    }
+
+    /**
+     * Pre-fill the form from an existing game. Shared by ?clone= and a
+     * ?recreate= target so both paths stay identical.
+     */
+    protected function prefillFromGame(Game $source): void
+    {
         // Set game type and apply defaults first
         $this->game_type = $source->game_type->value ?? 'board_game';
         $this->step = 'form';
@@ -216,17 +305,6 @@ class CreateGame extends Component
                 // TTRPG uses safety_rules directly
                 $this->safety_rules = $source->safety_rules;
             }
-        }
-
-        Log::info('Game clone initiated', [
-            'source_game_id' => $source->id,
-            'user_id' => Auth::id(),
-        ]);
-
-        // Cloning into a host-a-table context follows the same public-event
-        // visibility rule as a fresh table.
-        if ($this->event !== null && $this->event !== '') {
-            $this->applyHostingEventVisibilityDefault($this->resolveHostingEvent());
         }
     }
 
@@ -307,6 +385,13 @@ class CreateGame extends Component
     public function save(): void
     {
         $this->authorize('create', Game::class);
+
+        // Linked recreate: re-validate the ?recreate= target on every request —
+        // a #[Url] property is client-writable between requests, exactly like
+        // $clone. A target that no longer validates (a replacement was
+        // published meanwhile, the declaration is gone) is dropped: no link is
+        // persisted and the game is a plain, unlinked game.
+        $recreateTarget = $this->resolveRecreateTarget();
 
         // Re-resolve and re-authorize the host-a-table context on save:
         // permission may have been revoked since form load, and the #[Url]
@@ -390,10 +475,15 @@ class CreateGame extends Component
                 'complexity' => $this->complexity !== null && $this->complexity !== '' && $this->complexity !== '0' ? $this->complexity : null,
                 'min_reliability_preference' => $validated['min_reliability_preference'] !== null && $validated['min_reliability_preference'] !== '' && $validated['min_reliability_preference'] !== '0' ? $validated['min_reliability_preference'] : null,
                 'cover_image' => $this->cover_image,
+                'recreates_game_id' => $recreateTarget?->id,
             ],
             makeModel: function (array $context) use ($hostingEvent): Game {
                 $game = Game::create([
                     'owner_id' => $context['owner_id'],
+                    // Linked recreate (D318/D319): carried on the NEW game; the
+                    // offence on the predecessor resolves after the transaction
+                    // commits (SessionCreationService::create).
+                    'recreates_game_id' => $context['recreates_game_id'],
                     'host_note' => $context['validated']['host_note'] ?? null,
                     'name' => $context['translatable']['name'],
                     'game_type' => $context['validated']['game_type'],
@@ -455,9 +545,17 @@ class CreateGame extends Component
                     $logContext['source_game_id'] = $this->clone;
                 }
 
+                if ($game->recreates_game_id !== null) {
+                    $logContext['recreates_game_id'] = $game->recreates_game_id;
+                }
+
                 Log::info('Game created', $logContext);
             },
         );
+
+        // The linked recreate is consumed — the replacement is published. Drop
+        // the param so the recreate notice cannot outlive the save.
+        $this->recreate = null;
 
         session()->flash('success', __('games.flash_game_name_created_successfully', ['name' => $game->name]));
 
@@ -468,6 +566,9 @@ class CreateGame extends Component
     {
         return view('livewire.games.create-game', [
             'isGM' => authenticatedUser()->isGM(),
+            // The cancelled game ?recreate= names, behind the notice above the
+            // form. Null — no notice — once the param is gone or no longer validates.
+            'recreatingGame' => $this->validatedRecreateTarget(),
         ]);
     }
 

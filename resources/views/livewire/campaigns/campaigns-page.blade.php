@@ -234,6 +234,9 @@
                         </div>
 
                         <form wire:submit="saveCampaignEdit" class="space-y-4">
+                            {{-- The agreement lock (D314): AgreementEditService refuses a Tier-1 change on a campaign somebody has joined under this key — without this block the refusal is silent. --}}
+                            @error('edit') <p role="alert" class="mb-3 text-sm text-error">{{ $message }}</p> @enderror
+
                             <div>
                                 <label for="edit-campaign-name" class="block text-sm font-medium text-on-surface mb-1">{{ __('campaigns.field_campaign_name') }}</label>
                                 <input type="text" id="edit-campaign-name" wire:model="edit_name"

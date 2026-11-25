@@ -39,7 +39,6 @@ return [
     'content_see_how_it_works' => 'See How It Works',
     'content_we_believe_everyone_deserves_a' => 'We believe everyone deserves a seat at the table. Here\'s how we make that happen — no experience required.',
     'content_we_take_trust_seriously_here' => 'We take trust seriously. Here\'s how we keep the community safe and transparent.',
-    'content_what_s_included' => 'What\'s Included',
     'field_email_general' => 'General inquiries',
     'field_email_support' => 'Support',
     'field_send_us_a_message' => 'Send Us a Message',

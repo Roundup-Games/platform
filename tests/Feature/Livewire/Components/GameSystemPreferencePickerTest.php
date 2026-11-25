@@ -680,3 +680,57 @@ describe('Creation Mode', function () {
             ->assertSet('selectedIds', [$game1->id, $game2->id, $game3->id]);
     });
 });
+
+// ═══════════════════════════════════════════════════════════
+// READ-ONLY (disabled prop)
+// ═══════════════════════════════════════════════════════════
+
+// The game edit mode (M084/S03) renders the picker read-only for the Tier-1
+// locked offered-system set of a gathering (D314). Every other surface relies
+// on the default, so one case pins both states.
+
+describe('Read-Only', function () {
+    it('goes read-only (disabled search input, no clear, remove or dropdown controls, the selected systems still shown) only when the disabled prop is passed', function () {
+        $user = prefCreateUser();
+        $alpha = prefCreateBaseGame(['name' => ['en' => 'Alpha']]);
+        $beta = prefCreateBaseGame(['name' => ['en' => 'Beta']]);
+        $mount = [
+            'mode' => 'creation',
+            'preferenceType' => 'favorite',
+            'selectedIds' => [$alpha->id, $beta->id],
+        ];
+
+        $readOnlyHtml = Livewire::actingAs($user)
+            ->test(GameSystemPreferencePicker::class, $mount + ['disabled' => true])
+            ->assertSet('disabled', true)
+            ->set('search', 'Alp')
+            ->html();
+
+        $editableHtml = Livewire::actingAs($user)
+            ->test(GameSystemPreferencePicker::class, $mount)
+            ->assertSet('disabled', false)
+            ->set('search', 'Alp')
+            ->html();
+
+        $searchInput = '/<input[^>]*\bid="preference-picker-favorite"[^>]*\bdisabled/';
+        $clearSearch = 'wire:click="$set(\'search\', \'\')"';
+        $dropdown = 'role="listbox"';
+
+        expect($readOnlyHtml)
+            ->toMatch($searchInput)
+            ->not->toContain($clearSearch)
+            ->not->toContain('wire:click="remove(')
+            ->not->toContain($dropdown);
+
+        expect($editableHtml)
+            ->not->toMatch($searchInput)
+            ->toContain($clearSearch)
+            ->toContain('wire:click="remove(')
+            ->toContain($dropdown);
+
+        // The read-only rendering has no dropdown, so both names can only come
+        // from the chip list of the selected systems.
+        expect($readOnlyHtml)->toContain('Alpha')->toContain('Beta');
+        expect($editableHtml)->toContain('Alpha')->toContain('Beta');
+    });
+});

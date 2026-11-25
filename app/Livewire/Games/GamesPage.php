@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Games;
 
-use App\Enums\ActivityType;
 use App\Enums\CalendarSyncOperation;
 use App\Enums\GameStatus;
 use App\Enums\NotificationCategory;
@@ -12,11 +11,10 @@ use App\Models\Game;
 use App\Models\GameParticipant;
 use App\Notifications\EntityCancelled;
 use App\Notifications\EntityCompleted;
-use App\Notifications\EntityUpdated;
-use App\Services\ActivityLogService;
 use App\Services\AttendanceService;
 use App\Services\Calendar\CalendarSyncDispatcher;
 use App\Services\DebriefingService;
+use App\Services\Edit\AgreementEditService;
 use App\Services\MyGamesBoardService;
 use App\Services\NotificationService;
 use App\Services\ParticipantLifecycle;
@@ -26,6 +24,7 @@ use App\Traits\HandlesInvitations;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -118,6 +117,15 @@ class GamesPage extends Component
 
     // Venue search/address actions provided by EditsVenueLocation trait
 
+    /**
+     * Save the inline edit modal. Validation, the public-visibility gate and
+     * the no-op filter run here; the write itself goes through
+     * {@see AgreementEditService::apply()} — the one place that decides what a
+     * change is worth to the participants (D313) and whether the agreement lock
+     * refuses it (D314). This method carries no tier logic of its own.
+     *
+     * @throws ValidationException From $this->validate(), or from the edit service when a Tier-1 change hits an agreement-locked game — under the `edit` key the modal renders.
+     */
     public function saveGameEdit(): void
     {
         if ($this->editingGameId === null) {
@@ -175,55 +183,12 @@ class GamesPage extends Component
             return;
         }
 
-        $game->fill($changes)->save();
-
-        // Log activity
-        app(ActivityLogService::class)->log(
-            ActivityType::GameUpdated,
-            authenticatedUser(),
-            $game,
-            ['changed_fields' => array_keys($changes)],
-        );
-
-        Log::info('Game updated', [
-            'game_id' => $game->id,
-            'owner_id' => $game->owner_id,
-            'changed_fields' => array_keys($changes),
-        ]);
-
-        // Managed-sync trigger (M083/S03-T03): a venue/detail edit re-upserts
-        // the game on every connected calendar that carries it (host,
-        // approved participants, approved campaign members — the feed's
-        // audience rule, one queued job per user, chunked). Idempotent: an
-        // unchanged payload is a no-op patch; out-of-window occurrences
-        // never fan out.
-        CalendarSyncDispatcher::dispatchToRoster($game, CalendarSyncOperation::Upsert);
-
-        // Notify participants (excluding owner) — every change surfaces now,
-        // including arrival-instruction edits, which previously notified nobody.
-        try {
-            $participants = $game->participants()
-                ->where('status', 'approved')
-                ->where('user_id', '!=', $game->owner_id)
-                ->with('user')
-                ->get();
-
-            foreach ($participants as $participant) {
-                if ($participant->user === null) {
-                    continue;
-                }
-                app(NotificationService::class)->send(
-                    $participant->user,
-                    new EntityUpdated($game, array_keys($changes)),
-                    NotificationCategory::GameUpdated,
-                );
-            }
-        } catch (\Throwable $e) {
-            Log::error('notification.game_updated_dispatch_failed', [
-                'game_id' => $game->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
+        // The ONE write path for owner field changes. It is deliberately NOT
+        // wrapped in a try/catch: when a Tier-1 change hits an agreement-locked
+        // game it throws a ValidationException that Livewire places in the error
+        // bag — the modal stays open and renders the reason, and nothing below
+        // runs, so a refused edit never flashes a success.
+        app(AgreementEditService::class)->apply($game, $changes, authenticatedUser());
 
         $this->cancelEdit();
         session()->flash('success', __('games.flash_game_updated'));
@@ -296,15 +261,78 @@ class GamesPage extends Component
 
     public function cancelGame(string $id): void
     {
+        $game = $this->scheduledGameForCancellation($id);
+
+        if ($game === null) {
+            return;
+        }
+
+        $this->cancelScheduledGame($game);
+    }
+
+    /**
+     * "Recreate with changes" (linked recreate, D318/D319): the host declares
+     * the recreate, the game is cancelled exactly like {@see cancelGame}, and
+     * the host lands on the create form pre-filled from the cancelled game,
+     * with ?recreate= carrying the link.
+     *
+     * The declaration is the host's explicit choice — it is never inferred
+     * from a later clone — and it is stamped before the cancellation so it is
+     * on record when the late-cancel offence is recorded. The offence itself
+     * is recorded exactly as today; AttendanceService::resolveLinkedRecreate()
+     * neutralises it only once the replacement is published.
+     */
+    public function recreateGame(string $id): void
+    {
+        $game = $this->scheduledGameForCancellation($id);
+
+        if ($game === null) {
+            return;
+        }
+
+        // Stamped in memory first: the cancellation's own save persists the
+        // declaration in the SAME write as the status flip, so a declared
+        // game can never be left un-cancelled and the model's saved hooks run
+        // once, exactly as they do for a plain cancel.
+        $game->recreate_declared_at = now();
+
+        $this->cancelScheduledGame($game);
+
+        Log::info('recreate.declared', [
+            'game_id' => $game->id,
+            'host_id' => $game->owner_id,
+        ]);
+
+        $this->redirect(route('games.create', ['recreate' => $game->id]), navigate: true);
+    }
+
+    /**
+     * The guards every cancel-path action shares: the game must exist, the
+     * user must pass GamePolicy::update, and only a scheduled game can be
+     * cancelled. Returns null once refused, with the reason flashed.
+     */
+    private function scheduledGameForCancellation(string $id): ?Game
+    {
         $game = Game::findOrFail($id);
         $this->authorize('update', $game);
 
         if ($game->status !== GameStatus::Scheduled) {
             session()->flash('error', __('games.error_game_not_scheduled'));
 
-            return;
+            return null;
         }
 
+        return $game;
+    }
+
+    /**
+     * Cancel a scheduled game: the status flip, the host late-cancel offence,
+     * the waitlist/bench cascade and the participant notifications. This is
+     * the one cancellation body — cancelGame() and recreateGame() both call
+     * it, so the two paths cannot drift.
+     */
+    private function cancelScheduledGame(Game $game): void
+    {
         $game->status = GameStatus::Canceled;
         $game->save();
 

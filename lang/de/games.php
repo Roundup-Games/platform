@@ -47,7 +47,6 @@ return [
     'content_schedule_a_new_game_session_for_players_to_join' => 'Plane eine neue Spielrunde, an der Spieler teilnehmen können.',
     'content_share_your_location_to_discover' => 'Teile Deinen Standort, um Spielrunden und Kampagnen in Deiner Nähe zu entdecken.',
     'content_share_your_location_to_see' => 'Teile Deinen Standort, um Spielrunden und Kampagnen in Deiner Nähe zu sehen, die diese Woche stattfinden.',
-    'content_start_a_campaign_organize_a' => '**Starte eine Kampagne** — Organisiere wiederkehrende Runden mit Deiner Gruppe.',
     'content_step_outside_your_comfort_zone' => 'Verlass Deine Komfortzone. Probier ein neues System aus, schließ Dich einer anderen Gruppe an oder verliebe Dich in ein Spiel, von dem Du nie gehört hast.',
     'content_this_is_a_protected_game' => 'Dies ist eine Runde nur für Verbindungen. Deine Bewerbung wird vom Host geprüft, bevor Du beitreten kannst.',
     'content_three_steps_to_your_next_game_night' => 'Drei Schritte zu Deinem nächsten Spieleabend',
@@ -109,6 +108,10 @@ return [
     'flash_game_completed' => 'Runde als abgeschlossen markiert.',
     'error_game_not_scheduled' => 'Nur geplante Runden können geändert werden.',
     'confirm_cancel_game' => 'Bist Du sicher, dass Du diese Runde absagen möchtest?',
+    // "Mit Änderungen neu anlegen" (D318/D319, M084/S05): absagen + vorausgefülltes Formular aus der Runde
+    'action_recreate_game' => 'Mit Änderungen neu anlegen',
+    'confirm_recreate' => 'Diese Runde absagen und aus ihren Angaben eine neue anlegen? Dein Vermerk für eine späte Absage entfällt, sobald die neue Runde veröffentlicht ist. Spieler werden nicht übernommen — Du lädst sie erneut ein.',
+    'content_recreating_from' => 'Du legst :name mit Änderungen neu an. Veröffentliche die neue Runde, damit Dein Vermerk für eine späte Absage entfällt.',
     // GamesPage — priorisierte Bereiche
     'heading_needs_your_attention' => 'Braucht Deine Aufmerksamkeit',
     'heading_upcoming_hosting' => 'Anstehend — Du leitest',
@@ -200,6 +203,10 @@ return [
     'type_board_game' => 'Brettspiel',
     'type_ttrpg' => 'TTRPG',
     'type_gathering' => 'Treffen',
+    // Eigenname der Spielart. Kein Formular zeigt ihn (die Auswahl oben
+    // benennt jede Spielart einzeln); ChangedFieldLabels benennt damit die
+    // Spalte in Änderungs-Benachrichtigungen.
+    'field_game_type' => 'Spielart',
     'content_also_offering' => 'Auch geplant',
     'content_n_games_on_offer' => '{1}1 geplante Runde|[2,*]:count geplante Runden',
     'content_what_are_you_playing' => 'Was spielt ihr?',
@@ -213,6 +220,9 @@ return [
     'error_max_game_systems_reached' => 'Du kannst maximal :max Spielsysteme hinzufügen.',
     'content_no_game_systems_added_yet' => 'Noch keine Spielsysteme hinzugefügt.',
     'field_comfort_notes' => 'Wohlfühl-Notizen',
+    // Kein Formular zeigt dieses Feld bisher; ChangedFieldLabels benennt damit
+    // die Spalte in Änderungs-Benachrichtigungen.
+    'field_minimum_requirements' => 'Mindestanforderungen',
     'placeholder_game_description' => 'Beschreibe die Runde…',
     'placeholder_game_name' => 'z.B. Spieleabend',
     'placeholder_comfort_notes' => 'Wohlfühl-Notizen für Spieler?',
@@ -419,4 +429,24 @@ return [
     'action_add_to_calendar' => 'Zum Kalender hinzufügen',
     'content_add_to_calendar_hint' => 'Diese Runde in Deinem Kalender speichern',
     'action_calendar_feed_settings' => 'Alle Deine Runden abonnieren',
+    // Agreement lock (D313/D314, M084): Tier-1-Felder — Spielsystem, Datum, Dauer, Preis,
+    // Kapazitätssenkung, Mindestspielerzahl, Ersatzbank-Modus, Sprache, öffentlich→privat —
+    // sperren sich, sobald jemand beigetreten ist. Wird dort gezeigt, wo das Speichern abgelehnt wird.
+    'error_agreement_locked' => 'Das lässt sich seit der ersten bestätigten Anmeldung nicht mehr ändern. Um die Runde zu ändern, sag sie ab und leg eine neue an.',
+    // Eigentümer-Bearbeitungsmodus auf der Detailseite (D315/D314, M084/S03)
+    'action_edit_game' => 'Runde bearbeiten',
+    'action_save_game_changes' => 'Änderungen speichern',
+    'action_save_cover_image' => 'Titelbild speichern',
+    'content_current_cover_image' => 'Aktuelles Titelbild',
+    // WARUM die Tier-1-Felder schreibgeschützt sind: einmal oben im Formular gezeigt.
+    'content_agreement_locked' => 'Seit der ersten bestätigten Anmeldung am :date gesperrt. Um Runde, Datum oder Preis zu ändern, sag die Runde ab und leg eine neue an.',
+    'error_cover_image_upload_failed' => 'Das Titelbild konnte nicht gespeichert werden. Bitte versuch es erneut.',
+    // Erneute Einladung bei einer Runde, die eine abgesagte ersetzt (D320/D321, M084/S06):
+    // Spieler werden eingeladen, nie übernommen — jede und jeder entscheidet selbst.
+    'content_roster_reinvite' => '{1} :count Spieler aus :replaced kann zu dieser Runde eingeladen werden. Diese Person wird nicht automatisch übernommen — sie entscheidet selbst.|[2,*] :count Spieler aus :replaced können zu dieser Runde eingeladen werden. Diese Personen werden nicht automatisch übernommen — jede und jeder entscheidet selbst.',
+    'action_roster_reinvite' => 'Spieler der vorherigen Runde einladen',
+    'flash_roster_reinvite' => 'Vorherige Runde: :invited eingeladen, :skipped nicht eingeladen.',
+    'flash_roster_reinvite_reason_capacity' => 'Die Runde ist voll.',
+    'flash_roster_reinvite_reason_already' => 'Wer schon dabei ist, wird nicht erneut eingeladen.',
+    'error_roster_reinvite_unavailable' => 'Die Spieler der vorherigen Runde können nicht mehr eingeladen werden.',
 ];

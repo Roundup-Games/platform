@@ -187,10 +187,11 @@ class WaitlistService
             throw new \LogicException('Confirmation window has expired.');
         }
 
-        // approved_at exists only on GameParticipant — CampaignParticipant
-        // has no such column, so passing it through this shared seam was
-        // silently discarded on the campaign path (surfaced by strict model
-        // mode's preventSilentlyDiscardingAttributes).
+        // Both participant models carry approved_at (campaigns since
+        // M084/S01-T01, for the agreement lock). Guarded on the model's
+        // fillable set because this is a shared seam — an unknown attribute
+        // would be silently discarded under strict model mode
+        // (preventSilentlyDiscardingAttributes).
         $update = [
             'status' => ParticipantStatus::Approved->value,
             'confirmation_expires_at' => null,
@@ -372,15 +373,20 @@ class WaitlistService
             'status' => ParticipantStatus::Approved->value,
             'confirmation_expires_at' => null,
             'waitlisted_at' => null,
-            // promoted_manually distinguishes a host-intentional capacity
-            // override from a normal FIFO/confirmation promotion. It is set
-            // true ONLY here and exempts the player from capacity-demotion
-            // LIFO. Mass-assigned to game_participants only (Campaign's
-            // $fillable excludes it, so Campaign rows are a safe no-op).
-            'promoted_manually' => true,
         ];
+        // promoted_manually distinguishes a host-intentional capacity
+        // override from a normal FIFO/confirmation promotion. It is set
+        // true ONLY here and exempts the player from capacity-demotion
+        // LIFO. A game_participants column (capacity adjustment is
+        // Game-scoped), so guard on the model's fillable set: strict model
+        // mode (every non-production environment) turns an unconditional
+        // write into a MassAssignmentException on the campaign path, where
+        // production merely discards it.
+        if ($participant->isFillable('promoted_manually')) {
+            $update['promoted_manually'] = true;
+        }
 
-        // approved_at exists only on GameParticipant (see confirm() above).
+        // approved_at: both participant models carry it (see confirm() above).
         if ($participant->isFillable('approved_at')) {
             $update['approved_at'] = now();
         }

@@ -8,6 +8,7 @@ use App\Enums\GameStatus;
 use App\Enums\GameType;
 use App\Enums\JournalEntryKind;
 use App\Enums\Visibility;
+use App\Models\Concerns\HasAgreementLock;
 use App\Models\Concerns\HasCapacity;
 use App\Models\Concerns\HasEntitySeo;
 use App\Models\Concerns\HasPlatformUuid;
@@ -68,6 +69,7 @@ use Spatie\Translatable\HasTranslations;
  */
 class Campaign extends Model implements HasMedia, TicketSubject
 {
+    use HasAgreementLock;
     use HasCapacity;
 
     /** @use HasFactory<CampaignFactory> */

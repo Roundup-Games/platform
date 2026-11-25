@@ -56,6 +56,14 @@ class GameSystemPicker extends Component
 
     public bool $showExpansionPicker = false;
 
+    /**
+     * Read-only: the search input renders disabled and the clear button and
+     * dropdowns are hidden. Used by the game edit mode for a Tier-1 locked
+     * game system (D314) — the value is still shown. Rendering only: the
+     * enforcement of the lock lives in the parent's save path.
+     */
+    public bool $disabled = false;
+
     /** @var string|null The base game ID when a base-with-expansions is selected */
     public ?string $selectedBaseId = null;
 
@@ -65,8 +73,10 @@ class GameSystemPicker extends Component
         ?string $value = null,
         string $error = '',
         ?string $gameType = null,
+        bool $disabled = false,
     ): void {
         $this->fieldId = $fieldId;
+        $this->disabled = $disabled;
         $this->label = $label !== '' ? $label : __('games.content_game_system');
         $this->value = $value;
         $this->error = $error;

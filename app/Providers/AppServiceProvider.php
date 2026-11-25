@@ -69,6 +69,7 @@ use App\Services\ReliabilityScoreService;
 use App\Services\ScopedRoleService;
 use App\Services\WaitlistService;
 use App\Support\CacheMetrics;
+use App\Support\Livewire\RestoreLocaleUrlDefaults;
 use App\Translation\MissingTranslationCollector;
 use App\Translation\TrackingTranslator;
 use App\View\Components\YouTubeFacade;
@@ -132,6 +133,7 @@ use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Paddle\Cashier;
 use Laravel\Paddle\Subscription;
+use Livewire\LivewireManager;
 use LogicException;
 use Minishlink\WebPush\WebPush;
 use PostHog\PostHog;
@@ -254,6 +256,11 @@ class AppServiceProvider extends ServiceProvider
 
             return $tracking;
         });
+
+        // Livewire wires its component hooks once, inside LivewireServiceProvider::boot(),
+        // and app providers boot AFTER package providers: a hook registered in boot() is
+        // never called. Register time is the only place this one is heard.
+        $this->app->make(LivewireManager::class)->componentHook(RestoreLocaleUrlDefaults::class);
     }
 
     /**

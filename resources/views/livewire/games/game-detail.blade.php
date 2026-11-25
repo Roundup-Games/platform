@@ -1,13 +1,54 @@
 <div>
     {{-- Back link --}}
     <div class="bg-surface-container-low border-b border-outline-variant">
-        <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
             <a href="{{ route('dashboard') }}" wire:navigate class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
                 <span class="material-symbols-outlined text-base" aria-hidden="true">arrow_back</span>
                 {{ __('profile.action_back_to_dashboard') }}
             </a>
+            {{-- Owner edit mode (M084/S03, D315): only for a user who passes GamePolicy::update,
+                 only while the game is Scheduled. The edit component re-checks both itself. --}}
+            @if($canEditGame && !$editing)
+                <button type="button" wire:click="startEditing"
+                        class="inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+                    <span class="material-symbols-outlined text-base" aria-hidden="true">edit</span>
+                    {{ __('games.action_edit_game') }}
+                </button>
+            @endif
         </div>
     </div>
+
+    {{-- Roster re-invite (M084/S06, D320/D321): the host of a game that replaces a cancelled one
+         invites its players back in one click. Players are never carried over — each one is invited
+         and decides. The banner only exists while someone is left to invite and a seat is free. --}}
+    @if(! $editing && $reinvitableRosterCount > 0)
+        <div class="bg-surface-container-low border-b border-outline-variant">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center gap-3">
+                <span class="material-symbols-outlined text-primary shrink-0" aria-hidden="true">group_add</span>
+                <p class="text-sm text-on-surface flex-1 min-w-0">
+                    {{ trans_choice('games.content_roster_reinvite', $reinvitableRosterCount, ['count' => $reinvitableRosterCount, 'replaced' => $replacedGameName]) }}
+                </p>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" wire:click="reinviteRoster" wire:loading.attr="disabled"
+                            class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-colors disabled:opacity-60">
+                        <span class="material-symbols-outlined text-base" aria-hidden="true">send</span>
+                        {{ __('games.action_roster_reinvite') }}
+                    </button>
+                    <button type="button" wire:click="dismissRosterReinviteBanner"
+                            class="p-1 rounded-lg text-on-surface-variant hover:bg-on-surface/5 transition-colors"
+                            aria-label="{{ __('common.action_close') }}">
+                        <span class="material-symbols-outlined text-xl" aria-hidden="true">close</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if($editing)
+        {{-- Edit mode: the owner's edit form replaces the read-only hero, description and body.
+             The form announces game-edit-saved / game-edit-cancelled and this flag returns to false. --}}
+        <livewire:games.edit-game :game="$game" :key="$game->id" />
+    @else
 
     {{-- Hero --}}
     @include('livewire.games.partials._game-header')
@@ -44,6 +85,17 @@
             <div class="rounded-xl bg-error-container p-4 flex items-center gap-3" role="alert" aria-live="polite">
                 <span class="material-symbols-outlined text-on-error-container" aria-hidden="true">error</span>
                 <p class="text-sm text-on-error-container">{{ session('error') }}</p>
+            </div>
+        @endif
+
+        {{-- Owner edit mode (M084/S08): the confirmation of an in-place save. This page's own
+             state (editSavedMessage), set by the game-edit-saved listener — a session flash
+             written by the edit form would be readable in that listener's request only.
+             No auto-hide: it stays until the owner edits again, cancels or reloads. --}}
+        @if($editSavedMessage)
+            <div class="rounded-xl bg-secondary-container p-4 flex items-center gap-3" role="status" aria-live="polite">
+                <span class="material-symbols-outlined text-on-secondary-container" aria-hidden="true">check_circle</span>
+                <p class="text-sm text-on-secondary-container">{{ $editSavedMessage }}</p>
             </div>
         @endif
 
@@ -324,4 +376,6 @@
     </div>
 
     @include('livewire.games.partials._mobile-cta')
+
+    @endif
 </div>

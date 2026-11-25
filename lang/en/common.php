@@ -248,7 +248,6 @@ return [
     'field_ended_at' => 'Ended At',
     'field_full_description' => 'Full Description',
     'field_gender' => 'Gender',
-    'field_get_started' => 'Get Started',
     'field_getting_started' => 'Getting Started',
     'field_hey_name' => 'Hey :name,',
     'field_individual_amount' => 'Individual: :amount',
@@ -402,6 +401,7 @@ return [
     'content_source_short_link' => 'Short Link',
     'content_source_discord' => 'Discord',
     'content_source_mcp_agent' => 'MCP Agent',
+    'content_source_roster_reinvite' => 'Previous roster re-invite',
     /*
     |--------------------------------------------------------------------------
     | Policy Update Notice

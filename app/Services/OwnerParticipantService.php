@@ -74,10 +74,9 @@ class OwnerParticipantService
         try {
             // approved_at is intentionally NOT passed to updateOrCreate so an
             // idempotent re-invocation does not overwrite the original approval
-            // timestamp. The GameParticipantObserver::saving() hook stamps it
+            // timestamp. The participant observers' saving() hooks
+            // (GameParticipantObserver / CampaignParticipantObserver) stamp it
             // once on first creation; subsequent calls leave it untouched.
-            // (Campaign's $fillable excludes the column anyway — capacity
-            // adjustment is Game-scoped — so this is a Game-only concern.)
             $participant = $participantClass::updateOrCreate(
                 [$foreignKey => $entity->id, 'user_id' => $ownerId],
                 [

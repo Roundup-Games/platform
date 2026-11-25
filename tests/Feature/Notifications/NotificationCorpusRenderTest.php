@@ -86,7 +86,8 @@ function corpusNotificationDataset(): array
         'GameSystemRequestApproved', 'GameSystemRequestDuplicate',
         'GameSystemRequestRejected', 'NewApplication', 'NewFollower',
         'ParticipantJoined', 'ParticipantRemoved', 'PlayerBenched',
-        'PromotedFromBench', 'RecapPosted', 'ReviewReported', 'SeatDemoted',
+        'PromotedFromBench', 'RecapPosted', 'ReviewReported', 'RosterReinviteInvitation',
+        'SeatDemoted',
         'SessionAddedToCampaign', 'SessionReminder', 'TeamInvitation',
         'TeamMemberRemoved', 'WaitlistExpiredRejected', 'WaitlistPlaced',
         'WaitlistPromoted', 'WeeklyDigest',
@@ -320,6 +321,7 @@ it('renders every defined channel with non-empty payloads in both en and de', fu
                 $fx->review ??= Review::factory()->create(['report_reason' => 'inappropriate content']),
                 $fx->actor,
             ),
+            'RosterReinviteInvitation' => new $fqcn($fx->game, $fx->actor, 'Cancelled predecessor', ['date_time']),
             'SeatDemoted' => new $fqcn($fx->game, 'attendance'),
             'SessionAddedToCampaign' => new $fqcn(
                 $fx->session ??= $this->createGameWithOwner(['campaign_id' => $fx->campaign->id])['game'],

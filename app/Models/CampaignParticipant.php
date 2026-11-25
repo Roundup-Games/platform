@@ -22,6 +22,7 @@ use Illuminate\Support\Carbon;
  * @property ParticipantRole|null $role
  * @property ParticipantStatus|null $status
  * @property Carbon|null $created_at
+ * @property Carbon|null $approved_at
  * @property Carbon|null $confirmation_expires_at
  * @property Carbon|null $waitlisted_at
  * @property Carbon|null $benched_at
@@ -39,7 +40,7 @@ class CampaignParticipant extends Pivot implements ParticipantContract
 
     protected $keyType = 'string';
 
-    protected $fillable = ['id', 'campaign_id', 'user_id', 'invitee_email', 'role', 'status', 'benched_at', 'join_source', 'created_at', 'waitlisted_at', 'confirmation_expires_at', 'confirmation_attempts', 'short_link_id', 'removed_by', 'removed_at'];
+    protected $fillable = ['id', 'campaign_id', 'user_id', 'invitee_email', 'role', 'status', 'benched_at', 'join_source', 'created_at', 'approved_at', 'waitlisted_at', 'confirmation_expires_at', 'confirmation_attempts', 'short_link_id', 'removed_by', 'removed_at'];
 
     protected $casts = [
         'role' => ParticipantRole::class,
@@ -47,6 +48,7 @@ class CampaignParticipant extends Pivot implements ParticipantContract
         'benched_at' => 'datetime',
         'join_source' => JoinSource::class,
         'created_at' => 'datetime',
+        'approved_at' => 'datetime',
         'waitlisted_at' => 'datetime',
         'confirmation_expires_at' => 'datetime',
         'confirmation_attempts' => 'integer',
