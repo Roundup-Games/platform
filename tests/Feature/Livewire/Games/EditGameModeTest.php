@@ -124,6 +124,23 @@ function editGameModeChangedFields(Game $game): array
         ->all();
 }
 
+/**
+ * The RAW JSON of the two translatable columns — the bytes the database
+ * holds, not the locale-resolved text. Captured before an edit, it is what a
+ * "keeps both translations" case compares the row against afterwards: a
+ * translation re-labelled under another locale key shows up here even when
+ * the text itself is unchanged.
+ *
+ * @return array{name: mixed, description: mixed}
+ */
+function editGameModeStoredTranslations(Game $game): array
+{
+    return [
+        'name' => $game->fresh()->getRawOriginal('name'),
+        'description' => $game->fresh()->getRawOriginal('description'),
+    ];
+}
+
 /** The wall-clock string the datetime-local input carries for a stored instant (viewer zone). */
 function editGameModeWall(Carbon $instant): string
 {
@@ -541,6 +558,218 @@ describe('EditGame — translatable fields', function () {
             ->assertHasNoErrors();
 
         expect($game->fresh()->getTranslations('name'))->toEqual(['en' => 'Board night', 'de' => 'Neuer Spieleabend']);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// CONTENT-LANGUAGE CHANGE MOVES THE BASELINE (M084/S07, D324)
+// ═══════════════════════════════════════════════════════════
+
+//
+// On an EDIT form a content-language change moves the baseline; it never
+// re-labels text. Before this, `language` en → de left the English text in
+// the fields while getBaselineLocale() already answered 'de', so the save
+// stored {"de":"Board night","en":"Board night"} and destroyed the
+// German translation. "Byte-identical" below is the RAW JSON of both
+// columns, captured before the edit (editGameModeStoredTranslations()).
+//
+
+describe('EditGame — content-language change moves the baseline', function () {
+    it('keeps both stored translations byte-identical when the content language changes en → de', function () {
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner);
+        $stored = editGameModeStoredTranslations($game);
+
+        editGameModeMounted($game)
+            ->assertSet('baselineFieldsLocale', 'en')
+            ->set('language', 'de')
+            ->assertSet('name', 'Brettspielabend')
+            ->assertSet('description', 'Ein gemütlicher Spieleabend.')
+            ->assertSet('pendingTranslations.en.name', 'Board night')
+            ->assertSet('pendingTranslations.en.description', 'A friendly board night.')
+            ->assertSet('activeLocale', 'de')
+            ->assertSet('baselineFieldsLocale', 'de')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertDispatched('game-edit-saved');
+
+        expect($game->fresh()->language)->toBe('de')
+            ->and(editGameModeStoredTranslations($game))->toBe($stored)
+            ->and(editGameModeChangedFields($game))->toBe([['language']]);
+    });
+
+    it('keeps both byte-identical when the change and the save travel in ONE request', function () {
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner);
+        $stored = editGameModeStoredTranslations($game);
+
+        // Livewire applies every property update first and runs the updated*
+        // hooks before the method, so the baseline has moved when save() reads
+        // the fields — also when `language` rides along in the save request.
+        editGameModeMounted($game)
+            ->update(calls: [['method' => 'save', 'params' => [], 'path' => '']], updates: ['language' => 'de'])
+            ->assertHasNoErrors()
+            ->assertDispatched('game-edit-saved');
+
+        expect($game->fresh()->language)->toBe('de')
+            ->and(editGameModeStoredTranslations($game))->toBe($stored)
+            ->and(editGameModeChangedFields($game))->toBe([['language']]);
+    });
+
+    it('moves the baseline back de → en and keeps both byte-identical', function () {
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner, ['language' => 'de']);
+        $stored = editGameModeStoredTranslations($game);
+
+        editGameModeMounted($game)
+            ->assertSet('name', 'Brettspielabend')
+            ->set('language', 'en')
+            ->assertSet('name', 'Board night')
+            ->assertSet('description', 'A friendly board night.')
+            ->assertSet('pendingTranslations.de.name', 'Brettspielabend')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        expect($game->fresh()->language)->toBe('en')
+            ->and(editGameModeStoredTranslations($game))->toBe($stored)
+            ->and(editGameModeChangedFields($game))->toBe([['language']]);
+    });
+
+    it('reports the content language next to only the fields the owner touched', function () {
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner);
+        $stored = editGameModeStoredTranslations($game);
+
+        editGameModeMounted($game)
+            ->set('price', '15')
+            ->set('language', 'de')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        expect($game->fresh()->price)->toBe(15.0)
+            ->and($game->fresh()->language)->toBe('de')
+            ->and(editGameModeStoredTranslations($game))->toBe($stored)
+            ->and(editGameModeChangedFields($game))->toBe([['price', 'language']]);
+    });
+
+    it('saves text edited after the change under the NEW locale', function () {
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner);
+        $stored = editGameModeStoredTranslations($game);
+
+        editGameModeMounted($game)
+            ->set('language', 'de')
+            ->set('name', 'Neuer Spieleabend')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        expect($game->fresh()->getTranslations('name'))->toEqual(['en' => 'Board night', 'de' => 'Neuer Spieleabend'])
+            ->and($game->fresh()->getRawOriginal('description'))->toBe($stored['description'])
+            ->and(editGameModeChangedFields($game))->toBe([['name', 'language']]);
+    });
+
+    it('moves the baseline STRICTLY: an English-only game switched to German shows empty fields, keeps its English, and is refused until the German name is typed', function () {
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner, [
+            'name' => ['en' => 'Board night'],
+            'description' => ['en' => 'A friendly board night.'],
+        ]);
+        $stored = editGameModeStoredTranslations($game);
+
+        // Nothing is copied across locale keys: the German fields are EMPTY
+        // because the game has no German — the English stays where it was.
+        $component = editGameModeMounted($game)
+            ->set('language', 'de')
+            ->assertSet('name', '')
+            ->assertSet('description', '')
+            ->assertSet('pendingTranslations.en.name', 'Board night')
+            ->assertSet('pendingTranslations.en.description', 'A friendly board night.');
+
+        // name is required: an empty German baseline never reaches the service.
+        $component
+            ->call('save')
+            ->assertHasErrors(['name'])
+            ->assertNotDispatched('game-edit-saved');
+
+        expect($game->fresh()->language)->toBe('en')
+            ->and(editGameModeStoredTranslations($game))->toBe($stored)
+            ->and(editGameModeChangedFields($game))->toBe([]);
+
+        $component
+            ->set('name', 'Brettspielabend')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        expect($game->fresh()->language)->toBe('de')
+            ->and($game->fresh()->getTranslations('name'))->toEqual(['en' => 'Board night', 'de' => 'Brettspielabend'])
+            ->and($game->fresh()->getRawOriginal('description'))->toBe($stored['description'])
+            ->and(editGameModeChangedFields($game))->toBe([['name', 'language']]);
+    });
+
+    it('restores the exact prior state on en → de → en and fabricates no translation', function () {
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner, [
+            'name' => ['en' => 'Board night'],
+            'description' => ['en' => 'A friendly board night.'],
+        ]);
+        $stored = editGameModeStoredTranslations($game);
+
+        editGameModeMounted($game)
+            ->set('language', 'de')
+            ->assertSet('name', '')
+            ->set('language', 'en')
+            ->assertSet('name', 'Board night')
+            ->assertSet('description', 'A friendly board night.')
+            ->assertSet('activeLocale', 'en')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        // No `de` key appears: the detour through the empty German baseline
+        // left not a trace in either column.
+        expect($game->fresh()->language)->toBe('en')
+            ->and(editGameModeStoredTranslations($game))->toBe($stored)
+            ->and(editGameModeChangedFields($game))->toBe([]);
+    });
+
+    it('refuses a forged language change on a LOCKED game and writes nothing', function () {
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner);
+        editGameModeLock($game);
+        $stored = editGameModeStoredTranslations($game);
+
+        // The select is disabled once the agreement is locked, but a request
+        // can still send the property: the hook swaps the fields in memory
+        // only, and language is Tier 1 — the gate stays with the service.
+        editGameModeMounted($game)
+            ->set('language', 'de')
+            ->call('save')
+            ->assertHasErrors(['edit'])
+            ->assertNotDispatched('game-edit-saved');
+
+        expect($game->fresh()->language)->toBe('en')
+            ->and(editGameModeStoredTranslations($game))->toBe($stored)
+            ->and(editGameModeChangedFields($game))->toBe([]);
+    });
+
+    it('binds the content-language select LIVE so the fields swap the moment it changes', function () {
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner);
+
+        // Deferred, the select's value would only travel with the NEXT request
+        // — together with text typed into fields that still show the previous
+        // locale. The create form keeps the deferred binding (pinned by
+        // CreateGameFormRenderTest): its select re-labels the typed text.
+        editGameModeMounted($game)->assertSeeHtml('wire:model.live="language"');
+    });
+
+    it('keeps the baseline anchor server-authoritative: a request cannot re-point it', function () {
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner);
+
+        // Unlocked, a request could send baselineFieldsLocale = language and
+        // the move would be skipped: the old text, saved under the new key.
+        expect(fn () => editGameModeMounted($game)->set('baselineFieldsLocale', 'de'))
+            ->toThrow(CannotUpdateLockedPropertyException::class);
     });
 });
 

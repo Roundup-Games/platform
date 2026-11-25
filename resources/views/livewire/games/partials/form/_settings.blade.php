@@ -4,13 +4,16 @@
      The edit mode passes $lockedFields (field => true), $editMode and $privateVisibilityLocked in
      the include's data array; the create view passes nothing. Language is Tier 1. Visibility is
      direction-dependent (D313): only public → private is locked, so on a locked public game just
-     that one option is disabled — and an already-public game keeps its public option. --}}
+     that one option is disabled — and an already-public game keeps its public option.
+     The content-language select is bound live in the edit mode (a change moves the baseline,
+     D324) and stays deferred in the create form. --}}
     @php($lockedFields ??= [])
     @php($editMode ??= false)
     @php($privateVisibilityLocked ??= false)
     <div>
         <label for="game-language" class="block text-sm font-medium text-on-surface mb-1">{{ __('common.content_language') }} <span class="text-error">*</span></label>
-        <select id="game-language" wire:model="language"
+        {{-- The edit mode's select moves the baseline (D324), so the fields must swap at once. --}}
+        <select id="game-language" wire:model{{ $editMode ? '.live' : '' }}="language"
                 @disabled(isset($lockedFields['language']))
                 class="w-full rounded-lg bg-surface-container-high border border-transparent px-4 py-2.5 text-on-surface focus:border-secondary/20 focus:ring-1 focus:ring-secondary/20 transition-colors{{ isset($lockedFields['language']) ? ' opacity-60 cursor-not-allowed' : '' }}">
             @foreach($this->languageOptions as $value => $label)

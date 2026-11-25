@@ -4,21 +4,25 @@ namespace App\Traits;
 
 use App\Enums\ContentLanguage;
 use Illuminate\Database\Eloquent\Model;
+use Livewire\Attributes\Locked;
 
 /**
  * Provides locale-aware translation editing for Livewire form components.
  *
- * The trait manages two stores:
+ * The trait manages three stores:
  * 1. **Baseline fields** — the primary-locale values bound to wire:model on the
  *    component's regular public properties (e.g. $name, $description).
  * 2. **pendingTranslations** — an in-memory array keyed as [locale][field] => value,
  *    holding secondary-locale edits until the form is submitted.
+ * 3. **baselineFieldsLocale** — the locked anchor naming the locale the baseline
+ *    fields hold text for right now; only moveBaselineTo() moves it.
  *
  * Livewire actions provided:
  * - switchLocale(string $locale) — swaps the active locale tab
  * - copyFromBaseline(string $field) — copies baseline value into the active locale
  *
  * @property string $activeLocale Tracks which locale tab is currently displayed.
+ * @property string $baselineFieldsLocale The locale the baseline fields hold text for right now.
  * @property array<string, array<string, string>> $pendingTranslations [locale => [field => value]]
  */
 trait BuildsTranslatableFormFields
@@ -28,6 +32,16 @@ trait BuildsTranslatableFormFields
     // Livewire reflects them automatically.
 
     public string $activeLocale = '';
+
+    /**
+     * The locale the baseline fields hold text for RIGHT NOW: set by
+     * loadTranslatableValues() to the locale the live properties were filled
+     * from; moveBaselineTo() moves it together with them. Locked like an edit
+     * form's $originalDateTime — it is server state, and a client-supplied
+     * value equal to the live `language` would silently skip the baseline move.
+     */
+    #[Locked]
+    public string $baselineFieldsLocale = '';
 
     /** @var array<string, array<string, string>> */
     public array $pendingTranslations = [];
@@ -246,6 +260,9 @@ trait BuildsTranslatableFormFields
         $language = $model->getAttributes()['language'] ?? null;
         $primaryLocale = $overrideLocale ?? (is_string($language) ? $language : app()->getLocale());
 
+        // The anchor: the live properties below are filled from THIS locale.
+        $this->baselineFieldsLocale = $primaryLocale;
+
         // Initialize activeLocale
         if ($this->activeLocale === '') {
             $this->activeLocale = $primaryLocale;
@@ -273,6 +290,64 @@ trait BuildsTranslatableFormFields
                 }
             }
         }
+    }
+
+    /**
+     * Move the baseline to another locale — what a content-language change
+     * means on an EDIT form (M084/S07, decision D324): the select says "show
+     * me this language's text", never "the text on screen is in this language".
+     *
+     * A STRICT move; nothing is copied from one locale key to another. The
+     * text the baseline fields hold is kept as the PREVIOUS locale's
+     * translation and the fields re-fill from the NEW locale's stored one —
+     * empty when there is none. Without the move getBaselineLocale() already
+     * answers the new locale while the fields still hold the old one's text,
+     * so buildTranslatableValues() would label that text as the new locale
+     * and overwrite its stored translation.
+     *
+     * The model decides whether the new locale has a translation AT ALL —
+     * hasTranslation() reads the STORED map, with no fallback. pendingTranslations
+     * cannot answer that alone: loadTranslatableValues() fills a missing locale
+     * with spatie's fallback copy of the primary text, which must never be
+     * saved as a translation. Where the locale does have a stored translation,
+     * its pending value is used: the stored text, or the owner's unsaved edit
+     * of it on that locale's tab.
+     *
+     * Opt-in: call it from an `updatedLanguage()` hook on an EDIT component.
+     * A CREATE form's select means "the text I typed is in this language" —
+     * there the re-labelling IS the requested behaviour, so it must not call this.
+     */
+    protected function moveBaselineTo(string $locale, Model $model): void
+    {
+        assert(method_exists($model, 'hasTranslation'));
+
+        $previous = $this->baselineFieldsLocale;
+
+        if ($locale === $previous) {
+            return;
+        }
+
+        if ($previous !== '') {
+            foreach ($this->getTranslatableFields() as $field) {
+                if (property_exists($this, $field)) {
+                    data_set($this, "pendingTranslations.{$previous}.{$field}", $this->getStringProperty($field));
+
+                    $text = $model->hasTranslation($field, $locale)
+                        ? ($this->pendingTranslations[$locale][$field] ?? '')
+                        : '';
+
+                    data_set($this, $field, $text);
+                    data_set($this, "pendingTranslations.{$locale}.{$field}", $text);
+                }
+            }
+        }
+
+        // The baseline tab follows the baseline; a secondary tab stays where it is.
+        if ($this->activeLocale === '' || $this->activeLocale === $previous) {
+            $this->activeLocale = $locale;
+        }
+
+        $this->baselineFieldsLocale = $locale;
     }
 
     /**
