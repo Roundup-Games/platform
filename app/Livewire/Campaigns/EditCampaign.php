@@ -340,7 +340,13 @@ class EditCampaign extends Component
             $this->campaign->load('gameSystems');
         }
 
-        $this->storeCover();
+        // A failed cover upload must stay visible: the columns are saved at this
+        // point, but the form stays open on the `cover_image` error with the picked
+        // upload kept for a retry — the same contract as saveCover(). Closing the
+        // form on a success flash would drop an error the owner never sees.
+        if (! $this->storeCover()) {
+            return;
+        }
 
         session()->flash('success', __('campaigns.flash_campaign_updated'));
         $this->dispatch('campaign-edit-saved');
@@ -546,7 +552,10 @@ class EditCampaign extends Component
         }
 
         try {
-            $this->campaign->addMedia($cover)->toMediaCollection('cover');
+            // The stored model, never the upload: toMediaCollection() copies a
+            // temporary upload and then unlinks it, so every later read of
+            // `$cover` (mime type, size) would hit a file that no longer exists.
+            $media = $this->campaign->addMedia($cover)->toMediaCollection('cover');
         } catch (Throwable $e) {
             Log::warning('Campaign cover image upload failed', [
                 'campaign_id' => $this->campaign->id,
@@ -564,8 +573,8 @@ class EditCampaign extends Component
         Log::info('Campaign cover image uploaded', [
             'campaign_id' => $this->campaign->id,
             'owner_id' => authenticatedUser()->id,
-            'mime' => $cover->getMimeType(),
-            'size' => $cover->getSize(),
+            'mime' => $media->mime_type,
+            'size' => $media->size,
         ]);
 
         return true;

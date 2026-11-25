@@ -18,13 +18,17 @@ use App\Support\Edit\FieldTiers;
 use Carbon\Carbon;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use League\Flysystem\Config;
 use League\Flysystem\Filesystem as Flysystem;
 use League\Flysystem\Local\LocalFilesystemAdapter;
 use League\Flysystem\UnableToWriteFile;
+use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 
 //
@@ -181,6 +185,44 @@ function editGameModeUnwritablePublicDisk(): void
     Storage::set('public', new FilesystemAdapter(new Flysystem($adapter), $adapter, $fake->getConfig()));
 }
 
+/**
+ * Turn the cover picked on a mounted edit form into what a Livewire temporary
+ * upload is in the browser: a file whose metadata is GONE once it is stored.
+ *
+ * ->set('cover_image', <file>) drives the real upload round trip
+ * (_startUpload → validateAndStore → _finishUpload), so the form holds a real
+ * TemporaryUploadedFile on the temporary disk. The test harness stores a
+ * `<hash>.json` sidecar next to it, and TemporaryUploadedFile::getSize() and
+ * ::getMimeType() answer from that sidecar only under runningUnitTests() — the
+ * branch that hides the production failure this guards. The helper strips
+ * `size` and `type` from the sidecar (the name stays: spatie derives the
+ * stored file name from it), so both reads take their production branch and
+ * read the temporary file itself.
+ *
+ * Storing the upload then behaves exactly as in production: spatie copies the
+ * file into the media collection and unlinks the temporary file, so every read
+ * of the upload AFTER it was stored fails with
+ * League\Flysystem\UnableToRetrieveMetadata.
+ */
+function editGameModeConsumableCover(Testable $form): void
+{
+    $upload = $form->get('cover_image');
+
+    if (! $upload instanceof TemporaryUploadedFile) {
+        throw new RuntimeException('Pick a cover image on the edit form before making it consumable.');
+    }
+
+    $disk = FileUploadConfiguration::storage();
+    $sidecar = FileUploadConfiguration::path($upload->getFilename().'.json');
+    $meta = json_decode((string) $disk->get($sidecar), true);
+
+    if (! is_array($meta) || ! isset($meta['size'], $meta['type'])) {
+        throw new RuntimeException('The metadata sidecar of the picked upload was not found: the Livewire upload harness changed.');
+    }
+
+    $disk->put($sidecar, json_encode(Arr::except($meta, ['size', 'type'])));
+}
+
 // ═══════════════════════════════════════════════════════════
 // (1) MOUNT — PRE-FILL
 // ═══════════════════════════════════════════════════════════
@@ -317,6 +359,22 @@ describe('EditGame — unlocked game', function () {
 
         expect($game->fresh()->gameSystems->pluck('id')->sort()->values()->all())
             ->toBe(collect([$first->id, $second->id])->sort()->values()->all());
+    });
+
+    it('uploads a cover through a full save and closes the form', function () {
+        Storage::fake('public');
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner);
+
+        editGameModeMounted($game)
+            ->set('cover_image', UploadedFile::fake()->image('cover.jpg', 800, 600))
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertDispatched('game-edit-saved')
+            ->assertSet('cover_image', null);
+
+        expect($game->fresh()->getFirstMedia('cover'))->not->toBeNull()
+            ->and($game->fresh()->name)->toBe('Board night');
     });
 });
 
@@ -455,7 +513,9 @@ describe('EditGame — locked game, free fields', function () {
             ->set('description', 'Now with snacks.')
             ->set('cover_image', UploadedFile::fake()->image('cover.jpg', 800, 600))
             ->call('save')
-            ->assertHasNoErrors();
+            ->assertHasNoErrors()
+            ->assertDispatched('game-edit-saved')
+            ->assertSet('cover_image', null);
 
         $fresh = $game->fresh();
         expect($fresh->getTranslation('name', 'en'))->toBe('Renamed night')
@@ -472,7 +532,9 @@ describe('EditGame — locked game, free fields', function () {
         editGameModeMounted($game)
             ->set('cover_image', UploadedFile::fake()->image('cover.jpg', 800, 600))
             ->call('saveCover')
-            ->assertHasNoErrors();
+            ->assertHasNoErrors()
+            ->assertDispatched('game-edit-saved')
+            ->assertSet('cover_image', null);
 
         expect($game->fresh()->getFirstMedia('cover'))->not->toBeNull()
             ->and($game->fresh()->name)->toBe('Board night');
@@ -505,6 +567,49 @@ describe('EditGame — locked game, free fields', function () {
 
         expect($game->fresh()->getFirstMedia('cover'))->not->toBeNull();
     });
+});
+
+// ═══════════════════════════════════════════════════════════
+// COVER UPLOAD — A STORED TEMPORARY FILE IS NEVER READ AGAIN (M084/S08-T01)
+// ═══════════════════════════════════════════════════════════
+
+//
+// In the browser a cover pick followed by Save answered HTTP 500 on every
+// run (S03 UAT, "Check 5 + 10"). The upload WAS stored — then storeCover()
+// logged the upload's mime type and size, and those reads hit the temporary
+// file spatie had just unlinked. The error left the form open with no message,
+// and the hero kept the old cover until a reload. A plain ->set('cover_image',
+// <file>) cannot see it: Livewire's test harness answers both reads from a
+// metadata sidecar instead of the file (editGameModeConsumableCover()).
+//
+
+describe('EditGame — cover upload', function () {
+    it('does not read the uploaded file after it was stored', function (bool $locked, string $action) {
+        Storage::fake('public');
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner);
+
+        if ($locked) {
+            editGameModeLock($game);
+        }
+
+        $form = editGameModeMounted($game)
+            ->set('cover_image', UploadedFile::fake()->image('cover.jpg', 800, 600));
+
+        editGameModeConsumableCover($form);
+
+        $form->call($action)
+            ->assertHasNoErrors()
+            ->assertDispatched('game-edit-saved')
+            ->assertSet('cover_image', null);
+
+        expect($game->fresh()->getFirstMedia('cover'))->not->toBeNull()
+            ->and($game->fresh()->name)->toBe('Board night');
+    })->with([
+        'unlocked game, full save' => [false, 'save'],
+        'locked game, full save' => [true, 'save'],
+        'locked game, saveCover()' => [true, 'saveCover'],
+    ]);
 });
 
 // ═══════════════════════════════════════════════════════════

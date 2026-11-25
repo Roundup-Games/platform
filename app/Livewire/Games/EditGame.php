@@ -658,7 +658,10 @@ class EditGame extends Component
         }
 
         try {
-            $this->game->addMedia($cover)->toMediaCollection('cover');
+            // The stored model, never the upload: toMediaCollection() copies a
+            // temporary upload and then unlinks it, so every later read of
+            // `$cover` (mime type, size) would hit a file that no longer exists.
+            $media = $this->game->addMedia($cover)->toMediaCollection('cover');
         } catch (Throwable $e) {
             Log::warning('Game cover image upload failed', [
                 'game_id' => $this->game->id,
@@ -676,8 +679,8 @@ class EditGame extends Component
         Log::info('Game cover image uploaded', [
             'game_id' => $this->game->id,
             'owner_id' => authenticatedUser()->id,
-            'mime' => $cover->getMimeType(),
-            'size' => $cover->getSize(),
+            'mime' => $media->mime_type,
+            'size' => $media->size,
         ]);
 
         return true;
