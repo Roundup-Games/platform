@@ -432,21 +432,21 @@ return [
     // Agreement lock (D313/D314, M084): Tier-1-Felder — Spielsystem, Datum, Dauer, Preis,
     // Kapazitätssenkung, Mindestspielerzahl, Ersatzbank-Modus, Sprache, öffentlich→privat —
     // sperren sich, sobald jemand beigetreten ist. Wird dort gezeigt, wo das Speichern abgelehnt wird.
-    'error_agreement_locked' => 'Das lässt sich seit einem Zusagenden nicht mehr ändern. Um die Runde zu ändern, sag sie ab und leg eine neue an.',
+    'error_agreement_locked' => 'Das lässt sich seit der ersten bestätigten Anmeldung nicht mehr ändern. Um die Runde zu ändern, sag sie ab und leg eine neue an.',
     // Eigentümer-Bearbeitungsmodus auf der Detailseite (D315/D314, M084/S03)
     'action_edit_game' => 'Runde bearbeiten',
     'action_save_game_changes' => 'Änderungen speichern',
     'action_save_cover_image' => 'Titelbild speichern',
     'content_current_cover_image' => 'Aktuelles Titelbild',
     // WARUM die Tier-1-Felder schreibgeschützt sind: einmal oben im Formular gezeigt.
-    'content_agreement_locked' => 'Seit einem Zusagenden am :date gesperrt. Um Runde, Datum oder Preis zu ändern, sag die Runde ab und leg eine neue an.',
+    'content_agreement_locked' => 'Seit der ersten bestätigten Anmeldung am :date gesperrt. Um Runde, Datum oder Preis zu ändern, sag die Runde ab und leg eine neue an.',
     'error_cover_image_upload_failed' => 'Das Titelbild konnte nicht gespeichert werden. Bitte versuch es erneut.',
     // Erneute Einladung bei einer Runde, die eine abgesagte ersetzt (D320/D321, M084/S06):
-    // Spielende werden eingeladen, nie übernommen — jede und jeder entscheidet selbst.
-    'content_roster_reinvite' => '{1} :count Spielende aus :replaced kann zu dieser Runde eingeladen werden. Diese Person wird nicht automatisch übernommen — sie entscheidet selbst.|[2,*] :count Spielende aus :replaced können zu dieser Runde eingeladen werden. Sie werden nicht automatisch übernommen — jede und jeder entscheidet selbst.',
-    'action_roster_reinvite' => 'Spielende der vorherigen Runde einladen',
+    // Spieler werden eingeladen, nie übernommen — jede und jeder entscheidet selbst.
+    'content_roster_reinvite' => '{1} :count Spieler aus :replaced kann zu dieser Runde eingeladen werden. Diese Person wird nicht automatisch übernommen — sie entscheidet selbst.|[2,*] :count Spieler aus :replaced können zu dieser Runde eingeladen werden. Diese Personen werden nicht automatisch übernommen — jede und jeder entscheidet selbst.',
+    'action_roster_reinvite' => 'Spieler der vorherigen Runde einladen',
     'flash_roster_reinvite' => 'Vorherige Runde: :invited eingeladen, :skipped nicht eingeladen.',
     'flash_roster_reinvite_reason_capacity' => 'Die Runde ist voll.',
-    'flash_roster_reinvite_reason_already' => 'Sie sind bereits Teil dieser Runde.',
-    'error_roster_reinvite_unavailable' => 'Die Spielenden der vorherigen Runde können nicht mehr eingeladen werden.',
+    'flash_roster_reinvite_reason_already' => 'Wer schon dabei ist, wird nicht erneut eingeladen.',
+    'error_roster_reinvite_unavailable' => 'Die Spieler der vorherigen Runde können nicht mehr eingeladen werden.',
 ];

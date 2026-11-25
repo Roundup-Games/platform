@@ -216,7 +216,7 @@ return [
     // The type's own name. No form shows it (the picker above labels each
     // type separately); ChangedFieldLabels names the column with it in
     // entity-update notifications.
-    'field_game_type' => 'Game Type',
+    'field_game_type' => 'Game type',
     'content_also_offering' => 'Also offering',
     'content_n_games_on_offer' => '{1}1 game on offer|[2,*]:count games on offer',
     'content_what_are_you_playing' => 'What are you playing?',
@@ -232,7 +232,7 @@ return [
     'field_comfort_notes' => 'Comfort Notes',
     // No form renders this field yet; ChangedFieldLabels names the column
     // with it in entity-update notifications.
-    'field_minimum_requirements' => 'Minimum Requirements',
+    'field_minimum_requirements' => 'Minimum requirements',
     'placeholder_game_description' => 'Describe the session…',
     'placeholder_game_name' => 'e.g. Dungeon Crawl Night',
     'placeholder_comfort_notes' => 'Any comfort notes for players?',
