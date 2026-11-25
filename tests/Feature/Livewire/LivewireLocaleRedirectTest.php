@@ -1,5 +1,14 @@
 <?php
 
+use App\Enums\GameStatus;
+use App\Enums\ParticipantRole;
+use App\Enums\ParticipantStatus;
+use App\Livewire\Games\CreateGame;
+use App\Livewire\Games\GamesPage;
+use App\Models\Game;
+use App\Models\GameParticipant;
+use App\Models\GameSystem;
+use App\Models\User;
 use App\Support\Livewire\RestoreLocaleUrlDefaults;
 use Illuminate\Support\Facades\URL;
 use Livewire\Component;
@@ -104,4 +113,62 @@ describe('RestoreLocaleUrlDefaults trusts only a locale the app offers', functio
         'a memo without a locale' => [[], 'en'],
         'a non-string locale' => [['locale' => ['de']], 'en'],
     ]);
+});
+
+// ── The reported flows — S05 Step 11 ──────────────────────────────────────
+//
+// The two redirects a real browser reported out of a German session. Each is
+// mounted the way a page load under /de/ leaves it, put through the state a
+// real update request is in, and then driven through its action — the same
+// three steps as the mechanism cases above, on the components that ship.
+
+/**
+ * A scheduled game starting in twelve hours (K014: relative to now) with its
+ * host on the roster — the fixture "Recreate with changes" needs.
+ */
+function livewireLocaleTestScheduledGame(User $host): Game
+{
+    $game = Game::factory()->create([
+        'owner_id' => $host->id,
+        'campaign_id' => null,
+        'name' => ['en' => 'Doors at eight'],
+        'status' => GameStatus::Scheduled->value,
+        'date_time' => now()->addHours(12),
+    ]);
+
+    GameParticipant::create([
+        'game_id' => $game->id,
+        'user_id' => $host->id,
+        'role' => ParticipantRole::Owner->value,
+        'status' => ParticipantStatus::Approved->value,
+    ]);
+
+    return $game->fresh();
+}
+
+describe('the reported flows — S05 Step 11', function () {
+    it('redirects "Recreate with changes" to the German create form, ?recreate= intact', function () {
+        $host = gameTestCreateUserWithPermission();
+        $game = livewireLocaleTestScheduledGame($host);
+        livewireLocaleTestSession('de');
+        $component = Livewire::actingAs($host)->test(GamesPage::class);
+        livewireLocaleTestUpdateRequest();
+        $component->call('recreateGame', $game->id)->assertRedirect('/de/games/create?recreate='.$game->id);
+        expect($game->fresh()->status)->toBe(GameStatus::Canceled);
+    });
+
+    it('redirects publishing to the German detail page of the new game', function () {
+        $host = gameTestCreateUserWithPermission();
+        $system = GameSystem::factory()->create(['name' => ['en' => 'Catan']]);
+        livewireLocaleTestSession('de');
+        $component = Livewire::actingAs($host)->test(CreateGame::class);
+        livewireLocaleTestUpdateRequest();
+        $component->call('selectType', 'board_game')
+            ->set('name', 'Board Game Night')
+            ->set('game_system_id', $system->id)
+            ->set('date_time', now()->addDay()->format('Y-m-d\TH:i'))
+            ->set('max_players', 4)
+            ->call('save')
+            ->assertRedirect('/de/dashboard/games/'.Game::query()->where('owner_id', $host->id)->sole()->id);
+    });
 });
