@@ -20,6 +20,7 @@ use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use League\Flysystem\Config;
 use League\Flysystem\Filesystem as Flysystem;
@@ -30,6 +31,12 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
+use Spatie\MediaLibrary\Conversions\FileManipulator;
+use Spatie\MediaLibrary\Conversions\Jobs\PerformConversionsJob;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Tests\Traits\CapturesLogRecords;
+
+uses(CapturesLogRecords::class);
 
 //
 // Guards the owner edit mode on the game detail page (M084/S03-T02, D315 + D314).
@@ -231,6 +238,65 @@ function editGameModeConsumableCover(Testable $form): void
     }
 
     $disk->put($sidecar, json_encode(Arr::except($meta, ['size', 'type'])));
+}
+
+/**
+ * The src of the hero <img> of a rendered detail page — null when the page
+ * renders no hero image. The detail page carries exactly one such backdrop
+ * (the blurred, aria-hidden hero), so the src read here is the hero's.
+ *
+ * The twin of editCampaignModeHeroImageSrc() in EditCampaignModeTest.php.
+ */
+function editGameModeHeroImageSrc(string $html): ?string
+{
+    return preg_match('/<img src="([^"]*)"[^>]*aria-hidden="true" fetchpriority="high">/', $html, $src) === 1
+        ? html_entity_decode($src[1], ENT_QUOTES)
+        : null;
+}
+
+/**
+ * Save a cover through the edit form with the conversion job left PENDING —
+ * the async shape of production — and return the stored media together with
+ * the parent detail page, already back in its read-only state the way the
+ * browser puts it right after the save (startEditing → game-edit-saved).
+ *
+ * Call Queue::fake() and Storage::fake('public') first: with the test suite's
+ * sync queue the conversion would be generated inside the save request.
+ *
+ * @return array{0: Media, 1: Testable}
+ */
+function editGameModeCoverSavedWithPendingConversion(bool $locked): array
+{
+    $owner = editGameModeOwner();
+    $game = editGameModeGame($owner);
+
+    if ($locked) {
+        editGameModeLock($game);
+    }
+
+    $form = editGameModeMounted($game)
+        ->set('cover_image', UploadedFile::fake()->image('cover.jpg', 800, 600));
+
+    editGameModeConsumableCover($form);
+
+    $form->call('save')
+        ->assertHasNoErrors()
+        ->assertDispatched('game-edit-saved');
+
+    $media = $game->fresh()->getFirstMedia('cover');
+
+    if (! $media instanceof Media) {
+        throw new RuntimeException('The cover was not stored.');
+    }
+
+    return [
+        $media,
+        Livewire::actingAs($owner)
+            ->test(GameDetail::class, ['id' => $game->id])
+            ->call('startEditing')
+            ->fireEvent('game-edit-saved')
+            ->assertSet('editing', false),
+    ];
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1396,4 +1462,70 @@ describe('GameDetail — edit mode', function () {
             ->assertSet('editSavedMessage', null)
             ->assertDontSee(__('games.flash_game_updated'));
     });
+});
+
+// ═══════════════════════════════════════════════════════════
+// COVER SAVE — THE HERO SHOWS THE NEW COVER WHILE THE CONVERSION JOB IS PENDING (M084/S08-T05)
+// ═══════════════════════════════════════════════════════════
+
+//
+// The hero reads resolveCoverUrl('hero'), and the 'hero' rendition is produced
+// by a QUEUED job: on a non-sync queue it lands seconds after the save — after
+// the game-edit-saved request has already re-rendered the page. While the
+// conversion file did not exist, rung 1 dropped to the representative system
+// cover or og-default.jpg (singleFile() had already deleted the previous cover)
+// and logged a cover.media_file_missing warning on every render in the window;
+// nothing re-rendered when the conversion landed, so the new cover showed only
+// after a reload. No test saw it: phpunit.xml runs the queue sync, so the
+// conversion was generated inside the save request.
+//
+
+describe('GameDetail — cover save', function () {
+    it('shows the NEW cover in the first render after a cover save while the conversion job is still pending', function (bool $locked) {
+        // The async shape of production: the conversion job is pushed and stays pending.
+        Queue::fake();
+        Storage::fake('public');
+        $this->captureLogRecords();
+
+        [$media, $parent] = editGameModeCoverSavedWithPendingConversion($locked);
+
+        // The conversion was pushed, not run: the original is on disk, the hero rendition is not.
+        Queue::assertPushed(PerformConversionsJob::class);
+
+        expect(file_exists($media->getPath()))->toBeTrue()
+            ->and(file_exists($media->getPath('hero')))->toBeFalse();
+
+        // The hero is the cover the owner just picked — the stored original —
+        // not the default asset or a system cover.
+        expect(editGameModeHeroImageSrc($parent->html(true)))->toBe($media->getUrl());
+
+        // A pending conversion is worker lag, not a takedown: nothing warns.
+        expect($this->logRecord('cover.media_file_missing'))->toBeNull();
+    })->with([
+        'unlocked game' => [false],
+        'locked game' => [true],
+    ]);
+
+    it('serves the hero rendition once the queued conversion job has run', function (bool $locked) {
+        // Serialized and restored the way the job crosses a real queue.
+        Queue::fake()->serializeAndRestore();
+        Storage::fake('public');
+
+        [$media, $parent] = editGameModeCoverSavedWithPendingConversion($locked);
+
+        // A worker picks the pushed job up and performs the conversions.
+        $job = Queue::pushed(PerformConversionsJob::class)->sole();
+
+        $job->handle(app(FileManipulator::class));
+
+        expect(file_exists($media->getPath('hero')))->toBeTrue();
+
+        // The next render (a later request, a reload) serves the rendition.
+        $parent->call('startEditing')->fireEvent('game-edit-saved')->assertSet('editing', false);
+
+        expect(editGameModeHeroImageSrc($parent->html(true)))->toBe($media->getUrl('hero'));
+    })->with([
+        'unlocked game' => [false],
+        'locked game' => [true],
+    ]);
 });
