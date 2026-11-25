@@ -8,16 +8,21 @@ use Illuminate\Support\Facades\URL;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Ensure URL::defaults(['locale' => ...]) is set for ALL requests.
+ * Guarantee a `locale` default for every route outside the {locale} prefix
+ * group, so route() never throws MissingRequiredParameterException there.
  *
- * The SetLocale middleware handles this for routes inside the {locale} prefix group,
- * but Livewire update endpoints (and other out-of-group routes) never pass through it.
- * Without URL::defaults(), any route() call in Blade templates during Livewire re-renders
- * throws MissingRequiredParameterException.
+ * {locale} is a required route parameter. SetLocale fills the default inside
+ * the group; Livewire update endpoints (and other out-of-group routes) never
+ * pass through it, and without a default any route() call in a Blade template
+ * during a Livewire re-render would throw.
  *
- * This middleware reads the locale from session (set by SetLocale on the initial page load)
- * and restores the defaults. It runs before SetLocale, so when SetLocale does fire it
- * simply overrides with the authoritative route parameter value.
+ * This is global middleware and runs before the `web` group's StartSession, so
+ * on a real request the session read below sees no started session: only the
+ * fallback locale is ever applied here. Inside the group SetLocale then
+ * overrides it with the authoritative URL parameter. Livewire update requests
+ * get the visitor's locale from App\Support\Livewire\RestoreLocaleUrlDefaults
+ * (M084/S09). The session read stays in place on purpose — removing or
+ * relocating it is a follow-up, outside this slice.
  */
 class EnsureLocaleDefaults
 {
