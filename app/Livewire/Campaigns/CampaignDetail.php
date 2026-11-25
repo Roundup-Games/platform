@@ -77,6 +77,14 @@ class CampaignDetail extends Component
      */
     public bool $editing = false;
 
+    /**
+     * The confirmation shown after an in-place save: this page's own state, set by
+     * the `campaign-edit-saved` listener and cleared when the owner edits again or
+     * cancels. Not a session flash — that listener runs in a second request, so a
+     * flash written by the edit form would be readable in that request only.
+     */
+    public ?string $editSavedMessage = null;
+
     public function mount(string $id): void
     {
         $campaign = Campaign::findOrFail($id);
@@ -126,13 +134,15 @@ class CampaignDetail extends Component
         }
 
         $this->editing = true;
+        $this->editSavedMessage = null;
     }
 
-    /** The edit form saved (or stored a cover): back to the read-only page. */
+    /** The edit form saved (or stored a cover): back to the read-only page, confirmation shown. */
     #[On('campaign-edit-saved')]
     public function stopEditing(): void
     {
         $this->editing = false;
+        $this->editSavedMessage = __('campaigns.flash_campaign_updated');
     }
 
     /** The edit form was cancelled: back to the read-only page, nothing written. */
@@ -140,6 +150,7 @@ class CampaignDetail extends Component
     public function cancelEditing(): void
     {
         $this->editing = false;
+        $this->editSavedMessage = null;
     }
 
     // ── Share Link Management ──────────────────────────

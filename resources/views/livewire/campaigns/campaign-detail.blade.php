@@ -134,6 +134,17 @@
             </div>
         @endif
 
+        {{-- Owner edit mode (M084/S08): the confirmation of an in-place save. This page's own
+             state (editSavedMessage), set by the campaign-edit-saved listener — a session
+             flash written by the edit form would be readable in that listener's request only.
+             No auto-hide: it stays until the owner edits again, cancels or reloads. --}}
+        @if($editSavedMessage)
+            <div class="rounded-xl bg-secondary-container p-4 flex items-center gap-3" role="status" aria-live="polite">
+                <span class="material-symbols-outlined text-on-secondary-container" aria-hidden="true">check_circle</span>
+                <p class="text-sm text-on-secondary-container">{{ $editSavedMessage }}</p>
+            </div>
+        @endif
+
         {{-- ── Tab nav (Overview | Journal) ────────────────────
              Journal pill renders only for viewers passing
              CampaignPolicy::viewJournal — the journal is member-gated even on

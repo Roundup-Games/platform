@@ -134,6 +134,14 @@ class GameDetail extends Component
     public bool $editing = false;
 
     /**
+     * The confirmation shown after an in-place save: this page's own state, set by
+     * the `game-edit-saved` listener and cleared when the owner edits again or
+     * cancels. Not a session flash — that listener runs in a second request, so a
+     * flash written by the edit form would be readable in that request only.
+     */
+    public ?string $editSavedMessage = null;
+
+    /**
      * Hides the roster-reinvite banner (D320): once the host acted on it, or dismissed it.
      * Component state only — a reload offers the banner again while someone is still left
      * to invite, because nobody is invited until the host does it.
@@ -940,13 +948,15 @@ class GameDetail extends Component
         }
 
         $this->editing = true;
+        $this->editSavedMessage = null;
     }
 
-    /** The edit form saved (or stored a cover): back to the read-only page. */
+    /** The edit form saved (or stored a cover): back to the read-only page, confirmation shown. */
     #[On('game-edit-saved')]
     public function stopEditing(): void
     {
         $this->editing = false;
+        $this->editSavedMessage = __('games.flash_game_updated');
     }
 
     /** The edit form was cancelled: back to the read-only page, nothing written. */
@@ -954,6 +964,7 @@ class GameDetail extends Component
     public function cancelEditing(): void
     {
         $this->editing = false;
+        $this->editSavedMessage = null;
     }
 
     // ── Roster re-invite (D320, D321) ─────────────────

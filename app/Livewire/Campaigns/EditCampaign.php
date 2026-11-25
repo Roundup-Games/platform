@@ -348,7 +348,6 @@ class EditCampaign extends Component
             return;
         }
 
-        session()->flash('success', __('campaigns.flash_campaign_updated'));
         $this->dispatch('campaign-edit-saved');
     }
 
@@ -361,7 +360,6 @@ class EditCampaign extends Component
         $this->validateOnly('cover_image');
 
         if ($this->storeCover()) {
-            session()->flash('success', __('campaigns.flash_campaign_updated'));
             $this->dispatch('campaign-edit-saved');
         }
     }

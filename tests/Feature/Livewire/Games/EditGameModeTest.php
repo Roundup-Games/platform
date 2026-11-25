@@ -1068,9 +1068,61 @@ describe('GameDetail — edit mode', function () {
             ->assertSet('editing', true)
             ->call('stopEditing')
             ->assertSet('editing', false)
+            ->assertSet('editSavedMessage', __('games.flash_game_updated'))
             ->call('startEditing')
             ->assertSet('editing', true)
             ->call('cancelEditing')
-            ->assertSet('editing', false);
+            ->assertSet('editing', false)
+            ->assertSet('editSavedMessage', null);
+    });
+
+    it('carries no save confirmation on a fresh mount', function () {
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner);
+
+        Livewire::actingAs($owner)
+            ->test(GameDetail::class, ['id' => $game->id])
+            ->assertSet('editSavedMessage', null)
+            ->assertDontSee(__('games.flash_game_updated'));
+    });
+
+    it('shows the success message from its own state when the edit form announced a save', function () {
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner);
+
+        // fireEvent() is the browser relay: it calls __dispatch on the component, the
+        // entry point the child's dispatch() reaches with a SECOND request. The message
+        // must therefore live in this component's state — a session flash written by
+        // the child is readable in that request only and gone by the next one.
+        $component = Livewire::actingAs($owner)
+            ->test(GameDetail::class, ['id' => $game->id])
+            ->call('startEditing')
+            ->fireEvent('game-edit-saved')
+            ->assertSet('editing', false)
+            ->assertSet('editSavedMessage', __('games.flash_game_updated'))
+            ->assertSee(__('games.flash_game_updated'));
+
+        // Exactly one banner in the rendered markup — the state one. html(true) is the
+        // same snapshot-stripped view assertSee() reads, so the count sees banners only.
+        expect(substr_count($component->html(true), e(__('games.flash_game_updated'))))->toBe(1);
+    });
+
+    it('clears the save confirmation when the owner edits again and shows none after a cancel', function () {
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner);
+
+        Livewire::actingAs($owner)
+            ->test(GameDetail::class, ['id' => $game->id])
+            ->call('startEditing')
+            ->fireEvent('game-edit-saved')
+            ->assertSee(__('games.flash_game_updated'))
+            ->call('startEditing')
+            ->assertSet('editing', true)
+            ->assertSet('editSavedMessage', null)
+            ->assertDontSee(__('games.flash_game_updated'))
+            ->fireEvent('game-edit-cancelled')
+            ->assertSet('editing', false)
+            ->assertSet('editSavedMessage', null)
+            ->assertDontSee(__('games.flash_game_updated'));
     });
 });

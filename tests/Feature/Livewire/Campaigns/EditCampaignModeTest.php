@@ -844,9 +844,61 @@ describe('CampaignDetail — edit mode', function () {
             ->assertSet('editing', true)
             ->call('stopEditing')
             ->assertSet('editing', false)
+            ->assertSet('editSavedMessage', __('campaigns.flash_campaign_updated'))
             ->call('startEditing')
             ->assertSet('editing', true)
             ->call('cancelEditing')
-            ->assertSet('editing', false);
+            ->assertSet('editing', false)
+            ->assertSet('editSavedMessage', null);
+    });
+
+    it('carries no save confirmation on a fresh mount', function () {
+        $owner = editCampaignModeOwner();
+        $campaign = editCampaignModeCampaign($owner);
+
+        Livewire::actingAs($owner)
+            ->test(CampaignDetail::class, ['id' => $campaign->id])
+            ->assertSet('editSavedMessage', null)
+            ->assertDontSee(__('campaigns.flash_campaign_updated'));
+    });
+
+    it('shows the success message from its own state when the edit form announced a save', function () {
+        $owner = editCampaignModeOwner();
+        $campaign = editCampaignModeCampaign($owner);
+
+        // fireEvent() is the browser relay: it calls __dispatch on the component, the
+        // entry point the child's dispatch() reaches with a SECOND request. The message
+        // must therefore live in this component's state — a session flash written by
+        // the child is readable in that request only and gone by the next one.
+        $component = Livewire::actingAs($owner)
+            ->test(CampaignDetail::class, ['id' => $campaign->id])
+            ->call('startEditing')
+            ->fireEvent('campaign-edit-saved')
+            ->assertSet('editing', false)
+            ->assertSet('editSavedMessage', __('campaigns.flash_campaign_updated'))
+            ->assertSee(__('campaigns.flash_campaign_updated'));
+
+        // Exactly one banner in the rendered markup — the state one. html(true) is the
+        // same snapshot-stripped view assertSee() reads, so the count sees banners only.
+        expect(substr_count($component->html(true), e(__('campaigns.flash_campaign_updated'))))->toBe(1);
+    });
+
+    it('clears the save confirmation when the owner edits again and shows none after a cancel', function () {
+        $owner = editCampaignModeOwner();
+        $campaign = editCampaignModeCampaign($owner);
+
+        Livewire::actingAs($owner)
+            ->test(CampaignDetail::class, ['id' => $campaign->id])
+            ->call('startEditing')
+            ->fireEvent('campaign-edit-saved')
+            ->assertSee(__('campaigns.flash_campaign_updated'))
+            ->call('startEditing')
+            ->assertSet('editing', true)
+            ->assertSet('editSavedMessage', null)
+            ->assertDontSee(__('campaigns.flash_campaign_updated'))
+            ->fireEvent('campaign-edit-cancelled')
+            ->assertSet('editing', false)
+            ->assertSet('editSavedMessage', null)
+            ->assertDontSee(__('campaigns.flash_campaign_updated'));
     });
 });

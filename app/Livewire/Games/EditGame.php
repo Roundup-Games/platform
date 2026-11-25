@@ -421,7 +421,6 @@ class EditGame extends Component
             return;
         }
 
-        session()->flash('success', __('games.flash_game_updated'));
         $this->dispatch('game-edit-saved');
     }
 
@@ -434,7 +433,6 @@ class EditGame extends Component
         $this->validateOnly('cover_image');
 
         if ($this->storeCover()) {
-            session()->flash('success', __('games.flash_game_updated'));
             $this->dispatch('game-edit-saved');
         }
     }
