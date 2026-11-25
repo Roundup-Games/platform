@@ -94,6 +94,16 @@ function createGameFormFieldInventory(): array
             'labels' => ['common.content_vibe_flags'],
             'html' => ['wire:name="components.vibe-preference-picker"'],
         ],
+        // Descriptors for every game type (D325): the system picker autofills both
+        // from the BGG weight, so both must be on screen whatever the type.
+        'experience_level' => [
+            'labels' => ['discovery.content_experience_level'],
+            'html' => ['wire:model="experience_level"'],
+        ],
+        'complexity' => [
+            'labels' => ['games.content_complexity_1_5'],
+            'html' => ['wire:model="complexity"'],
+        ],
 
         // ── Board game + TTRPG ───────────────────────────
         'game_system_id' => [
@@ -113,11 +123,6 @@ function createGameFormFieldInventory(): array
         ],
 
         // ── TTRPG only ───────────────────────────────────
-        'experience_level' => [
-            'labels' => ['discovery.content_experience_level'],
-            'html' => ['wire:model="experience_level"'],
-            'types' => [GameType::Ttrpg],
-        ],
         'safety_rules' => [
             'labels' => ['safety.content_safety_tools'],
             'html' => ['wire:key="game-safety-picker-ttrpg"'],
@@ -156,7 +161,6 @@ function createGameFormFieldInventory(): array
 function createGameFormRuleOnlyFields(): array
 {
     return [
-        'complexity',
         'minimum_requirements',
     ];
 }
@@ -302,12 +306,15 @@ function createGameFormInvalidInput(GameType $type, GameSystem $system): array
         'max_players' => 1,
         'language' => 'xx',
         'visibility' => 'nope',
+        // Above the game rule's max:5, for every type (D325).
+        'complexity' => '6',
     ];
 
     return match ($type) {
         GameType::BoardGame => $input + [
             'comfort_notes' => str_repeat('c', 1001),
             'min_reliability_preference' => '101',
+            'experience_level' => 'nope',
         ],
         GameType::Ttrpg => $input + [
             'experience_level' => 'nope',
@@ -316,6 +323,7 @@ function createGameFormInvalidInput(GameType $type, GameSystem $system): array
         GameType::Gathering => $input + [
             'host_note' => str_repeat('h', 1001),
             'game_systems' => array_fill(0, 7, $system->id),
+            'experience_level' => 'nope',
         ],
     };
 }
@@ -328,11 +336,12 @@ function createGameFormInlineErrorFields(GameType $type): array
     $fields = [
         'name', 'description', 'cover_image', 'date_time', 'signup_cutoff_at', 'price',
         'min_players', 'max_players', 'language', 'visibility',
+        'experience_level', 'complexity',
     ];
 
     return match ($type) {
         GameType::BoardGame => [...$fields, 'comfort_notes', 'min_reliability_preference'],
-        GameType::Ttrpg => [...$fields, 'experience_level', 'min_reliability_preference'],
+        GameType::Ttrpg => [...$fields, 'min_reliability_preference'],
         GameType::Gathering => [...$fields, 'host_note', 'game_systems'],
     };
 }

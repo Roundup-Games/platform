@@ -17,7 +17,8 @@ use RuntimeException;
  *
  * The service owns everything that happens AFTER the Livewire component has
  * authorized the user, validated the form, and built its translatable values:
- * the bench-mode GM gate, gathering field scrubbing, pivot canonicalization,
+ * the bench-mode GM gate, the gathering scrub (bench mode and reliability only),
+ * pivot canonicalization,
  * the create transaction (model + owner participant + canonical pivot sync +
  * the zero-offered-system invariant), the cover upload, and the GM short
  * link. Components keep authorization, validation, Livewire error feedback,
@@ -99,10 +100,11 @@ class SessionCreationService
             $benchMode = false;
         }
 
-        // Gatherings are multi-system social sessions: force complexity/bench/
-        // reliability clean so the warm form can't persist GM-complexity state.
+        // Gatherings are multi-system social sessions: the bench switch and the
+        // reliability preference are not on the gathering form, so they are forced
+        // clean. The complexity IS on that form (D325): the value the host typed is kept.
         $isGathering = ($validated['game_type'] ?? null) === 'gathering';
-        $complexity = $isGathering ? null : $draft['complexity'];
+        $complexity = $draft['complexity'];
         $minReliabilityPreference = $isGathering ? null : ($draft['min_reliability_preference'] ?? null);
         $benchMode = $isGathering ? false : $benchMode;
 

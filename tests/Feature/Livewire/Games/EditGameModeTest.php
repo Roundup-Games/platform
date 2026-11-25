@@ -157,6 +157,16 @@ function editGameModeFieldDisabled(string $html, string $id): bool
     return (bool) preg_match('/<(?:input|select)[^>]*\bid="'.preg_quote($id, '/').'"[^>]*\bdisabled/', $html);
 }
 
+/**
+ * The opening tag of the input or select carrying the given id — null when the
+ * form does not render that field. Lets a case pin the wire:model of one field
+ * without depending on the attribute order the view happens to use.
+ */
+function editGameModeFieldTag(string $html, string $id): ?string
+{
+    return preg_match('/<(?:input|select)\b[^>]*\bid="'.preg_quote($id, '/').'"[^>]*>/', $html, $tag) === 1 ? $tag[0] : null;
+}
+
 function editGameModeMounted(Game $game, ?User $as = null)
 {
     return Livewire::actingAs($as ?? $game->owner)
@@ -1010,6 +1020,142 @@ describe('EditGame — game type is not switchable', function () {
             ->and(editGameModeChangedFields($game))->toBe([]);
 
         Notification::assertNothingSentTo($member->user);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// DESCRIPTORS FOR EVERY GAME TYPE (M084/S08-T03, D325)
+// ═══════════════════════════════════════════════════════════
+
+//
+// In the browser a game-system change on the edit form wrote experience_level
+// and complexity without the owner ever seeing them: BuildsSessionForm
+// autofills both from the system's BGG weight whenever they are unset, but the
+// shared _hosting partial rendered experience level for TTRPG only and
+// complexity for no type at all (S03 UAT, "Check 3"). Decision D325: both are
+// visible, editable fields for EVERY game type — in the shared partial, so the
+// create form shows them too — and nothing the form shows is silently dropped.
+//
+
+describe('EditGame — descriptors for every game type', function () {
+    it('renders experience level and complexity for every game type, enabled on a locked game', function (GameType $type, bool $locked) {
+        $owner = editGameModeOwner();
+        // A fixture override rather than the gathering() state: the factory's
+        // default single-system attach then serves every type, focused ones too.
+        $game = editGameModeGame($owner, ['game_type' => $type->value]);
+
+        if ($locked) {
+            editGameModeLock($game);
+        }
+
+        $html = editGameModeMounted($game)
+            ->assertSet('game_type', $type->value)
+            ->html();
+
+        foreach (['game-experience' => 'experience_level', 'game-complexity' => 'complexity'] as $id => $property) {
+            $tag = editGameModeFieldTag($html, $id);
+
+            // Rendered exactly once, and the element carrying the id is the one
+            // bound to the property. (->not negates only the assertion that follows
+            // it, so the negation is written as a statement of its own.)
+            expect($tag)->not->toBeNull("field [{$id}] is not rendered for [{$type->value}]");
+
+            expect($tag)->toContain('wire:model="'.$property.'"')
+                ->and(substr_count($html, 'id="'.$id.'"'))->toBe(1)
+                ->and(substr_count($html, 'wire:model="'.$property.'"'))->toBe(1)
+                // Both are Tier 3: the agreement lock never disables a descriptor.
+                ->and(editGameModeFieldDisabled($html, $id))->toBeFalse("field [{$id}] should stay enabled");
+        }
+
+        // The form is a real <form wire:submit> with a submit button, so the BROWSER validates
+        // before Livewire sees anything. The autofill writes a two-decimal BGG weight
+        // (2.37, 2.15 …): on a coarser step grid the input is invalid and the submit event
+        // never fires — Save would do nothing but show a native tooltip (verified in a
+        // browser: step="0.25" + 2.37 → 0 submits). min/max mirror the rule
+        // 'nullable|numeric|min:0|max:5'.
+        expect(editGameModeFieldTag($html, 'game-complexity'))->toContain('step="0.01"')
+            ->toContain('min="0"')
+            ->toContain('max="5"');
+    })->with([
+        'board game' => [GameType::BoardGame, false],
+        'locked board game' => [GameType::BoardGame, true],
+        'ttrpg' => [GameType::Ttrpg, false],
+        'locked ttrpg' => [GameType::Ttrpg, true],
+        'gathering' => [GameType::Gathering, false],
+        'locked gathering' => [GameType::Gathering, true],
+    ]);
+
+    it('autofills unset descriptors visibly on a system change and reports exactly what the form shows', function () {
+        Notification::fake();
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner, ['experience_level' => null, 'complexity' => null]);
+        // BGG weight 3.75 is above 3.5: the autofill answers "advanced" and 3.75.
+        $system = GameSystem::factory()->create(['bgg_average_weight' => '3.75']);
+
+        $component = editGameModeMounted($game)
+            ->assertSet('experience_level', null)
+            ->assertSet('complexity', null)
+            ->set('game_system_id', $system->id)
+            ->assertSet('experience_level', 'advanced')
+            ->assertSet('complexity', '3.75');
+
+        // What the save is about to write is on screen: both inputs are rendered.
+        $html = $component->html();
+
+        expect(editGameModeFieldTag($html, 'game-experience'))->toContain('wire:model="experience_level"');
+        expect(editGameModeFieldTag($html, 'game-complexity'))->toContain('wire:model="complexity"');
+
+        $component->call('save')->assertHasNoErrors()->assertDispatched('game-edit-saved');
+
+        expect($game->fresh()->gameSystems->pluck('id')->all())->toBe([$system->id])
+            ->and($game->fresh()->experience_level)->toBe('advanced')
+            ->and($game->fresh()->complexity)->toBe('3.75');
+
+        // The pivot is excluded from changed_fields by design; the two descriptor
+        // columns are all that is reported — exactly what the form shows.
+        expect(editGameModeChangedFields($game))->toHaveCount(1)
+            ->and(collect(editGameModeChangedFields($game)[0])->sort()->values()->all())->toBe(['complexity', 'experience_level']);
+    });
+
+    it('lets a descriptor the owner corrected win over the autofill', function () {
+        Notification::fake();
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner, ['experience_level' => null, 'complexity' => null]);
+        $system = GameSystem::factory()->create(['bgg_average_weight' => '3.75']);
+
+        editGameModeMounted($game)
+            ->set('game_system_id', $system->id)
+            ->assertSet('experience_level', 'advanced')
+            ->assertSet('complexity', '3.75')
+            ->set('experience_level', 'beginner')
+            ->set('complexity', '2.5')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        // The autofill is a suggestion: the values on the form when Save is
+        // pressed are the ones stored.
+        expect($game->fresh()->experience_level)->toBe('beginner')
+            ->and($game->fresh()->complexity)->toBe('2.50')
+            ->and(editGameModeChangedFields($game))->toBe([['experience_level', 'complexity']]);
+    });
+
+    it('saves a typed complexity on a gathering game', function () {
+        Notification::fake();
+        $owner = editGameModeOwner();
+        $game = editGameModeGame($owner, ['game_type' => GameType::Gathering->value, 'complexity' => null]);
+
+        editGameModeMounted($game)
+            ->assertSet('game_type', 'gathering')
+            ->assertSet('complexity', null)
+            ->set('complexity', '2.5')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertDispatched('game-edit-saved');
+
+        // The gathering form shows the complexity input, so the write path no
+        // longer drops what the owner typed.
+        expect($game->fresh()->complexity)->toBe('2.50')
+            ->and(editGameModeChangedFields($game))->toBe([['complexity']]);
     });
 });
 

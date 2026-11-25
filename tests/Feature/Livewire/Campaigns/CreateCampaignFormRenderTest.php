@@ -96,6 +96,15 @@ function createCampaignFormFieldInventory(): array
             'labels' => ['common.content_vibe_flags'],
             'html' => ['wire:name="components.vibe-preference-picker"'],
         ],
+        // Descriptors for every game type (D325).
+        'experience_level' => [
+            'labels' => ['discovery.content_experience_level'],
+            'html' => ['wire:model="experience_level"'],
+        ],
+        'complexity' => [
+            'labels' => ['games.content_complexity_1_5'],
+            'html' => ['wire:model="complexity"'],
+        ],
 
         // ── Board game + TTRPG ───────────────────────────
         'game_system_id' => [
@@ -108,18 +117,8 @@ function createCampaignFormFieldInventory(): array
             'html' => ['role="switch"'],
             'types' => [GameType::BoardGame, GameType::Ttrpg],
         ],
-        'complexity' => [
-            'labels' => ['games.content_complexity_1_5'],
-            'html' => ['wire:model="complexity"'],
-            'types' => [GameType::BoardGame, GameType::Ttrpg],
-        ],
 
         // ── TTRPG only ───────────────────────────────────
-        'experience_level' => [
-            'labels' => ['discovery.content_experience_level'],
-            'html' => ['wire:model="experience_level"'],
-            'types' => [GameType::Ttrpg],
-        ],
         'safety_rules' => [
             'labels' => ['safety.content_safety_tools'],
             'html' => ['wire:key="campaign-safety-picker-ttrpg"'],
@@ -298,7 +297,11 @@ function createCampaignFormInvalidInput(GameType $type, GameSystem $system): arr
     ];
 
     return match ($type) {
-        GameType::BoardGame => $input + ['complexity' => '0.5'],
+        GameType::BoardGame => $input + [
+            'experience_level' => 'nope',
+            // Below the campaign rule's min:1.
+            'complexity' => '0.5',
+        ],
         GameType::Ttrpg => $input + [
             'experience_level' => 'nope',
             'complexity' => '9',
@@ -306,6 +309,8 @@ function createCampaignFormInvalidInput(GameType $type, GameSystem $system): arr
         GameType::Gathering => $input + [
             'host_note' => str_repeat('h', 1001),
             'game_systems' => array_fill(0, 7, $system->id),
+            'experience_level' => 'nope',
+            'complexity' => '9',
         ],
     };
 }
@@ -318,11 +323,11 @@ function createCampaignFormInlineErrorFields(GameType $type): array
     $fields = [
         'name', 'description', 'cover_image', 'recurrence', 'time_of_day', 'session_duration',
         'price_per_session', 'max_players', 'language', 'visibility',
+        'experience_level', 'complexity',
     ];
 
     return match ($type) {
-        GameType::BoardGame => [...$fields, 'complexity'],
-        GameType::Ttrpg => [...$fields, 'experience_level', 'complexity'],
+        GameType::BoardGame, GameType::Ttrpg => $fields,
         GameType::Gathering => [...$fields, 'host_note', 'game_systems'],
     };
 }

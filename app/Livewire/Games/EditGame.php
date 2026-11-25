@@ -532,6 +532,8 @@ class EditGame extends Component
             'min_players' => $validated['min_players'] ?? 2,
             'max_players' => $validated['max_players'],
             'experience_level' => $validated['experience_level'],
+            // A descriptor for EVERY game type (D325): the form shows it for gatherings too.
+            'complexity' => $this->complexity !== null && $this->complexity !== '' && $this->complexity !== '0' ? $this->complexity : null,
             'vibe_flags' => $vibeFlags !== [] ? $vibeFlags : null,
         ];
 
@@ -547,11 +549,10 @@ class EditGame extends Component
                 : null;
         }
 
-        // Server-side canonicalization of the create path (SessionCreationService::create):
-        // a gathering carries no complexity, bench mode or reliability preference; bench
-        // mode is a GM setting, so a non-GM's form never writes it (the stored value stands).
+        // The attendance tolerance is not on a gathering's form, so an edit of a gathering
+        // never writes it (the stored value stands). Bench mode is a GM setting, so a
+        // non-GM's form never writes it either (the stored value stands).
         if (! $isGathering) {
-            $changes['complexity'] = $this->complexity !== null && $this->complexity !== '' && $this->complexity !== '0' ? $this->complexity : null;
             $changes['min_reliability_preference'] = $validated['min_reliability_preference'] !== null && $validated['min_reliability_preference'] !== '' && $validated['min_reliability_preference'] !== '0'
                 ? $validated['min_reliability_preference']
                 : null;

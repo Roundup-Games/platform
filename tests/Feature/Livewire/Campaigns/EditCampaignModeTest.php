@@ -2,6 +2,7 @@
 
 use App\Enums\ActivityType;
 use App\Enums\CampaignStatus;
+use App\Enums\GameType;
 use App\Enums\ParticipantStatus;
 use App\Enums\Visibility;
 use App\Livewire\Campaigns\CampaignDetail;
@@ -89,6 +90,18 @@ function editCampaignModeLock(Campaign $campaign): CampaignParticipant
 function editCampaignModeFieldDisabled(string $html, string $id): bool
 {
     return (bool) preg_match('/<(?:input|select)[^>]*\bid="'.preg_quote($id, '/').'"[^>]*\bdisabled/', $html);
+}
+
+/**
+ * The opening tag of the input or select carrying the given id — null when the
+ * form does not render that field. Lets a case pin the wire:model of one field
+ * without depending on the attribute order the view happens to use.
+ *
+ * The twin of editGameModeFieldTag() in EditGameModeTest.php.
+ */
+function editCampaignModeFieldTag(string $html, string $id): ?string
+{
+    return preg_match('/<(?:input|select)\b[^>]*\bid="'.preg_quote($id, '/').'"[^>]*>/', $html, $tag) === 1 ? $tag[0] : null;
 }
 
 function editCampaignModeMounted(Campaign $campaign, ?User $as = null)
@@ -786,6 +799,79 @@ describe('EditCampaign — lifecycle guard', function () {
 
         expect($campaign->fresh()->getTranslation('name', 'en'))->toBe('Shadows of Waterdeep')
             ->and(editCampaignModeChangedFields($campaign))->toBe([]);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════
+// DESCRIPTORS FOR EVERY GAME TYPE (M084/S08-T03, D325)
+// ═══════════════════════════════════════════════════════════
+
+//
+// The campaign twin of the game block: the shared _hosting partial showed
+// experience level and complexity for TTRPG, complexity alone for a board game
+// and neither for a gathering. Decision D325: both are visible, editable fields
+// for EVERY game type, and nothing the form shows is silently dropped.
+//
+
+describe('EditCampaign — descriptors for every game type', function () {
+    it('renders experience level and complexity for every game type, enabled on a locked campaign', function (GameType $type, bool $locked) {
+        $owner = editCampaignModeOwner();
+        $campaign = editCampaignModeCampaign($owner, ['game_type' => $type->value]);
+
+        if ($locked) {
+            editCampaignModeLock($campaign);
+        }
+
+        $html = editCampaignModeMounted($campaign)
+            ->assertSet('game_type', $type->value)
+            ->html();
+
+        foreach (['campaign-experience' => 'experience_level', 'campaign-complexity' => 'complexity'] as $id => $property) {
+            $tag = editCampaignModeFieldTag($html, $id);
+
+            // Rendered exactly once, and the element carrying the id is the one
+            // bound to the property. (->not negates only the assertion that follows
+            // it, so the negation is written as a statement of its own.)
+            expect($tag)->not->toBeNull("field [{$id}] is not rendered for [{$type->value}]");
+
+            expect($tag)->toContain('wire:model="'.$property.'"')
+                ->and(substr_count($html, 'id="'.$id.'"'))->toBe(1)
+                ->and(substr_count($html, 'wire:model="'.$property.'"'))->toBe(1)
+                // Both are Tier 3: the agreement lock never disables a descriptor.
+                ->and(editCampaignModeFieldDisabled($html, $id))->toBeFalse("field [{$id}] should stay enabled");
+        }
+    })->with([
+        'board game' => [GameType::BoardGame, false],
+        'locked board game' => [GameType::BoardGame, true],
+        'ttrpg' => [GameType::Ttrpg, false],
+        'locked ttrpg' => [GameType::Ttrpg, true],
+        'gathering' => [GameType::Gathering, false],
+        'locked gathering' => [GameType::Gathering, true],
+    ]);
+
+    it('saves experience level and complexity on a gathering campaign', function () {
+        $owner = editCampaignModeOwner();
+        $campaign = editCampaignModeCampaign($owner, [
+            'game_type' => GameType::Gathering->value,
+            'experience_level' => null,
+            'complexity' => null,
+        ]);
+
+        editCampaignModeMounted($campaign)
+            ->assertSet('game_type', 'gathering')
+            ->assertSet('experience_level', null)
+            ->assertSet('complexity', null)
+            ->set('experience_level', 'intermediate')
+            ->set('complexity', '2.5')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertDispatched('campaign-edit-saved');
+
+        // The gathering form shows both inputs, so the write path stores both —
+        // and reports exactly those two columns.
+        expect($campaign->fresh()->experience_level)->toBe('intermediate')
+            ->and($campaign->fresh()->complexity)->toBe('2.50')
+            ->and(editCampaignModeChangedFields($campaign))->toBe([['experience_level', 'complexity']]);
     });
 });
 

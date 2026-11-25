@@ -453,6 +453,8 @@ class EditCampaign extends Component
             'min_players' => $validated['min_players'],
             'max_players' => $validated['max_players'],
             'experience_level' => $validated['experience_level'],
+            // A descriptor for EVERY game type (D325): the form shows it for gatherings too.
+            'complexity' => $validated['complexity'] ?? null,
             'vibe_flags' => $vibeFlags !== [] ? $vibeFlags : null,
         ];
 
@@ -468,12 +470,10 @@ class EditCampaign extends Component
             ? $validated['price_per_session']
             : 0;
 
-        // A gathering's form carries neither complexity nor the bench switch, so an
-        // edit of a gathering never writes them (the stored values stand). Bench
-        // mode is a GM setting: a non-GM's form never writes it either.
+        // A gathering's form carries no bench switch, so an edit of a gathering never
+        // writes it (the stored value stands). Bench mode is a GM setting: a non-GM's
+        // form never writes it either.
         if ($this->game_type !== 'gathering') {
-            $changes['complexity'] = $validated['complexity'] ?? null;
-
             if (authenticatedUser()->isGM()) {
                 $changes['bench_mode'] = $this->bench_mode;
             } elseif ($this->bench_mode !== $this->campaign->bench_mode) {
